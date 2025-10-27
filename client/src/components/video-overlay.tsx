@@ -41,8 +41,9 @@ export default function VideoOverlay({
   const [isAudioMuted, setIsAudioMuted] = useState(!settings.audioEnabled);
   const [isVideoOff, setIsVideoOff] = useState(!settings.videoEnabled);
   const [isPiPActive, setIsPiPActive] = useState(false);
+  const [expandedPeerId, setExpandedPeerId] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const popupWindowsRef = useRef<Map<string, Window>>(new Map());
+  const peerVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -122,176 +123,15 @@ export default function VideoOverlay({
       localStream.getTracks().forEach((track) => track.stop());
     }
     setIsPiPActive(false);
+    setExpandedPeerId(null);
     onDisconnect();
   };
 
-  const createBlankPopup = (peerId: string, index: number) => {
-    const popup = window.open(
-      '',
-      `pip_${peerId}`,
-      `width=400,height=320,left=${100 + index * 50},top=${100 + index * 50},resizable=yes,scrollbars=no,status=no,location=no,toolbar=no,menubar=no`
-    );
-    
-    if (popup && !popup.closed) {
-      const doc = popup.document;
-      doc.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Loading...</title>
-            <style>
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { font-family: system-ui, sans-serif; background: #0a0a0a; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; }
-              .loading { color: white; text-align: center; }
-              .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid white; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 12px; }
-              @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-            </style>
-          </head>
-          <body>
-            <div class="loading">
-              <div class="spinner"></div>
-              <p>Connecting...</p>
-            </div>
-          </body>
-        </html>
-      `);
-      doc.close();
-    }
-    
-    return popup;
-  };
-
-  const fillPopupWindow = (popup: Window, participant: { id: string; username: string; stream: MediaStream; isLocal: boolean; isMuted: boolean; isVideoOff: boolean }) => {
-    const doc = popup.document;
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${participant.username}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: system-ui, sans-serif; background: #0a0a0a; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-            .header { background: rgba(0,0,0,0.9); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); }
-            .username { color: white; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-            .status { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
-            @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-            .mute-indicator { color: #ef4444; font-size: 12px; padding: 4px 8px; background: rgba(239,68,68,0.1); border-radius: 4px; }
-            .video-container { flex: 1; background: #000; position: relative; display: flex; align-items: center; justify-content: center; }
-            video { width: 100%; height: 100%; object-fit: cover; }
-            .placeholder { text-align: center; color: #888; }
-            .placeholder-icon { font-size: 64px; width: 80px; height: 80px; margin: 0 auto 12px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="username"><span class="status"></span><span>${participant.username}</span></div>
-            ${participant.isMuted ? '<div class="mute-indicator">🔇 Muted</div>' : ''}
-          </div>
-          <div class="video-container">
-            ${participant.isVideoOff ? `<div class="placeholder"><div class="placeholder-icon">${participant.username.charAt(0).toUpperCase()}</div><div>Video Off</div></div>` : '<video id="video" autoplay playsinline></video>'}
-          </div>
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    if (!participant.isVideoOff && participant.stream) {
-      const video = doc.getElementById('video') as HTMLVideoElement;
-      if (video) {
-        video.srcObject = participant.stream;
-        video.muted = participant.isLocal;
-        video.play().catch(() => {});
-      }
-    }
-
-    popup.addEventListener('beforeunload', () => {
-      popupWindowsRef.current.delete(participant.id);
-      if (popupWindowsRef.current.size === 0) {
-        setIsPiPActive(false);
-      }
-    });
-  };
-
-  // Helper function to attach stream to an existing popup
-  const attachStreamToPopup = (peerId: string, stream: MediaStream) => {
-    const popup = popupWindowsRef.current.get(peerId);
-    if (popup && !popup.closed) {
-      const video = popup.document.getElementById('video') as HTMLVideoElement;
-      if (video) {
-        video.srcObject = stream;
-        video.play().catch(() => {});
-      }
-    }
-  };
-
   const togglePictureInPicture = () => {
-    if (isPiPActive) {
-      popupWindowsRef.current.forEach(popup => {
-        if (popup && !popup.closed) popup.close();
-      });
-      popupWindowsRef.current.clear();
-      setIsPiPActive(false);
-      return;
+    setIsPiPActive(!isPiPActive);
+    if (!isPiPActive) {
+      setExpandedPeerId(null);
     }
-
-    const allParticipants = [
-      ...(localStream ? [{
-        id: "local",
-        username: `${user.username} (You)`,
-        stream: localStream,
-        isLocal: true,
-        isMuted: isAudioMuted,
-        isVideoOff: isVideoOff,
-      }] : []),
-      ...peers.filter(p => p.stream).map(p => ({
-        id: p.id,
-        username: p.username,
-        stream: p.stream!,
-        isLocal: false,
-        isMuted: p.isMuted,
-        isVideoOff: p.isVideoOff,
-      })),
-    ];
-
-    // Step 1: Pre-open blank popups immediately (during user click)
-    let blockedCount = 0;
-    allParticipants.forEach((participant, index) => {
-      const popup = createBlankPopup(participant.id, index);
-      
-      if (!popup || popup.closed) {
-        blockedCount++;
-      } else {
-        popupWindowsRef.current.set(participant.id, popup);
-      }
-    });
-
-    if (blockedCount > 0) {
-      popupWindowsRef.current.forEach(popup => popup.close());
-      popupWindowsRef.current.clear();
-      toast({
-        title: "Popup Blocked",
-        description: "Please allow popups for this site to use PiP mode.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Step 2: Fill popups asynchronously when streams are ready
-    setTimeout(() => {
-      allParticipants.forEach((participant) => {
-        const popup = popupWindowsRef.current.get(participant.id);
-        if (popup && !popup.closed) {
-          fillPopupWindow(popup, participant);
-        }
-      });
-    }, 0);
-
-    setIsPiPActive(true);
-    toast({
-      title: "Floating PiP Active",
-      description: "Each participant has their own window that follows across tabs!",
-    });
   };
 
   return (
@@ -439,6 +279,137 @@ export default function VideoOverlay({
         />
       )}
 
+      {/* Compact Bottom Strip when PiP is active */}
+      {isPiPActive && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-black/95 dark:bg-black/95 border-t border-border dark:border-border shadow-2xl">
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
+              {/* Participant Videos in horizontal row */}
+              <div className="flex items-center gap-2 flex-1 overflow-x-auto">
+                {/* Local video */}
+                <div 
+                  className={`relative flex-shrink-0 cursor-pointer transition-all ${
+                    expandedPeerId === 'local' ? 'w-72 h-40' : 'w-20 h-20'
+                  }`}
+                  onClick={() => setExpandedPeerId(expandedPeerId === 'local' ? null : 'local')}
+                  data-testid="pip-video-local"
+                >
+                  <div className="w-full h-full rounded-lg overflow-hidden border-2 border-primary/50 dark:border-primary/50 relative">
+                    {isVideoOff ? (
+                      <div className="w-full h-full bg-muted dark:bg-muted flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="w-10 h-10 mx-auto mb-1 rounded-full bg-primary/20 dark:bg-primary/20 flex items-center justify-center">
+                            <span className="text-sm font-semibold">{user.username.charAt(0).toUpperCase()}</span>
+                          </div>
+                          {expandedPeerId === 'local' && <p className="text-xs text-muted-foreground dark:text-muted-foreground">Video off</p>}
+                        </div>
+                      </div>
+                    ) : (
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <div className="absolute bottom-1 left-1 right-1 bg-black/70 rounded px-2 py-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-white truncate flex-1">{user.username} (You)</span>
+                        {isAudioMuted && <MicOff className="w-3 h-3 text-red-500 ml-1" />}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Peer videos */}
+                {peers.filter(p => p.stream).map((peer) => (
+                  <div 
+                    key={peer.id}
+                    className={`relative flex-shrink-0 cursor-pointer transition-all ${
+                      expandedPeerId === peer.id ? 'w-72 h-40' : 'w-20 h-20'
+                    }`}
+                    onClick={() => setExpandedPeerId(expandedPeerId === peer.id ? null : peer.id)}
+                    data-testid={`pip-video-${peer.id}`}
+                  >
+                    <div className="w-full h-full rounded-lg overflow-hidden border-2 border-blue-500/50 dark:border-blue-500/50 relative">
+                      {peer.isVideoOff ? (
+                        <div className="w-full h-full bg-muted dark:bg-muted flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="w-10 h-10 mx-auto mb-1 rounded-full bg-blue-500/20 dark:bg-blue-500/20 flex items-center justify-center">
+                              <span className="text-sm font-semibold">{peer.username.charAt(0).toUpperCase()}</span>
+                            </div>
+                            {expandedPeerId === peer.id && <p className="text-xs text-muted-foreground dark:text-muted-foreground">Video off</p>}
+                          </div>
+                        </div>
+                      ) : (
+                        <video
+                          ref={(el) => {
+                            if (el && peer.stream) {
+                              el.srcObject = peer.stream;
+                              peerVideoRefs.current.set(peer.id, el);
+                            }
+                          }}
+                          autoPlay
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      <div className="absolute bottom-1 left-1 right-1 bg-black/70 rounded px-2 py-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-white truncate flex-1">{peer.username}</span>
+                          {peer.isMuted && <MicOff className="w-3 h-3 text-red-500 ml-1" />}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Controls */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button
+                  variant={isAudioMuted ? "destructive" : "secondary"}
+                  size="icon"
+                  onClick={toggleAudio}
+                  className="w-8 h-8"
+                  data-testid="pip-button-audio"
+                >
+                  {isAudioMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </Button>
+                <Button
+                  variant={isVideoOff ? "destructive" : "secondary"}
+                  size="icon"
+                  onClick={toggleVideo}
+                  className="w-8 h-8"
+                  data-testid="pip-button-video"
+                >
+                  {isVideoOff ? <VideoOff className="w-4 h-4" /> : <VideoIcon className="w-4 h-4" />}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={togglePictureInPicture}
+                  className="w-8 h-8"
+                  data-testid="pip-button-close"
+                >
+                  <Minimize2 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={handleDisconnect}
+                  className="w-8 h-8"
+                  data-testid="pip-button-disconnect"
+                >
+                  <Phone className="w-4 h-4 rotate-135" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Background Content */}
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 dark:from-background dark:to-muted/5 p-8">
         <div className="max-w-4xl mx-auto">
@@ -476,20 +447,20 @@ export default function VideoOverlay({
 
             <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-lg p-4">
               <p className="text-sm text-foreground dark:text-foreground mb-3">
-                <span className="font-semibold">💡 Enhanced Picture-in-Picture:</span> Click the PiP button to pop out ALL videos (including yourself) in a compact window with full controls!
+                <span className="font-semibold">💡 Compact PiP Mode:</span> Click the PiP button to show all videos in a small strip at the bottom of your screen!
               </p>
               <ul className="text-sm text-muted-foreground dark:text-muted-foreground space-y-1">
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
-                  <span>See yourself and all study partners together in one window</span>
+                  <span>All participants appear as small thumbnails at the bottom - won't block your lecture!</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
-                  <span>Toggle camera and mic directly from the PiP window</span>
+                  <span>Click on any video to expand it when you want to see faces clearly</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
-                  <span>Works across all tabs and apps - perfect for Physics Wallah, Unacademy, or any website!</span>
+                  <span>Perfect for watching Physics Wallah, Unacademy, or taking notes while staying connected!</span>
                 </li>
               </ul>
             </div>
