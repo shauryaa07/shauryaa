@@ -42,6 +42,8 @@ export default function VideoOverlay({
 
   useEffect(() => {
     if (videoRef.current && localStream) {
+      console.log('Setting local stream:', localStream);
+      console.log(`Local stream ID: ${localStream.id}, Video tracks:`, localStream.getVideoTracks());
       videoRef.current.srcObject = localStream;
     }
   }, [localStream]);

@@ -50,7 +50,9 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
       });
 
       peer.on("stream", (stream: MediaStream) => {
-        console.log(`Received stream from ${username}`);
+        console.log(`Received REMOTE stream from ${username}`);
+        console.log(`Remote stream ID: ${stream.id}, tracks:`, stream.getTracks());
+        console.log(`Is this the local stream? ${stream === localStream}`);
         setPeers((prev) => {
           const existing = prev.find((p) => p.id === peerId);
           if (existing) {

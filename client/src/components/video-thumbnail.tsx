@@ -25,9 +25,11 @@ export default function VideoThumbnail({
   // Handle peer stream
   useEffect(() => {
     if (!isLocal && stream && peerVideoRef.current) {
+      console.log(`Setting remote stream for ${username}:`, stream);
+      console.log(`Stream ID: ${stream.id}, Video tracks:`, stream.getVideoTracks());
       peerVideoRef.current.srcObject = stream;
     }
-  }, [isLocal, stream]);
+  }, [isLocal, stream, username]);
 
   const hasVideo = isLocal ? videoRef : (stream && peerVideoRef);
   const showPlaceholder = isVideoOff || !hasVideo;
@@ -64,18 +66,24 @@ export default function VideoThumbnail({
 
       {/* Username Label */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent backdrop-blur-sm p-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-white truncate flex items-center gap-1">
-            {gender && <span>{gender === "male" ? "👨" : "👩"}</span>}
-            {username} {isLocal && "(You)"}
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-white truncate flex items-center gap-1">
+              {gender && <span>{gender === "male" ? "👨" : "👩"}</span>}
+              {username} {isLocal && "(You)"}
+            </span>
+            
+            {/* Muted Indicator */}
+            {isMuted && (
+              <div className="flex items-center gap-1">
+                <MicOff className="w-3 h-3 text-red-400" />
+              </div>
+            )}
+          </div>
+          {/* Stream type indicator */}
+          <span className="text-[10px] text-white/70">
+            {isLocal ? "📹 Your Camera" : "📡 Partner's Camera"}
           </span>
-          
-          {/* Muted Indicator */}
-          {isMuted && (
-            <div className="flex items-center gap-1">
-              <MicOff className="w-3 h-3 text-red-400" />
-            </div>
-          )}
         </div>
       </div>
 
