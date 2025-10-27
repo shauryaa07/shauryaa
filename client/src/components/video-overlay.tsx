@@ -11,9 +11,11 @@ import {
   Phone,
   Minimize2,
   Maximize2,
+  PictureInPicture2,
 } from "lucide-react";
 import VideoThumbnail from "./video-thumbnail";
 import SettingsModal from "./settings-modal";
+import { useToast } from "@/hooks/use-toast";
 
 interface VideoOverlayProps {
   user: User;
@@ -38,7 +40,12 @@ export default function VideoOverlay({
   const [showSettings, setShowSettings] = useState(false);
   const [isAudioMuted, setIsAudioMuted] = useState(!settings.audioEnabled);
   const [isVideoOff, setIsVideoOff] = useState(!settings.videoEnabled);
+  const [isPiPActive, setIsPiPActive] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pipVideoRef = useRef<HTMLVideoElement>(null);
+  const animationFrameRef = useRef<number>();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (videoRef.current && localStream) {
@@ -72,7 +79,153 @@ export default function VideoOverlay({
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
     }
+    if (isPiPActive && pipVideoRef.current && document.pictureInPictureElement) {
+      document.exitPictureInPicture();
+    }
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
     onDisconnect();
+  };
+
+  const drawVideosToCanvas = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+
+    // Set canvas size
+    const videoCount = peers.length;
+    const cols = Math.ceil(Math.sqrt(videoCount));
+    const rows = Math.ceil(videoCount / cols);
+    
+    canvas.width = 640;
+    canvas.height = (640 / cols) * rows;
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const videoWidth = canvas.width / cols;
+    const videoHeight = canvas.height / rows;
+
+    // Draw each peer video
+    peers.forEach((peer, index) => {
+      if (!peer.stream) return;
+      
+      const videoElement = document.createElement('video');
+      videoElement.srcObject = peer.stream;
+      videoElement.play().catch(() => {});
+
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+      const x = col * videoWidth;
+      const y = row * videoHeight;
+
+      try {
+        ctx.drawImage(videoElement, x, y, videoWidth, videoHeight);
+        
+        // Draw username label
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(x, y + videoHeight - 30, videoWidth, 30);
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Arial';
+        ctx.fillText(`${peer.gender === 'male' ? '👨' : '👩'} ${peer.username}`, x + 10, y + videoHeight - 10);
+      } catch (err) {
+        // Video not ready yet
+      }
+    });
+
+    if (isPiPActive) {
+      animationFrameRef.current = requestAnimationFrame(drawVideosToCanvas);
+    }
+  };
+
+  const togglePictureInPicture = async () => {
+    try {
+      if (!document.pictureInPictureEnabled) {
+        toast({
+          title: "Not Supported",
+          description: "Picture-in-Picture is not supported in your browser",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (peers.length === 0) {
+        toast({
+          title: "No Videos",
+          description: "No study partners connected to show in PiP mode",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        setIsPiPActive(false);
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+        return;
+      }
+
+      // For single peer, use their video directly
+      if (peers.length === 1 && peers[0].stream) {
+        const videoElement = pipVideoRef.current;
+        if (videoElement) {
+          videoElement.srcObject = peers[0].stream;
+          await videoElement.play();
+          await videoElement.requestPictureInPicture();
+          setIsPiPActive(true);
+          
+          videoElement.addEventListener('leavepictureinpicture', () => {
+            setIsPiPActive(false);
+          }, { once: true });
+
+          toast({
+            title: "Picture-in-Picture Active",
+            description: "Video will stay on top of all tabs and apps!",
+          });
+        }
+      } else {
+        // For multiple peers, use canvas
+        const canvas = canvasRef.current;
+        const videoElement = pipVideoRef.current;
+        
+        if (canvas && videoElement) {
+          // Draw initial frame
+          drawVideosToCanvas();
+          
+          // Create stream from canvas
+          const stream = canvas.captureStream(30);
+          videoElement.srcObject = stream;
+          await videoElement.play();
+          await videoElement.requestPictureInPicture();
+          setIsPiPActive(true);
+
+          // Continue updating canvas
+          drawVideosToCanvas();
+
+          videoElement.addEventListener('leavepictureinpicture', () => {
+            setIsPiPActive(false);
+            if (animationFrameRef.current) {
+              cancelAnimationFrame(animationFrameRef.current);
+            }
+          }, { once: true });
+
+          toast({
+            title: "Picture-in-Picture Active",
+            description: "All study partners visible across all tabs!",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('PiP error:', error);
+      toast({
+        title: "PiP Failed",
+        description: "Could not activate Picture-in-Picture mode",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -160,6 +313,17 @@ export default function VideoOverlay({
                   </Button>
 
                   <Button
+                    variant={isPiPActive ? "default" : "secondary"}
+                    size="icon"
+                    onClick={togglePictureInPicture}
+                    className="w-9 h-9"
+                    aria-label="Picture-in-Picture"
+                    data-testid="button-pip"
+                  >
+                    <PictureInPicture2 className="w-4 h-4" />
+                  </Button>
+
+                  <Button
                     variant="secondary"
                     size="icon"
                     onClick={() => setShowSettings(true)}
@@ -233,12 +397,16 @@ export default function VideoOverlay({
 
             <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-lg p-4">
               <p className="text-sm text-foreground dark:text-foreground">
-                <span className="font-semibold">💡 Pro Tip:</span> Open your online class (Physics Wallah, Unacademy, etc.) in a new tab, and the overlay will appear on top so you can study together!
+                <span className="font-semibold">💡 Pro Tip:</span> Click the Picture-in-Picture button to pop out the video and watch your study partners while browsing Physics Wallah, Unacademy, or any other tab!
               </p>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Hidden elements for Picture-in-Picture */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+      <video ref={pipVideoRef} style={{ display: 'none' }} muted playsInline />
     </>
   );
 }
