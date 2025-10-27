@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import Draggable from "react-draggable";
-import { User, Preference, Settings, PeerConnection } from "@shared/schema";
+import { User, Settings, PeerConnection } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
   Mic,
@@ -19,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 
 interface VideoOverlayProps {
   user: User;
-  preferences: Preference;
   settings: Settings;
   onSettingsChange: (settings: Settings) => void;
   onDisconnect: () => void;
@@ -29,7 +28,6 @@ interface VideoOverlayProps {
 
 export default function VideoOverlay({
   user,
-  preferences,
   settings,
   onSettingsChange,
   onDisconnect,
@@ -510,7 +508,6 @@ export default function VideoOverlay({
                   {/* User's own video */}
                   <VideoThumbnail
                     username={`${user.username} (You)`}
-                    gender={user.gender}
                     isLocal={true}
                     isMuted={isAudioMuted}
                     isVideoOff={isVideoOff}
@@ -522,7 +519,6 @@ export default function VideoOverlay({
                     <VideoThumbnail
                       key={peer.id}
                       username={peer.username}
-                      gender={peer.gender}
                       isLocal={false}
                       isMuted={peer.isMuted}
                       isVideoOff={peer.isVideoOff}

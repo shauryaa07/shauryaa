@@ -2,7 +2,6 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { Session, Preference } from "@shared/schema";
 
 interface WSClient extends WebSocket {
   userId?: string;
@@ -67,20 +66,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   function handleJoin(ws: WSClient, message: any) {
-    const { userId, username, gender, preferences } = message;
+    const { userId, username } = message;
     
     ws.userId = userId;
     ws.username = username;
-    ws.gender = gender;
-    ws.preferences = preferences;
 
-    console.log(`User ${username} (${userId}) joining with preferences:`, preferences);
+    console.log(`User ${username} (${userId}) joining`);
 
     // Store session
     storage.createSession({
       userId,
       username,
-      preferences,
       createdAt: new Date(),
     });
 
@@ -99,6 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         matchedUser.roomId = roomId;
         roomUsers.add(matchedUser);
         waitingUsers.delete(matchedUser.userId!);
+        waitingStartTimes.delete(matchedUser.userId!);
       });
       
       rooms.set(roomId, roomUsers);
@@ -110,7 +107,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .map(u => ({
             userId: u.userId,
             username: u.username,
-            gender: u.gender,
           }));
 
         if (user.readyState === WebSocket.OPEN) {
@@ -136,17 +132,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ws.send(JSON.stringify({
           type: 'waiting',
           message: 'Looking for study partners...',
-          suggestion: null,
-          availability: checkAvailability(ws.gender, preferences.partnerType),
         }));
       }
       
       // Start periodic retry with 1-minute timeout
-      startPeriodicRetry(ws, userId, username, preferences);
+      startPeriodicRetry(ws, userId, username);
     }
   }
 
-  function startPeriodicRetry(ws: WSClient, userId: string, username: string, preferences: Preference) {
+  function startPeriodicRetry(ws: WSClient, userId: string, username: string) {
     // Retry matching every 5 seconds
     const retryInterval = setInterval(() => {
       // Check if user is still waiting
@@ -163,24 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 1 minute passed - show "no one available" message
         clearInterval(retryInterval);
         
-        const availability = checkAvailability(ws.gender, preferences.partnerType);
-        const userPreference = preferences.partnerType || "any";
-        
-        let message = 'No one is available at this time';
-        let suggestion = null;
-
-        // If user wants specific gender but none available, suggest alternatives
-        if (userPreference === "female" && availability.females === 0) {
-          if (availability.males > 0) {
-            message = 'No females are available right now';
-            suggestion = 'male';
-          }
-        } else if (userPreference === "male" && availability.males === 0) {
-          if (availability.females > 0) {
-            message = 'No males are available right now';
-            suggestion = 'female';
-          }
-        }
+        const message = 'No one is available at this time';
         
         console.log(`Search timeout for ${username} after 1 minute`);
         
@@ -188,8 +165,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ws.send(JSON.stringify({
             type: 'waiting',
             message,
-            suggestion,
-            availability,
           }));
         }
         return;
@@ -228,7 +203,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .map(u => ({
               userId: u.userId,
               username: u.username,
-              gender: u.gender,
             }));
 
           if (user.readyState === WebSocket.OPEN) {
@@ -249,73 +223,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   function findMatch(newUser: WSClient): WSClient[] | null {
     const maxRoomSize = 5; // Up to 5 users per room
-    const userPreference = newUser.preferences?.partnerType || "any";
-    const userGender = newUser.gender;
 
-    console.log(`Finding match for ${newUser.username} (${userGender}), wants: ${userPreference}`);
+    console.log(`Finding match for ${newUser.username}`);
 
-    // Find compatible waiting users
+    // Find compatible waiting users (anyone!)
     const compatibleUsers: WSClient[] = [];
     
     for (const [userId, waitingUser] of Array.from(waitingUsers.entries())) {
       if (userId === newUser.userId) continue;
       
-      const waitingUserPreference = waitingUser.preferences?.partnerType || "any";
-      const waitingUserGender = waitingUser.gender;
-      
-      // Check if new user wants this waiting user's gender
-      const newUserWantsWaiting = 
-        userPreference === "any" || 
-        userPreference === waitingUserGender;
-      
-      // Check if waiting user wants new user's gender
-      const waitingUserWantsNew = 
-        waitingUserPreference === "any" || 
-        waitingUserPreference === userGender;
-      
-      // Both must be compatible with each other
-      if (newUserWantsWaiting && waitingUserWantsNew) {
-        compatibleUsers.push(waitingUser);
-        if (compatibleUsers.length >= maxRoomSize - 1) break;
-      }
+      // Anyone can match with anyone
+      compatibleUsers.push(waitingUser);
+      if (compatibleUsers.length >= maxRoomSize - 1) break;
     }
 
     return compatibleUsers.length >= 1 ? compatibleUsers : null;
-  }
-
-  function checkAvailability(requesterGender?: "male" | "female", requesterPreference?: "any" | "male" | "female") {
-    const available = {
-      males: 0,
-      females: 0,
-      any: 0
-    };
-
-    // Count only mutually compatible users
-    for (const [_, user] of Array.from(waitingUsers.entries())) {
-      const userGender = user.gender;
-      const userPreference = user.preferences?.partnerType || "any";
-      
-      // Check BIDIRECTIONAL compatibility
-      // 1. Does the waiting user accept the requester?
-      const userAcceptsRequester = 
-        userPreference === "any" || 
-        userPreference === requesterGender;
-      
-      // 2. Would the requester accept this waiting user's gender?
-      const requesterAcceptsUser = 
-        requesterPreference === "any" || 
-        requesterPreference === userGender;
-      
-      // Both must be true for mutual compatibility
-      if (!userAcceptsRequester || !requesterAcceptsUser) continue;
-      
-      // Count mutually compatible users by their gender
-      if (userGender === "male") available.males++;
-      else if (userGender === "female") available.females++;
-      available.any++;
-    }
-
-    return available;
   }
 
   function handleSignaling(ws: WSClient, message: any) {

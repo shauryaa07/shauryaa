@@ -1,18 +1,16 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { User, Preference, SignalingMessage } from "@shared/schema";
+import { User, SignalingMessage } from "@shared/schema";
 
 interface UseWebSocketProps {
   user: User | null;
-  preferences: Preference | null;
-  onMatched?: (peers: Array<{ userId: string; username: string; gender?: "male" | "female" }>) => void;
+  onMatched?: (peers: Array<{ userId: string; username: string }>) => void;
   onUserLeft?: (userId: string) => void;
   onSignal?: (message: SignalingMessage) => void;
-  onWaiting?: (data: { message: string; suggestion?: "male" | "female" | null; availability?: any }) => void;
+  onWaiting?: (data: { message: string }) => void;
 }
 
 export function useWebSocket({
   user,
-  preferences,
   onMatched,
   onUserLeft,
   onSignal,
@@ -23,7 +21,7 @@ export function useWebSocket({
   const wsRef = useRef<WebSocket | null>(null);
 
   const connect = useCallback(() => {
-    if (!user || !preferences) return;
+    if (!user) return;
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws`;
@@ -43,8 +41,6 @@ export function useWebSocket({
           type: "join",
           userId: user.id,
           username: user.username,
-          gender: user.gender,
-          preferences,
         })
       );
     };
@@ -88,7 +84,7 @@ export function useWebSocket({
       setIsConnected(false);
       setRoomId(null);
     };
-  }, [user, preferences, onMatched, onUserLeft, onSignal]);
+  }, [user, onMatched, onUserLeft, onSignal]);
 
   const disconnect = useCallback(() => {
     if (wsRef.current) {

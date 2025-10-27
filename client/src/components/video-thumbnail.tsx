@@ -3,7 +3,6 @@ import { RefObject, useEffect, useRef, useState, useCallback } from "react";
 
 interface VideoThumbnailProps {
   username: string;
-  gender?: "male" | "female";
   isLocal: boolean;
   isMuted: boolean;
   isVideoOff: boolean;
@@ -14,7 +13,6 @@ interface VideoThumbnailProps {
 
 export default function VideoThumbnail({
   username,
-  gender,
   isLocal,
   isMuted,
   isVideoOff,
@@ -137,8 +135,7 @@ export default function VideoThumbnail({
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-white truncate flex items-center gap-1">
-              {gender && <span>{gender === "male" ? "👨" : "👩"}</span>}
-              {username} {isLocal && "(You)"}
+              {username}
             </span>
             
             {/* Muted Indicator */}

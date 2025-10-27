@@ -18,7 +18,7 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
   const streamRef = useRef<Map<string, MediaStream>>(new Map());
 
   const createPeer = useCallback(
-    async (peerId: string, username: string, initiator: boolean, gender?: "male" | "female") => {
+    async (peerId: string, username: string, initiator: boolean) => {
       console.log(`Creating peer for ${username} (peerId: ${peerId}, initiator: ${initiator})`);
 
       const peerConnection = new RTCPeerConnection({
@@ -64,7 +64,6 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
             {
               id: peerId,
               username,
-              gender,
               stream: remoteStream,
               peer: peerConnection as any,
               isMuted: false,
@@ -93,13 +92,12 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
           console.log(`Peer ${peerId} already exists with username: ${existing.username}, keeping existing`);
           return prev;
         }
-        console.log(`Adding new peer ${peerId} with username: ${username}, gender: ${gender}`);
+        console.log(`Adding new peer ${peerId} with username: ${username}`);
         return [
           ...prev,
           {
             id: peerId,
             username,
-            gender,
             peer: peerConnection as any,
             isMuted: false,
             isVideoOff: false,
@@ -128,14 +126,14 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
   );
 
   const handleSignal = useCallback(
-    async (from: string, username: string, data: any, type: string, gender?: "male" | "female") => {
-      console.log(`Handling ${type} from peer ${from} (username: ${username}, gender: ${gender})`);
+    async (from: string, username: string, data: any, type: string) => {
+      console.log(`Handling ${type} from peer ${from} (username: ${username})`);
 
       let peerConnection = peersRef.current.get(from);
 
       if (!peerConnection) {
-        console.log(`Creating non-initiator peer for ${from} (username: ${username}, gender: ${gender})`);
-        peerConnection = await createPeer(from, username, false, gender);
+        console.log(`Creating non-initiator peer for ${from} (username: ${username})`);
+        peerConnection = await createPeer(from, username, false);
       }
 
       try {

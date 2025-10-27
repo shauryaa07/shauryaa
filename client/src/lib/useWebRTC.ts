@@ -18,7 +18,7 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
   const peersRef = useRef<Map<string, SimplePeer.Instance>>(new Map());
 
   const createPeer = useCallback(
-    (peerId: string, username: string, initiator: boolean, gender?: "male" | "female") => {
+    (peerId: string, username: string, initiator: boolean) => {
       console.log(`Creating peer for ${username} (initiator: ${initiator})`);
 
       const peer = new SimplePeer({
@@ -65,7 +65,6 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
             {
               id: peerId,
               username,
-              gender,
               stream,
               peer,
               isMuted: false,
@@ -94,7 +93,6 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
           {
             id: peerId,
             username,
-            gender,
             peer,
             isMuted: false,
             isVideoOff: false,
@@ -108,7 +106,7 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
   );
 
   const handleSignal = useCallback(
-    (from: string, username: string, data: any, type: string, gender?: "male" | "female") => {
+    (from: string, username: string, data: any, type: string) => {
       console.log(`Handling ${type} from ${username}`);
 
       let peer = peersRef.current.get(from);
@@ -116,7 +114,7 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
       if (!peer) {
         // If we don't have a peer yet and we receive an offer, create one as non-initiator
         console.log(`Creating non-initiator peer for ${username}`);
-        peer = createPeer(from, username, false, gender);
+        peer = createPeer(from, username, false);
       }
 
       try {
