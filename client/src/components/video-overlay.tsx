@@ -48,6 +48,7 @@ export default function VideoOverlay({
   const pipWindowRef = useRef<Window | null>(null);
   const pipContainerRef = useRef<HTMLDivElement | null>(null);
   const canvasVideoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const pipEventHandlersRef = useRef<Map<string, { mousemove: (e: MouseEvent) => void, mouseup: (e: MouseEvent) => void }>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -114,37 +115,51 @@ export default function VideoOverlay({
     const container = pipContainerRef.current;
     const pipWindow = pipWindowRef.current;
 
-    // Clear existing content
-    container.innerHTML = '';
+    // Clean up all existing event listeners
+    pipEventHandlersRef.current.forEach((handlers, id) => {
+      pipWindow.document.removeEventListener('mousemove', handlers.mousemove);
+      pipWindow.document.removeEventListener('mouseup', handlers.mouseup);
+    });
+    pipEventHandlersRef.current.clear();
 
-    // Add title
-    const title = pipWindow.document.createElement('div');
-    title.style.cssText = 'color: white; font-size: 14px; font-weight: bold; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #333;';
+    // Clear existing video content but preserve participant states
+    const existingVideos = Array.from(container.querySelectorAll('[data-participant-id]'));
+    existingVideos.forEach(el => el.remove());
+
+    // Add title (fixed at top)
+    let title = container.querySelector('.pip-title') as HTMLDivElement;
+    if (!title) {
+      title = pipWindow.document.createElement('div');
+      title.className = 'pip-title';
+      title.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; z-index: 10000; color: white; font-size: 13px; font-weight: bold; padding: 10px; background: rgba(0,0,0,0.9); border-bottom: 1px solid #333;';
+      container.appendChild(title);
+    }
     title.textContent = `StudyConnect - ${peers.length + 1} Participant${peers.length > 0 ? 's' : ''}`;
-    container.appendChild(title);
-
-    // Add videos container
-    const videosContainer = pipWindow.document.createElement('div');
-    videosContainer.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
-    container.appendChild(videosContainer);
 
     // Add user's own video
     if (localStream) {
-      const userVideoBox = createPiPVideoBox(pipWindow, localStream, `${user.username} (You)`, true, isAudioMuted, isVideoOff);
-      videosContainer.appendChild(userVideoBox);
+      const userVideoBox = createPiPVideoBox(pipWindow, localStream, `${user.username} (You)`, true, isAudioMuted, isVideoOff, 'local');
+      container.appendChild(userVideoBox);
     }
 
     // Add peer videos
     peers.forEach((peer) => {
       if (peer.stream) {
-        const peerVideoBox = createPiPVideoBox(pipWindow, peer.stream, peer.username, false, peer.isMuted, peer.isVideoOff);
-        videosContainer.appendChild(peerVideoBox);
+        const peerVideoBox = createPiPVideoBox(pipWindow, peer.stream, peer.username, false, peer.isMuted, peer.isVideoOff, peer.id);
+        container.appendChild(peerVideoBox);
       }
     });
 
-    // Add controls at bottom
-    const controlsContainer = pipWindow.document.createElement('div');
-    controlsContainer.style.cssText = 'margin-top: 12px; padding-top: 12px; border-top: 1px solid #333; display: flex; gap: 8px; justify-content: center;';
+    // Add controls at bottom (fixed)
+    let controlsContainer = container.querySelector('.pip-controls') as HTMLDivElement;
+    if (!controlsContainer) {
+      controlsContainer = pipWindow.document.createElement('div');
+      controlsContainer.className = 'pip-controls';
+      controlsContainer.style.cssText = 'position: fixed; bottom: 0; left: 0; right: 0; z-index: 10000; padding: 10px; background: rgba(0,0,0,0.9); border-top: 1px solid #333; display: flex; gap: 8px; justify-content: center;';
+      container.appendChild(controlsContainer);
+    } else {
+      controlsContainer.innerHTML = '';
+    }
     
     // Get current state from MediaStream
     const currentAudioMuted = localStream ? !localStream.getAudioTracks()[0]?.enabled : true;
@@ -162,7 +177,6 @@ export default function VideoOverlay({
 
     controlsContainer.appendChild(toggleAudioBtn);
     controlsContainer.appendChild(toggleVideoBtn);
-    container.appendChild(controlsContainer);
   };
 
   const drawVideosToCanvas = () => {
@@ -268,10 +282,10 @@ export default function VideoOverlay({
 
       // Check for Document Picture-in-Picture API
       if ('documentPictureInPicture' in window) {
-        // Use Document PiP for advanced controls
+        // Use Document PiP for advanced controls with more space for dragging
         const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
-          width: 400,
-          height: 500,
+          width: 650,
+          height: 600,
         });
 
         pipWindowRef.current = pipWindow;
@@ -296,10 +310,11 @@ export default function VideoOverlay({
 
         // Create container
         const container = pipWindow.document.createElement('div');
-        container.style.cssText = 'width: 100%; height: 100%; background: #0a0a0a; padding: 12px; box-sizing: border-box; overflow-y: auto;';
+        container.style.cssText = 'width: 100%; height: 100%; background: #0a0a0a; position: relative; overflow: hidden;';
         pipWindow.document.body.appendChild(container);
         pipWindow.document.body.style.margin = '0';
         pipWindow.document.body.style.background = '#0a0a0a';
+        pipWindow.document.body.style.overflow = 'hidden';
 
         // Store container reference for updates
         pipContainerRef.current = container;
@@ -309,6 +324,13 @@ export default function VideoOverlay({
 
         // Handle window close
         pipWindow.addEventListener('pagehide', () => {
+          // Clean up event listeners
+          pipEventHandlersRef.current.forEach((handlers) => {
+            pipWindow.document.removeEventListener('mousemove', handlers.mousemove);
+            pipWindow.document.removeEventListener('mouseup', handlers.mouseup);
+          });
+          pipEventHandlersRef.current.clear();
+          
           pipWindowRef.current = null;
           pipContainerRef.current = null;
           setIsPiPActive(false);
@@ -361,36 +383,137 @@ export default function VideoOverlay({
   };
 
   // Helper function to create video box in PiP window
-  const createPiPVideoBox = (pipWindow: Window, stream: MediaStream, username: string, isLocal: boolean, isMuted: boolean, isVideoOff: boolean) => {
+  const createPiPVideoBox = (pipWindow: Window, stream: MediaStream, username: string, isLocal: boolean, isMuted: boolean, isVideoOff: boolean, id: string) => {
     const box = pipWindow.document.createElement('div');
-    box.style.cssText = 'background: #1a1a1a; border-radius: 8px; padding: 8px; position: relative;';
+    box.style.cssText = 'background: #1a1a1a; border-radius: 8px; padding: 8px; position: absolute; cursor: move; min-width: 150px; min-height: 100px; border: 2px solid transparent; transition: border-color 0.2s;';
+    box.setAttribute('data-participant-id', id);
+
+    // Default position and size (will be overridden if saved in state)
+    const savedState = (pipWindow as any).participantStates?.[id];
+    const left = savedState?.left ?? 10 + (Object.keys((pipWindow as any).participantStates || {}).length * 20);
+    const top = savedState?.top ?? 60 + (Object.keys((pipWindow as any).participantStates || {}).length * 20);
+    const width = savedState?.width ?? 250;
+    const height = savedState?.height ?? 180;
+
+    box.style.left = `${left}px`;
+    box.style.top = `${top}px`;
+    box.style.width = `${width}px`;
+    box.style.height = `${height}px`;
+
+    // Store state
+    if (!(pipWindow as any).participantStates) {
+      (pipWindow as any).participantStates = {};
+    }
+    (pipWindow as any).participantStates[id] = { left, top, width, height };
 
     const videoElement = pipWindow.document.createElement('video');
     videoElement.srcObject = stream;
     videoElement.autoplay = true;
     videoElement.muted = isLocal;
     videoElement.playsInline = true;
-    videoElement.style.cssText = 'width: 100%; height: 120px; object-fit: cover; border-radius: 4px; background: #000;';
+    videoElement.style.cssText = 'width: 100%; height: calc(100% - 32px); object-fit: cover; border-radius: 4px; background: #000; pointer-events: none;';
     box.appendChild(videoElement);
 
     const label = pipWindow.document.createElement('div');
-    label.style.cssText = 'position: absolute; bottom: 16px; left: 16px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;';
+    label.style.cssText = 'position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; pointer-events: none;';
     label.textContent = username;
     box.appendChild(label);
 
     if (isMuted) {
       const muteIndicator = pipWindow.document.createElement('div');
-      muteIndicator.style.cssText = 'position: absolute; top: 16px; right: 16px; background: rgba(220,38,38,0.9); color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px;';
-      muteIndicator.textContent = '🔇 Muted';
+      muteIndicator.style.cssText = 'position: absolute; top: 8px; right: 8px; background: rgba(220,38,38,0.9); color: white; padding: 3px 6px; border-radius: 4px; font-size: 10px; pointer-events: none;';
+      muteIndicator.textContent = '🔇';
       box.appendChild(muteIndicator);
     }
 
     if (isVideoOff) {
       const videoOffIndicator = pipWindow.document.createElement('div');
-      videoOffIndicator.style.cssText = 'position: absolute; top: 44px; right: 16px; background: rgba(220,38,38,0.9); color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px;';
-      videoOffIndicator.textContent = '📵 Video Off';
+      videoOffIndicator.style.cssText = 'position: absolute; top: 32px; right: 8px; background: rgba(220,38,38,0.9); color: white; padding: 3px 6px; border-radius: 4px; font-size: 10px; pointer-events: none;';
+      videoOffIndicator.textContent = '📵';
       box.appendChild(videoOffIndicator);
     }
+
+    // Resize handle
+    const resizeHandle = pipWindow.document.createElement('div');
+    resizeHandle.style.cssText = 'position: absolute; bottom: 0; right: 0; width: 20px; height: 20px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 0%, transparent 50%, #3b82f6 50%, #3b82f6 100%); border-bottom-right-radius: 6px;';
+    box.appendChild(resizeHandle);
+
+    // Make draggable and resizable using a shared state object
+    const dragState = {
+      isDragging: false,
+      isResizing: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      boxStartLeft: 0,
+      boxStartTop: 0,
+      boxStartWidth: 0,
+      boxStartHeight: 0
+    };
+
+    box.addEventListener('mousedown', (e: MouseEvent) => {
+      if ((e.target as HTMLElement) === resizeHandle) return; // Don't drag when resizing
+      
+      dragState.isDragging = true;
+      dragState.dragStartX = e.clientX;
+      dragState.dragStartY = e.clientY;
+      dragState.boxStartLeft = parseInt(box.style.left);
+      dragState.boxStartTop = parseInt(box.style.top);
+      box.style.borderColor = '#3b82f6';
+      box.style.zIndex = '1000';
+      e.preventDefault();
+    });
+
+    resizeHandle.addEventListener('mousedown', (e: MouseEvent) => {
+      dragState.isResizing = true;
+      dragState.dragStartX = e.clientX;
+      dragState.dragStartY = e.clientY;
+      dragState.boxStartWidth = parseInt(box.style.width);
+      dragState.boxStartHeight = parseInt(box.style.height);
+      box.style.borderColor = '#3b82f6';
+      box.style.zIndex = '1000';
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    // Create named handlers for cleanup
+    const handleMouseMove = (e: MouseEvent) => {
+      if (dragState.isDragging) {
+        const deltaX = e.clientX - dragState.dragStartX;
+        const deltaY = e.clientY - dragState.dragStartY;
+        const newLeft = Math.max(0, Math.min(pipWindow.innerWidth - parseInt(box.style.width), dragState.boxStartLeft + deltaX));
+        const newTop = Math.max(0, Math.min(pipWindow.innerHeight - parseInt(box.style.height), dragState.boxStartTop + deltaY));
+        
+        box.style.left = `${newLeft}px`;
+        box.style.top = `${newTop}px`;
+        (pipWindow as any).participantStates[id].left = newLeft;
+        (pipWindow as any).participantStates[id].top = newTop;
+      } else if (dragState.isResizing) {
+        const deltaX = e.clientX - dragState.dragStartX;
+        const deltaY = e.clientY - dragState.dragStartY;
+        const newWidth = Math.max(150, Math.min(pipWindow.innerWidth - parseInt(box.style.left), dragState.boxStartWidth + deltaX));
+        const newHeight = Math.max(100, Math.min(pipWindow.innerHeight - parseInt(box.style.top), dragState.boxStartHeight + deltaY));
+        
+        box.style.width = `${newWidth}px`;
+        box.style.height = `${newHeight}px`;
+        (pipWindow as any).participantStates[id].width = newWidth;
+        (pipWindow as any).participantStates[id].height = newHeight;
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (dragState.isDragging || dragState.isResizing) {
+        dragState.isDragging = false;
+        dragState.isResizing = false;
+        box.style.borderColor = 'transparent';
+        box.style.zIndex = '1';
+      }
+    };
+
+    pipWindow.document.addEventListener('mousemove', handleMouseMove);
+    pipWindow.document.addEventListener('mouseup', handleMouseUp);
+
+    // Store handlers for cleanup
+    pipEventHandlersRef.current.set(id, { mousemove: handleMouseMove, mouseup: handleMouseUp });
 
     return box;
   };
