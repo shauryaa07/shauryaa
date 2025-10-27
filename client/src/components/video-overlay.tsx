@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import VideoThumbnail from "./video-thumbnail";
 import SettingsModal from "./settings-modal";
+import FloatingPiPManager from "./floating-pip-manager";
 import { useToast } from "@/hooks/use-toast";
 
 interface VideoOverlayProps {
@@ -42,13 +43,6 @@ export default function VideoOverlay({
   const [isVideoOff, setIsVideoOff] = useState(!settings.videoEnabled);
   const [isPiPActive, setIsPiPActive] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pipVideoRef = useRef<HTMLVideoElement>(null);
-  const animationFrameRef = useRef<number>();
-  const pipWindowRef = useRef<Window | null>(null);
-  const pipContainerRef = useRef<HTMLDivElement | null>(null);
-  const canvasVideoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
-  const pipEventHandlersRef = useRef<Map<string, { mousemove: (e: MouseEvent) => void, mouseup: (e: MouseEvent) => void }>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -58,20 +52,6 @@ export default function VideoOverlay({
       videoRef.current.srcObject = localStream;
     }
   }, [localStream]);
-
-  // Update PiP window when state changes
-  useEffect(() => {
-    if (isPiPActive && pipContainerRef.current && pipWindowRef.current && !pipWindowRef.current.closed) {
-      updatePiPContent();
-    }
-  }, [peers, isAudioMuted, isVideoOff, isPiPActive]);
-
-  // Start canvas animation loop when PiP is activated with fallback mode
-  useEffect(() => {
-    if (isPiPActive && !pipWindowRef.current && canvasRef.current) {
-      drawVideosToCanvas();
-    }
-  }, [isPiPActive]);
 
   const toggleAudio = () => {
     if (localStream) {
@@ -141,434 +121,18 @@ export default function VideoOverlay({
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
     }
-    if (pipWindowRef.current && !pipWindowRef.current.closed) {
-      pipWindowRef.current.close();
-    }
-    if (isPiPActive && pipVideoRef.current && document.pictureInPictureElement) {
-      document.exitPictureInPicture();
-    }
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-    }
+    setIsPiPActive(false);
     onDisconnect();
   };
 
-  const updatePiPContent = () => {
-    if (!pipContainerRef.current || !pipWindowRef.current || pipWindowRef.current.closed) return;
-
-    const container = pipContainerRef.current;
-    const pipWindow = pipWindowRef.current;
-
-    // Clean up all existing event listeners
-    pipEventHandlersRef.current.forEach((handlers, id) => {
-      pipWindow.document.removeEventListener('mousemove', handlers.mousemove);
-      pipWindow.document.removeEventListener('mouseup', handlers.mouseup);
-    });
-    pipEventHandlersRef.current.clear();
-
-    // Clear existing video content but preserve participant states
-    const existingVideos = Array.from(container.querySelectorAll('[data-participant-id]'));
-    existingVideos.forEach(el => el.remove());
-
-    // Remove title and controls - just show videos
-    const existingTitle = container.querySelector('.pip-title');
-    const existingControls = container.querySelector('.pip-controls');
-    if (existingTitle) existingTitle.remove();
-    if (existingControls) existingControls.remove();
-
-    // Calculate positions for grid layout
-    const totalVideos = (localStream ? 1 : 0) + peers.filter(p => p.stream).length;
-    const margin = 10;
-    let videoIndex = 0;
-
-    // Add user's own video
-    if (localStream) {
-      const userVideoBox = createPiPVideoBox(pipWindow, localStream, `${user.username} (You)`, true, isAudioMuted, isVideoOff, 'local', videoIndex, totalVideos, margin);
-      container.appendChild(userVideoBox);
-      videoIndex++;
-    }
-
-    // Add peer videos
-    peers.forEach((peer) => {
-      if (peer.stream) {
-        const peerVideoBox = createPiPVideoBox(pipWindow, peer.stream, peer.username, false, peer.isMuted, peer.isVideoOff, peer.id, videoIndex, totalVideos, margin);
-        container.appendChild(peerVideoBox);
-        videoIndex++;
-      }
-    });
-  };
-
-  const drawVideosToCanvas = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
-
-    // Include user's own video + all peers
-    const allVideos = [
-      { stream: localStream, username: `${user.username} (You)`, gender: user.gender, isLocal: true, id: 'local' },
-      ...peers.map(p => ({ stream: p.stream, username: p.username, gender: p.gender, isLocal: false, id: p.id }))
-    ];
-
-    // Set canvas size
-    const videoCount = allVideos.filter(v => v.stream).length;
-    const cols = Math.ceil(Math.sqrt(videoCount));
-    const rows = Math.ceil(videoCount / cols);
-    
-    canvas.width = 640;
-    canvas.height = (640 / cols) * rows;
-
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const videoWidth = canvas.width / cols;
-    const videoHeight = canvas.height / rows;
-
-    // Track current stream IDs
-    const currentStreamIds = new Set(allVideos.filter(v => v.stream).map(v => v.id));
-    
-    // Clean up video elements for removed streams
-    Array.from(canvasVideoElementsRef.current.entries()).forEach(([id, element]) => {
-      if (!currentStreamIds.has(id)) {
-        element.srcObject = null;
-        canvasVideoElementsRef.current.delete(id);
-      }
-    });
-
-    // Draw each video
-    let videoIndex = 0;
-    allVideos.forEach((videoData) => {
-      if (!videoData.stream) return;
-      
-      // Get or create persistent video element
-      let videoElement = canvasVideoElementsRef.current.get(videoData.id);
-      if (!videoElement) {
-        videoElement = document.createElement('video');
-        videoElement.autoplay = true;
-        videoElement.muted = true;
-        videoElement.playsInline = true;
-        videoElement.srcObject = videoData.stream;
-        videoElement.play().catch(() => {});
-        canvasVideoElementsRef.current.set(videoData.id, videoElement);
-      }
-
-      const col = videoIndex % cols;
-      const row = Math.floor(videoIndex / cols);
-      const x = col * videoWidth;
-      const y = row * videoHeight;
-
-      try {
-        if (videoElement.readyState >= videoElement.HAVE_CURRENT_DATA) {
-          ctx.drawImage(videoElement, x, y, videoWidth, videoHeight);
-        } else {
-          // Show placeholder while video loads
-          ctx.fillStyle = '#1a1a1a';
-          ctx.fillRect(x, y, videoWidth, videoHeight);
-        }
-        
-        // Draw username label
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(x, y + videoHeight - 30, videoWidth, 30);
-        ctx.fillStyle = '#fff';
-        ctx.font = '14px Arial';
-        const displayName = videoData.isLocal ? '👤 You' : `${videoData.gender === 'male' ? '👨' : '👩'} ${videoData.username}`;
-        ctx.fillText(displayName, x + 10, y + videoHeight - 10);
-      } catch (err) {
-        // Video not ready yet, show placeholder
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(x, y, videoWidth, videoHeight);
-      }
-      videoIndex++;
-    });
-
-    if (isPiPActive) {
-      animationFrameRef.current = requestAnimationFrame(drawVideosToCanvas);
-    }
-  };
-
-  const togglePictureInPicture = async () => {
-    try {
-      // Check if already in PiP, exit if so
-      if (pipWindowRef.current && !pipWindowRef.current.closed) {
-        pipWindowRef.current.close();
-        pipWindowRef.current = null;
-        pipContainerRef.current = null;
-        setIsPiPActive(false);
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-        return;
-      }
-
-      // Check for Document Picture-in-Picture API
-      if ('documentPictureInPicture' in window) {
-        // Use Document PiP for advanced controls with more space for dragging
-        const totalVideos = Math.max(1, (localStream ? 1 : 0) + peers.filter(p => p.stream).length);
-        const cols = Math.ceil(Math.sqrt(totalVideos));
-        const rows = Math.ceil(totalVideos / cols);
-        
-        const videoWidth = 280;
-        const videoHeight = 200;
-        const margin = 10;
-        
-        const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
-          width: margin + cols * (videoWidth + margin),
-          height: margin + rows * (videoHeight + margin),
-        });
-
-        pipWindowRef.current = pipWindow;
-        setIsPiPActive(true);
-
-        // Copy styles to PiP window
-        const styleSheets = Array.from(document.styleSheets);
-        styleSheets.forEach((sheet) => {
-          try {
-            const css = Array.from(sheet.cssRules).map(rule => rule.cssText).join('\n');
-            const style = pipWindow.document.createElement('style');
-            style.textContent = css;
-            pipWindow.document.head.appendChild(style);
-          } catch (e) {
-            // External stylesheets might throw CORS errors
-            const link = pipWindow.document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = (sheet as any).href;
-            pipWindow.document.head.appendChild(link);
-          }
-        });
-
-        // Create container with transparent/minimal background
-        const container = pipWindow.document.createElement('div');
-        container.style.cssText = 'width: 100%; height: 100%; background: transparent; position: relative; overflow: visible;';
-        pipWindow.document.body.appendChild(container);
-        pipWindow.document.body.style.margin = '0';
-        pipWindow.document.body.style.background = 'transparent';
-        pipWindow.document.body.style.overflow = 'visible';
-
-        // Store container reference for updates
-        pipContainerRef.current = container;
-
-        // Populate initial content
-        updatePiPContent();
-
-        // Handle window close
-        pipWindow.addEventListener('pagehide', () => {
-          // Clean up event listeners
-          pipEventHandlersRef.current.forEach((handlers) => {
-            pipWindow.document.removeEventListener('mousemove', handlers.mousemove);
-            pipWindow.document.removeEventListener('mouseup', handlers.mouseup);
-          });
-          pipEventHandlersRef.current.clear();
-          
-          pipWindowRef.current = null;
-          pipContainerRef.current = null;
-          setIsPiPActive(false);
-        });
-
-        toast({
-          title: "Picture-in-Picture Active",
-          description: "All participants visible with full controls!",
-        });
-      } else {
-        // Fallback to standard PiP with canvas
-        const canvas = canvasRef.current;
-        const videoElement = pipVideoRef.current;
-        
-        if (!canvas || !videoElement) return;
-
-        // Draw initial frame
-        drawVideosToCanvas();
-        
-        // Create stream from canvas
-        const stream = canvas.captureStream(30);
-        videoElement.srcObject = stream;
-        await videoElement.play();
-        await videoElement.requestPictureInPicture();
-        setIsPiPActive(true);
-
-        // Continue updating canvas
-        drawVideosToCanvas();
-
-        videoElement.addEventListener('leavepictureinpicture', () => {
-          setIsPiPActive(false);
-          if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-          }
-        }, { once: true });
-
-        toast({
-          title: "Picture-in-Picture Active",
-          description: "All participants visible across all tabs!",
-        });
-      }
-    } catch (error) {
-      console.error('PiP error:', error);
+  const togglePictureInPicture = () => {
+    setIsPiPActive(!isPiPActive);
+    if (!isPiPActive) {
       toast({
-        title: "PiP Failed",
-        description: "Could not activate Picture-in-Picture mode",
-        variant: "destructive",
+        title: "Floating PiP Active",
+        description: "Each participant now has their own draggable window!",
       });
     }
-  };
-
-  // Helper function to create video box in PiP window
-  const createPiPVideoBox = (pipWindow: Window, stream: MediaStream, username: string, isLocal: boolean, isMuted: boolean, isVideoOff: boolean, id: string, videoIndex: number, totalVideos: number, margin: number) => {
-    const box = pipWindow.document.createElement('div');
-    box.style.cssText = 'background: #1a1a1a; border-radius: 8px; padding: 8px; position: absolute; cursor: move; min-width: 150px; min-height: 100px; border: 2px solid transparent; transition: border-color 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
-    box.setAttribute('data-participant-id', id);
-
-    // Calculate grid position
-    const cols = Math.ceil(Math.sqrt(totalVideos));
-    const col = videoIndex % cols;
-    const row = Math.floor(videoIndex / cols);
-    
-    const defaultWidth = 280;
-    const defaultHeight = 200;
-    
-    // Default position and size (will be overridden if saved in state)
-    const savedState = (pipWindow as any).participantStates?.[id];
-    const left = savedState?.left ?? margin + col * (defaultWidth + margin);
-    const top = savedState?.top ?? margin + row * (defaultHeight + margin);
-    const width = savedState?.width ?? defaultWidth;
-    const height = savedState?.height ?? defaultHeight;
-
-    box.style.left = `${left}px`;
-    box.style.top = `${top}px`;
-    box.style.width = `${width}px`;
-    box.style.height = `${height}px`;
-
-    // Store state
-    if (!(pipWindow as any).participantStates) {
-      (pipWindow as any).participantStates = {};
-    }
-    (pipWindow as any).participantStates[id] = { left, top, width, height };
-
-    const videoElement = pipWindow.document.createElement('video');
-    videoElement.srcObject = stream;
-    videoElement.autoplay = true;
-    videoElement.muted = isLocal;
-    videoElement.playsInline = true;
-    videoElement.style.cssText = 'width: 100%; height: calc(100% - 32px); object-fit: cover; border-radius: 4px; background: #000; pointer-events: none;';
-    box.appendChild(videoElement);
-    
-    // Ensure remote audio plays
-    if (!isLocal) {
-      videoElement.play().catch((error) => {
-        console.warn(`PiP audio/video autoplay blocked for ${username}:`, error);
-      });
-    }
-
-    const label = pipWindow.document.createElement('div');
-    label.style.cssText = 'position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; pointer-events: none;';
-    label.textContent = username;
-    box.appendChild(label);
-
-    if (isMuted) {
-      const muteIndicator = pipWindow.document.createElement('div');
-      muteIndicator.style.cssText = 'position: absolute; top: 8px; right: 8px; background: rgba(220,38,38,0.9); color: white; padding: 3px 6px; border-radius: 4px; font-size: 10px; pointer-events: none;';
-      muteIndicator.textContent = '🔇';
-      box.appendChild(muteIndicator);
-    }
-
-    if (isVideoOff) {
-      const videoOffIndicator = pipWindow.document.createElement('div');
-      videoOffIndicator.style.cssText = 'position: absolute; top: 32px; right: 8px; background: rgba(220,38,38,0.9); color: white; padding: 3px 6px; border-radius: 4px; font-size: 10px; pointer-events: none;';
-      videoOffIndicator.textContent = '📵';
-      box.appendChild(videoOffIndicator);
-    }
-
-    // Resize handle
-    const resizeHandle = pipWindow.document.createElement('div');
-    resizeHandle.style.cssText = 'position: absolute; bottom: 0; right: 0; width: 20px; height: 20px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 0%, transparent 50%, #3b82f6 50%, #3b82f6 100%); border-bottom-right-radius: 6px;';
-    box.appendChild(resizeHandle);
-
-    // Make draggable and resizable using a shared state object
-    const dragState = {
-      isDragging: false,
-      isResizing: false,
-      dragStartX: 0,
-      dragStartY: 0,
-      boxStartLeft: 0,
-      boxStartTop: 0,
-      boxStartWidth: 0,
-      boxStartHeight: 0
-    };
-
-    box.addEventListener('mousedown', (e: MouseEvent) => {
-      if ((e.target as HTMLElement) === resizeHandle) return; // Don't drag when resizing
-      
-      dragState.isDragging = true;
-      dragState.dragStartX = e.clientX;
-      dragState.dragStartY = e.clientY;
-      dragState.boxStartLeft = parseInt(box.style.left);
-      dragState.boxStartTop = parseInt(box.style.top);
-      box.style.borderColor = '#3b82f6';
-      box.style.zIndex = '1000';
-      e.preventDefault();
-    });
-
-    resizeHandle.addEventListener('mousedown', (e: MouseEvent) => {
-      dragState.isResizing = true;
-      dragState.dragStartX = e.clientX;
-      dragState.dragStartY = e.clientY;
-      dragState.boxStartWidth = parseInt(box.style.width);
-      dragState.boxStartHeight = parseInt(box.style.height);
-      box.style.borderColor = '#3b82f6';
-      box.style.zIndex = '1000';
-      e.preventDefault();
-      e.stopPropagation();
-    });
-
-    // Create named handlers for cleanup
-    const handleMouseMove = (e: MouseEvent) => {
-      if (dragState.isDragging) {
-        const deltaX = e.clientX - dragState.dragStartX;
-        const deltaY = e.clientY - dragState.dragStartY;
-        const newLeft = Math.max(0, Math.min(pipWindow.innerWidth - parseInt(box.style.width), dragState.boxStartLeft + deltaX));
-        const newTop = Math.max(0, Math.min(pipWindow.innerHeight - parseInt(box.style.height), dragState.boxStartTop + deltaY));
-        
-        box.style.left = `${newLeft}px`;
-        box.style.top = `${newTop}px`;
-        (pipWindow as any).participantStates[id].left = newLeft;
-        (pipWindow as any).participantStates[id].top = newTop;
-      } else if (dragState.isResizing) {
-        const deltaX = e.clientX - dragState.dragStartX;
-        const deltaY = e.clientY - dragState.dragStartY;
-        const newWidth = Math.max(150, Math.min(pipWindow.innerWidth - parseInt(box.style.left), dragState.boxStartWidth + deltaX));
-        const newHeight = Math.max(100, Math.min(pipWindow.innerHeight - parseInt(box.style.top), dragState.boxStartHeight + deltaY));
-        
-        box.style.width = `${newWidth}px`;
-        box.style.height = `${newHeight}px`;
-        (pipWindow as any).participantStates[id].width = newWidth;
-        (pipWindow as any).participantStates[id].height = newHeight;
-      }
-    };
-
-    const handleMouseUp = () => {
-      if (dragState.isDragging || dragState.isResizing) {
-        dragState.isDragging = false;
-        dragState.isResizing = false;
-        box.style.borderColor = 'transparent';
-        box.style.zIndex = '1';
-      }
-    };
-
-    pipWindow.document.addEventListener('mousemove', handleMouseMove);
-    pipWindow.document.addEventListener('mouseup', handleMouseUp);
-
-    // Store handlers for cleanup
-    pipEventHandlersRef.current.set(id, { mousemove: handleMouseMove, mouseup: handleMouseUp });
-
-    return box;
-  };
-
-  // Helper function to create button in PiP window
-  const createPiPButton = (pipWindow: Window, text: string, onClick: () => void) => {
-    const button = pipWindow.document.createElement('button');
-    button.textContent = text;
-    button.style.cssText = 'background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 16px;';
-    button.onmouseover = () => { button.style.background = '#2563eb'; };
-    button.onmouseout = () => { button.style.background = '#3b82f6'; };
-    button.onclick = onClick;
-    return button;
   };
 
   return (
@@ -774,9 +338,35 @@ export default function VideoOverlay({
         </div>
       </div>
 
-      {/* Hidden elements for Picture-in-Picture */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
-      <video ref={pipVideoRef} style={{ display: 'none' }} muted playsInline />
+      {/* Floating PiP Manager */}
+      <FloatingPiPManager
+        participants={[
+          ...(localStream
+            ? [
+                {
+                  id: "local",
+                  username: `${user.username} (You)`,
+                  stream: localStream,
+                  isLocal: true,
+                  isMuted: isAudioMuted,
+                  isVideoOff: isVideoOff,
+                },
+              ]
+            : []),
+          ...peers
+            .filter((p) => p.stream)
+            .map((p) => ({
+              id: p.id,
+              username: p.username,
+              stream: p.stream!,
+              isLocal: false,
+              isMuted: p.isMuted,
+              isVideoOff: p.isVideoOff,
+            })),
+        ]}
+        isActive={isPiPActive}
+        onDeactivate={() => setIsPiPActive(false)}
+      />
     </>
   );
 }
