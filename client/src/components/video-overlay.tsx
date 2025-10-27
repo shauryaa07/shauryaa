@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import VideoThumbnail from "./video-thumbnail";
 import SettingsModal from "./settings-modal";
-import FloatingPiPManager from "./floating-pip-manager";
 import { useToast } from "@/hooks/use-toast";
 
 interface VideoOverlayProps {
@@ -43,6 +42,7 @@ export default function VideoOverlay({
   const [isVideoOff, setIsVideoOff] = useState(!settings.videoEnabled);
   const [isPiPActive, setIsPiPActive] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const popupWindowsRef = useRef<Map<string, Window>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -125,12 +125,115 @@ export default function VideoOverlay({
     onDisconnect();
   };
 
+  const setupPopupWindow = (popup: Window, participant: { id: string; username: string; stream: MediaStream; isLocal: boolean; isMuted: boolean; isVideoOff: boolean }) => {
+    const doc = popup.document;
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${participant.username}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: system-ui, sans-serif; background: #0a0a0a; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+            .header { background: rgba(0,0,0,0.9); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); }
+            .username { color: white; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+            .status { width: 8px; height: 8px; background: #22c55e; border-radius: 50%; animation: pulse 2s infinite; }
+            @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+            .mute-indicator { color: #ef4444; font-size: 12px; padding: 4px 8px; background: rgba(239,68,68,0.1); border-radius: 4px; }
+            .video-container { flex: 1; background: #000; position: relative; display: flex; align-items: center; justify-content: center; }
+            video { width: 100%; height: 100%; object-fit: cover; }
+            .placeholder { text-align: center; color: #888; }
+            .placeholder-icon { font-size: 64px; width: 80px; height: 80px; margin: 0 auto 12px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="username"><span class="status"></span><span>${participant.username}</span></div>
+            ${participant.isMuted ? '<div class="mute-indicator">🔇 Muted</div>' : ''}
+          </div>
+          <div class="video-container">
+            ${participant.isVideoOff ? `<div class="placeholder"><div class="placeholder-icon">${participant.username.charAt(0).toUpperCase()}</div><div>Video Off</div></div>` : '<video id="video" autoplay playsinline></video>'}
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    if (!participant.isVideoOff && participant.stream) {
+      const video = doc.getElementById('video') as HTMLVideoElement;
+      if (video) {
+        video.srcObject = participant.stream;
+        video.muted = participant.isLocal;
+        video.play().catch(() => {});
+      }
+    }
+
+    popup.addEventListener('beforeunload', () => {
+      popupWindowsRef.current.delete(participant.id);
+      if (popupWindowsRef.current.size === 0) {
+        setIsPiPActive(false);
+      }
+    });
+  };
+
   const togglePictureInPicture = () => {
-    setIsPiPActive(!isPiPActive);
-    if (!isPiPActive) {
+    if (isPiPActive) {
+      popupWindowsRef.current.forEach(popup => {
+        if (popup && !popup.closed) popup.close();
+      });
+      popupWindowsRef.current.clear();
+      setIsPiPActive(false);
+      return;
+    }
+
+    const allParticipants = [
+      ...(localStream ? [{
+        id: "local",
+        username: `${user.username} (You)`,
+        stream: localStream,
+        isLocal: true,
+        isMuted: isAudioMuted,
+        isVideoOff: isVideoOff,
+      }] : []),
+      ...peers.filter(p => p.stream).map(p => ({
+        id: p.id,
+        username: p.username,
+        stream: p.stream!,
+        isLocal: false,
+        isMuted: p.isMuted,
+        isVideoOff: p.isVideoOff,
+      })),
+    ];
+
+    let blockedCount = 0;
+    allParticipants.forEach((participant, index) => {
+      const popup = window.open(
+        '',
+        `pip_${participant.id}`,
+        `width=400,height=320,left=${100 + index * 50},top=${100 + index * 50},resizable=yes,scrollbars=no,status=no,location=no,toolbar=no,menubar=no`
+      );
+
+      if (!popup || popup.closed) {
+        blockedCount++;
+      } else {
+        popupWindowsRef.current.set(participant.id, popup);
+        setupPopupWindow(popup, participant);
+      }
+    });
+
+    if (blockedCount > 0) {
+      popupWindowsRef.current.forEach(popup => popup.close());
+      popupWindowsRef.current.clear();
+      toast({
+        title: "Popup Blocked",
+        description: "Please allow popups for this site to use PiP mode.",
+        variant: "destructive",
+      });
+    } else {
+      setIsPiPActive(true);
       toast({
         title: "Floating PiP Active",
-        description: "Each participant now has their own draggable window!",
+        description: "Each participant has their own window that follows across tabs!",
       });
     }
   };
@@ -338,35 +441,6 @@ export default function VideoOverlay({
         </div>
       </div>
 
-      {/* Floating PiP Manager */}
-      <FloatingPiPManager
-        participants={[
-          ...(localStream
-            ? [
-                {
-                  id: "local",
-                  username: `${user.username} (You)`,
-                  stream: localStream,
-                  isLocal: true,
-                  isMuted: isAudioMuted,
-                  isVideoOff: isVideoOff,
-                },
-              ]
-            : []),
-          ...peers
-            .filter((p) => p.stream)
-            .map((p) => ({
-              id: p.id,
-              username: p.username,
-              stream: p.stream!,
-              isLocal: false,
-              isMuted: p.isMuted,
-              isVideoOff: p.isVideoOff,
-            })),
-        ]}
-        isActive={isPiPActive}
-        onDeactivate={() => setIsPiPActive(false)}
-      />
     </>
   );
 }
