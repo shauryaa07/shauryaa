@@ -573,13 +573,15 @@ export default function VideoOverlay({
 
   return (
     <>
-      <Draggable handle=".drag-handle" bounds="parent">
-        <div
-          className="fixed bottom-4 right-4 z-50"
-          style={{ width: isCollapsed ? "64px" : "360px" }}
-          data-testid="overlay-window"
-        >
-          <div className="bg-card dark:bg-card border border-border dark:border-border rounded-xl shadow-2xl overflow-hidden">
+      {/* Hide overlay when PIP is active */}
+      {!isPiPActive && (
+        <Draggable handle=".drag-handle" bounds="parent">
+          <div
+            className="fixed bottom-4 right-4 z-50"
+            style={{ width: isCollapsed ? "64px" : "360px" }}
+            data-testid="overlay-window"
+          >
+            <div className="bg-card dark:bg-card border border-border dark:border-border rounded-xl shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="drag-handle bg-muted/50 dark:bg-muted/20 px-3 py-2 flex items-center justify-between cursor-move border-b border-border dark:border-border">
               <div className="flex items-center gap-2">
@@ -703,6 +705,7 @@ export default function VideoOverlay({
           </div>
         </div>
       </Draggable>
+      )}
 
       {/* Settings Modal */}
       {showSettings && (
