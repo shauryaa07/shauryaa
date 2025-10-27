@@ -44,7 +44,7 @@ export default function VideoThumbnail({
             autoPlay
             muted={true}
             playsInline
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover scale-x-[-1]"
           />
         ) : (
           <video
