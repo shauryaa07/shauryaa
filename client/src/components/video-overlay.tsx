@@ -42,7 +42,8 @@ export default function VideoOverlay({
   const [isVideoOff, setIsVideoOff] = useState(!settings.videoEnabled);
   const [isPiPActive, setIsPiPActive] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const popupWindowsRef = useRef<Map<string, Window>>(new Map());
+  const pipDocumentRef = useRef<Window | null>(null);
+  const peerVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -121,223 +122,275 @@ export default function VideoOverlay({
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
     }
-    popupWindowsRef.current.forEach(popup => {
-      if (popup && !popup.closed) popup.close();
-    });
-    popupWindowsRef.current.clear();
+    if (pipDocumentRef.current && !pipDocumentRef.current.closed) {
+      pipDocumentRef.current.close();
+    }
     setIsPiPActive(false);
     onDisconnect();
   };
 
-  const createCompactPopup = (participant: { id: string; username: string; stream: MediaStream; isLocal: boolean; isMuted: boolean; isVideoOff: boolean }, index: number) => {
-    const screenWidth = window.screen.width;
-    const screenHeight = window.screen.height;
-    const popupWidth = 120;
-    const popupHeight = 120;
-    const bottomMargin = 40;
-    const gap = 10;
-    
-    // Calculate position: bottom-left corner, horizontal row
-    const left = 10 + (index * (popupWidth + gap));
-    const top = screenHeight - popupHeight - bottomMargin;
-    
-    const popup = window.open(
-      '',
-      `pip_${participant.id}`,
-      `width=${popupWidth},height=${popupHeight},left=${left},top=${top},resizable=yes,scrollbars=no,status=no,location=no,toolbar=no,menubar=no`
-    );
-    
-    if (!popup || popup.closed) return null;
-    
-    const doc = popup.document;
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${participant.username}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: system-ui, sans-serif; 
-              background: #0a0a0a; 
-              overflow: hidden; 
-              height: 100vh; 
-              display: flex; 
-              flex-direction: column;
-              cursor: pointer;
-            }
-            .video-container { 
-              flex: 1; 
-              background: #000; 
-              position: relative; 
-              display: flex; 
-              align-items: center; 
-              justify-content: center; 
-            }
-            video { width: 100%; height: 100%; object-fit: cover; }
-            .placeholder { 
-              text-align: center; 
-              color: #888; 
-              width: 100%;
-              height: 100%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            }
-            .placeholder-icon { 
-              font-size: 32px; 
-              width: 50px; 
-              height: 50px; 
-              margin: 0 auto; 
-              background: rgba(255,255,255,0.1); 
-              border-radius: 50%; 
-              display: flex; 
-              align-items: center; 
-              justify-content: center; 
-            }
-            .name-badge {
-              position: absolute;
-              bottom: 4px;
-              left: 4px;
-              right: 4px;
-              background: rgba(0,0,0,0.8);
-              color: white;
-              padding: 3px 6px;
-              border-radius: 4px;
-              font-size: 10px;
-              font-weight: 600;
-              text-align: center;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-            }
-            .mute-indicator {
-              position: absolute;
-              top: 4px;
-              right: 4px;
-              background: rgba(239,68,68,0.9);
-              color: white;
-              padding: 2px 4px;
-              border-radius: 3px;
-              font-size: 9px;
-              font-weight: bold;
-            }
-            .expand-hint {
-              position: absolute;
-              top: 4px;
-              left: 4px;
-              background: rgba(59,130,246,0.9);
-              color: white;
-              padding: 2px 4px;
-              border-radius: 3px;
-              font-size: 8px;
-              font-weight: bold;
-              animation: pulse 2s infinite;
-            }
-            @keyframes pulse { 
-              0%, 100% { opacity: 1; } 
-              50% { opacity: 0.6; } 
-            }
-          </style>
-        </head>
-        <body onclick="toggleSize()">
-          <div class="video-container">
-            ${participant.isVideoOff ? 
-              `<div class="placeholder"><div class="placeholder-icon">${participant.username.charAt(0).toUpperCase()}</div></div>` : 
-              '<video id="video" autoplay playsinline></video>'}
-            <div class="name-badge">${participant.username}</div>
-            ${participant.isMuted ? '<div class="mute-indicator">🔇</div>' : ''}
-            <div class="expand-hint">Click to expand</div>
-          </div>
-          <script>
-            let isExpanded = false;
-            function toggleSize() {
-              if (isExpanded) {
-                window.resizeTo(120, 120);
-                isExpanded = false;
-              } else {
-                window.resizeTo(320, 240);
-                isExpanded = true;
-              }
-            }
-          </script>
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    if (!participant.isVideoOff && participant.stream) {
-      const video = doc.getElementById('video') as HTMLVideoElement;
-      if (video) {
-        video.srcObject = participant.stream;
-        video.muted = participant.isLocal;
-        video.play().catch(() => {});
-      }
-    }
-
-    popup.addEventListener('beforeunload', () => {
-      popupWindowsRef.current.delete(participant.id);
-      if (popupWindowsRef.current.size === 0) {
-        setIsPiPActive(false);
-      }
-    });
-
-    return popup;
-  };
-
-  const togglePictureInPicture = () => {
+  const togglePictureInPicture = async () => {
     if (isPiPActive) {
-      popupWindowsRef.current.forEach(popup => {
-        if (popup && !popup.closed) popup.close();
-      });
-      popupWindowsRef.current.clear();
+      if (pipDocumentRef.current && !pipDocumentRef.current.closed) {
+        pipDocumentRef.current.close();
+      }
       setIsPiPActive(false);
       return;
     }
 
-    const allParticipants = [
-      ...(localStream ? [{
-        id: "local",
-        username: `${user.username} (You)`,
-        stream: localStream,
-        isLocal: true,
-        isMuted: isAudioMuted,
-        isVideoOff: isVideoOff,
-      }] : []),
-      ...peers.filter(p => p.stream).map(p => ({
-        id: p.id,
-        username: p.username,
-        stream: p.stream!,
-        isLocal: false,
-        isMuted: p.isMuted,
-        isVideoOff: p.isVideoOff,
-      })),
-    ];
-
-    let blockedCount = 0;
-    allParticipants.forEach((participant, index) => {
-      const popup = createCompactPopup(participant, index);
-      
-      if (!popup || popup.closed) {
-        blockedCount++;
-      } else {
-        popupWindowsRef.current.set(participant.id, popup);
+    try {
+      // Check if Document Picture-in-Picture API is available
+      if (!(window as any).documentPictureInPicture) {
+        toast({
+          title: "PiP Not Supported",
+          description: "Your browser doesn't support Picture-in-Picture mode yet. Try Chrome 116+ or Edge.",
+          variant: "destructive",
+        });
+        return;
       }
-    });
 
-    if (blockedCount > 0) {
-      popupWindowsRef.current.forEach(popup => popup.close());
-      popupWindowsRef.current.clear();
-      toast({
-        title: "Popup Blocked",
-        description: "Please allow popups for this site to use PiP mode.",
-        variant: "destructive",
+      const allParticipants = [
+        ...(localStream ? [{
+          id: "local",
+          username: `${user.username} (You)`,
+          stream: localStream,
+          isLocal: true,
+          isMuted: isAudioMuted,
+          isVideoOff: isVideoOff,
+        }] : []),
+        ...peers.filter(p => p.stream).map(p => ({
+          id: p.id,
+          username: p.username,
+          stream: p.stream!,
+          isLocal: false,
+          isMuted: p.isMuted,
+          isVideoOff: p.isVideoOff,
+        })),
+      ];
+
+      const participantCount = allParticipants.length;
+      const videoWidth = 160;
+      const gap = 10;
+      const padding = 20;
+      const controlsWidth = 200;
+      const windowWidth = (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth;
+      const windowHeight = 140;
+
+      // Create the PiP window
+      const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
+        width: windowWidth,
+        height: windowHeight,
       });
-    } else {
+
+      pipDocumentRef.current = pipWindow;
+
+      // Write the HTML content
+      pipWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body {
+                font-family: system-ui, -apple-system, sans-serif;
+                background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                padding: 10px;
+                overflow: hidden;
+              }
+              .container {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                width: 100%;
+              }
+              .videos {
+                display: flex;
+                gap: 10px;
+                flex: 1;
+              }
+              .video-item {
+                position: relative;
+                width: 160px;
+                height: 120px;
+                border-radius: 8px;
+                overflow: hidden;
+                background: #000;
+                border: 2px solid rgba(59, 130, 246, 0.3);
+                transition: border-color 0.2s;
+              }
+              .video-item:hover {
+                border-color: rgba(59, 130, 246, 0.6);
+              }
+              video {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+              }
+              .placeholder {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #222;
+              }
+              .avatar {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: rgba(59, 130, 246, 0.2);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+                font-weight: 600;
+                color: #3b82f6;
+              }
+              .name-badge {
+                position: absolute;
+                bottom: 6px;
+                left: 6px;
+                right: 6px;
+                background: rgba(0, 0, 0, 0.85);
+                backdrop-filter: blur(4px);
+                color: white;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 600;
+                text-align: center;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+              }
+              .mute-badge {
+                position: absolute;
+                top: 6px;
+                right: 6px;
+                background: rgba(239, 68, 68, 0.9);
+                color: white;
+                padding: 3px 6px;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: bold;
+              }
+              .controls {
+                display: flex;
+                gap: 8px;
+                padding-left: 10px;
+                border-left: 1px solid rgba(255, 255, 255, 0.1);
+              }
+              button {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                border: none;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                transition: all 0.2s;
+              }
+              .btn-audio, .btn-video {
+                background: rgba(255, 255, 255, 0.1);
+                color: white;
+              }
+              .btn-audio:hover, .btn-video:hover {
+                background: rgba(255, 255, 255, 0.2);
+              }
+              .btn-audio.muted, .btn-video.off {
+                background: rgba(239, 68, 68, 0.9);
+              }
+              .btn-close {
+                background: rgba(239, 68, 68, 0.9);
+                color: white;
+              }
+              .btn-close:hover {
+                background: rgba(220, 38, 38, 1);
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="videos" id="videos"></div>
+              <div class="controls">
+                <button class="btn-audio ${isAudioMuted ? 'muted' : ''}" id="btnAudio" title="${isAudioMuted ? 'Unmute' : 'Mute'}">
+                  ${isAudioMuted ? '🔇' : '🎤'}
+                </button>
+                <button class="btn-video ${isVideoOff ? 'off' : ''}" id="btnVideo" title="${isVideoOff ? 'Turn on video' : 'Turn off video'}">
+                  ${isVideoOff ? '📹' : '📷'}
+                </button>
+                <button class="btn-close" id="btnClose" title="Close PiP">
+                  ✕
+                </button>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      pipWindow.document.close();
+
+      // Add videos to the PiP window
+      const videosContainer = pipWindow.document.getElementById('videos');
+      allParticipants.forEach((participant) => {
+        const videoItem = pipWindow.document.createElement('div');
+        videoItem.className = 'video-item';
+        videoItem.innerHTML = `
+          <div class="name-badge">${participant.username}</div>
+          ${participant.isMuted ? '<div class="mute-badge">🔇</div>' : ''}
+        `;
+
+        if (participant.isVideoOff) {
+          const placeholder = pipWindow.document.createElement('div');
+          placeholder.className = 'placeholder';
+          placeholder.innerHTML = `<div class="avatar">${participant.username.charAt(0).toUpperCase()}</div>`;
+          videoItem.insertBefore(placeholder, videoItem.firstChild);
+        } else {
+          const video = pipWindow.document.createElement('video');
+          video.autoplay = true;
+          video.playsInline = true;
+          video.muted = participant.isLocal;
+          video.srcObject = participant.stream;
+          videoItem.insertBefore(video, videoItem.firstChild);
+        }
+
+        videosContainer.appendChild(videoItem);
+      });
+
+      // Add event listeners for controls
+      pipWindow.document.getElementById('btnAudio').addEventListener('click', () => {
+        toggleAudio();
+      });
+
+      pipWindow.document.getElementById('btnVideo').addEventListener('click', () => {
+        toggleVideo();
+      });
+
+      pipWindow.document.getElementById('btnClose').addEventListener('click', () => {
+        pipWindow.close();
+      });
+
+      pipWindow.addEventListener('pagehide', () => {
+        setIsPiPActive(false);
+        pipDocumentRef.current = null;
+      });
+
       setIsPiPActive(true);
       toast({
-        title: "Compact PiP Active",
-        description: `${allParticipants.length} video window${allParticipants.length !== 1 ? 's' : ''} opened at the bottom! Click any window to expand it.`,
+        title: "PiP Active!",
+        description: "Floating window is active. It will follow you across all tabs!",
+      });
+
+    } catch (error) {
+      console.error('PiP error:', error);
+      toast({
+        title: "PiP Error",
+        description: "Could not open Picture-in-Picture window. Make sure you're using Chrome 116+ or Edge.",
+        variant: "destructive",
       });
     }
   };
@@ -524,20 +577,24 @@ export default function VideoOverlay({
 
             <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-lg p-4">
               <p className="text-sm text-foreground dark:text-foreground mb-3">
-                <span className="font-semibold">💡 Compact PiP Mode:</span> Click the PiP button to open small video windows at the bottom of your screen!
+                <span className="font-semibold">💡 Floating PiP Mode:</span> Click the PiP button to open a floating window that works across ALL tabs!
               </p>
               <ul className="text-sm text-muted-foreground dark:text-muted-foreground space-y-1">
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
-                  <span>All participants open as tiny windows in a horizontal row at the bottom - won't block your lecture!</span>
+                  <span>All participants appear in a horizontal row in one compact floating window</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
-                  <span>Click any window to expand it when you want to see that person's face clearly</span>
+                  <span>The window stays on top when you switch to Physics Wallah, Unacademy, or ANY other tab!</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
-                  <span>The windows follow you across ALL browser tabs - perfect for Physics Wallah, Unacademy, or taking notes!</span>
+                  <span>Control your mic and camera right from the floating window</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  <span className="text-xs italic">Note: Requires Chrome 116+ or Edge browser</span>
                 </li>
               </ul>
             </div>
