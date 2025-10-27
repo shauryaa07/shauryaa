@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --button-outline: rgba(0,0,0, .10);
+  --badge-outline: rgba(0,0,0, .05);
+  --opaque-button-border-intensity: -10;
+  --elevate-1: rgba(0,0,0, .03);
+  --elevate-2: rgba(0,0,0, .07);
+
+  --background: 0 0% 100%;
+  --foreground: 210 20% 12%;
+  --border: 210 12% 88%;
+  --card: 210 8% 98%;
+  --card-foreground: 210 20% 12%;
+  --card-border: 210 10% 92%;
+  --sidebar: 210 8% 96%;
+  --sidebar-foreground: 210 20% 12%;
+  --sidebar-border: 210 10% 90%;
+  --sidebar-primary: 203 88% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 205 15% 92%;
+  --sidebar-accent-foreground: 203 88% 40%;
+  --sidebar-ring: 203 88% 53%;
+  --popover: 210 8% 97%;
+  --popover-foreground: 210 20% 12%;
+  --popover-border: 210 10% 91%;
+  --primary: 203 88% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 8% 88%;
+  --secondary-foreground: 210 20% 12%;
+  --muted: 210 12% 94%;
+  --muted-foreground: 210 15% 35%;
+  --accent: 205 18% 94%;
+  --accent-foreground: 210 20% 12%;
+  --destructive: 356 91% 54%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 210 15% 85%;
+  --ring: 203 88% 53%;
+  --chart-1: 203 88% 45%;
+  --chart-2: 160 100% 36%;
+  --chart-3: 42 93% 56%;
+  --chart-4: 147 79% 42%;
+  --chart-5: 341 75% 51%;
+
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 0.75rem;
+  --shadow-2xs: 0px 1px 2px 0px hsl(210 20% 12% / 0.05);
+  --shadow-xs: 0px 1px 3px 0px hsl(210 20% 12% / 0.08);
+  --shadow-sm: 0px 2px 4px -1px hsl(210 20% 12% / 0.06), 0px 1px 2px -1px hsl(210 20% 12% / 0.04);
+  --shadow: 0px 4px 6px -1px hsl(210 20% 12% / 0.08), 0px 2px 4px -2px hsl(210 20% 12% / 0.04);
+  --shadow-md: 0px 6px 12px -2px hsl(210 20% 12% / 0.10), 0px 3px 7px -3px hsl(210 20% 12% / 0.05);
+  --shadow-lg: 0px 10px 20px -4px hsl(210 20% 12% / 0.12), 0px 6px 12px -6px hsl(210 20% 12% / 0.06);
+  --shadow-xl: 0px 20px 30px -8px hsl(210 20% 12% / 0.15), 0px 12px 20px -10px hsl(210 20% 12% / 0.08);
+  --shadow-2xl: 0px 30px 50px -12px hsl(210 20% 12% / 0.20), 0px 20px 30px -15px hsl(210 20% 12% / 0.10);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+  --primary-border: hsl(from var(--primary) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from var(--secondary) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from var(--muted) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from var(--accent) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from var(--destructive) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-primary-border: hsl(from var(--sidebar-primary) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-accent-border: hsl(from var(--sidebar-accent) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+}
+
+.dark {
+  --button-outline: rgba(255,255,255, .10);
+  --badge-outline: rgba(255,255,255, .05);
+  --opaque-button-border-intensity: 8;
+  --elevate-1: rgba(255,255,255, .04);
+  --elevate-2: rgba(255,255,255, .09);
+
+  --background: 210 6% 8%;
+  --foreground: 210 8% 92%;
+  --border: 210 8% 16%;
+  --card: 210 6% 10%;
+  --card-foreground: 210 8% 88%;
+  --card-border: 210 8% 14%;
+  --sidebar: 210 6% 12%;
+  --sidebar-foreground: 210 8% 88%;
+  --sidebar-border: 210 8% 18%;
+  --sidebar-primary: 203 88% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 205 20% 16%;
+  --sidebar-accent-foreground: 203 88% 60%;
+  --sidebar-ring: 203 88% 53%;
+  --popover: 210 6% 11%;
+  --popover-foreground: 210 8% 92%;
+  --popover-border: 210 8% 16%;
+  --primary: 203 88% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 8% 20%;
+  --secondary-foreground: 210 8% 92%;
+  --muted: 210 8% 14%;
+  --muted-foreground: 210 10% 65%;
+  --accent: 205 18% 14%;
+  --accent-foreground: 210 8% 92%;
+  --destructive: 356 91% 54%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 210 12% 22%;
+  --ring: 203 88% 53%;
+  --chart-1: 203 88% 65%;
+  --chart-2: 160 100% 50%;
+  --chart-3: 42 93% 65%;
+  --chart-4: 147 79% 55%;
+  --chart-5: 341 75% 65%;
+
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 0.75rem;
+  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.20);
+  --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.30);
+  --shadow-sm: 0px 2px 4px -1px hsl(0 0% 0% / 0.25), 0px 1px 2px -1px hsl(0 0% 0% / 0.15);
+  --shadow: 0px 4px 6px -1px hsl(0 0% 0% / 0.35), 0px 2px 4px -2px hsl(0 0% 0% / 0.20);
+  --shadow-md: 0px 6px 12px -2px hsl(0 0% 0% / 0.40), 0px 3px 7px -3px hsl(0 0% 0% / 0.25);
+  --shadow-lg: 0px 10px 20px -4px hsl(0 0% 0% / 0.45), 0px 6px 12px -6px hsl(0 0% 0% / 0.30);
+  --shadow-xl: 0px 20px 30px -8px hsl(0 0% 0% / 0.50), 0px 12px 20px -10px hsl(0 0% 0% / 0.35);
+  --shadow-2xl: 0px 30px 50px -12px hsl(0 0% 0% / 0.60), 0px 20px 30px -15px hsl(0 0% 0% / 0.45);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+
+  --primary-border: hsl(from var(--primary) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --secondary-border: hsl(from var(--secondary) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --muted-border: hsl(from var(--muted) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --accent-border: hsl(from var(--accent) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --destructive-border: hsl(from var(--destructive) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-primary-border: hsl(from var(--sidebar-primary) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+  --sidebar-accent-border: hsl(from var(--sidebar-accent) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
