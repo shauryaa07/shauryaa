@@ -5,7 +5,7 @@ import PreferenceSelection from "@/components/preference-selection";
 import VideoOverlay from "@/components/video-overlay";
 import MatchingState from "@/components/matching-state";
 import { useWebSocket } from "@/lib/useWebSocket";
-import { useWebRTC } from "@/lib/useWebRTC";
+import { useWebRTC } from "@/lib/useWebRTC-native";
 
 type AppState = "username" | "preferences" | "matching" | "connected";
 
