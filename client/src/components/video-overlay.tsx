@@ -125,8 +125,45 @@ export default function VideoOverlay({
     onDisconnect();
   };
 
-  const setupPopupWindow = (popup: Window, participant: { id: string; username: string; stream: MediaStream; isLocal: boolean; isMuted: boolean; isVideoOff: boolean }) => {
+  const createBlankPopup = (peerId: string, index: number) => {
+    const popup = window.open(
+      '',
+      `pip_${peerId}`,
+      `width=400,height=320,left=${100 + index * 50},top=${100 + index * 50},resizable=yes,scrollbars=no,status=no,location=no,toolbar=no,menubar=no`
+    );
+    
+    if (popup && !popup.closed) {
+      const doc = popup.document;
+      doc.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Loading...</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { font-family: system-ui, sans-serif; background: #0a0a0a; overflow: hidden; height: 100vh; display: flex; align-items: center; justify-content: center; }
+              .loading { color: white; text-align: center; }
+              .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid white; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 12px; }
+              @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            </style>
+          </head>
+          <body>
+            <div class="loading">
+              <div class="spinner"></div>
+              <p>Connecting...</p>
+            </div>
+          </body>
+        </html>
+      `);
+      doc.close();
+    }
+    
+    return popup;
+  };
+
+  const fillPopupWindow = (popup: Window, participant: { id: string; username: string; stream: MediaStream; isLocal: boolean; isMuted: boolean; isVideoOff: boolean }) => {
     const doc = popup.document;
+    doc.open();
     doc.write(`
       <!DOCTYPE html>
       <html>
@@ -176,6 +213,18 @@ export default function VideoOverlay({
     });
   };
 
+  // Helper function to attach stream to an existing popup
+  const attachStreamToPopup = (peerId: string, stream: MediaStream) => {
+    const popup = popupWindowsRef.current.get(peerId);
+    if (popup && !popup.closed) {
+      const video = popup.document.getElementById('video') as HTMLVideoElement;
+      if (video) {
+        video.srcObject = stream;
+        video.play().catch(() => {});
+      }
+    }
+  };
+
   const togglePictureInPicture = () => {
     if (isPiPActive) {
       popupWindowsRef.current.forEach(popup => {
@@ -205,19 +254,15 @@ export default function VideoOverlay({
       })),
     ];
 
+    // Step 1: Pre-open blank popups immediately (during user click)
     let blockedCount = 0;
     allParticipants.forEach((participant, index) => {
-      const popup = window.open(
-        '',
-        `pip_${participant.id}`,
-        `width=400,height=320,left=${100 + index * 50},top=${100 + index * 50},resizable=yes,scrollbars=no,status=no,location=no,toolbar=no,menubar=no`
-      );
-
+      const popup = createBlankPopup(participant.id, index);
+      
       if (!popup || popup.closed) {
         blockedCount++;
       } else {
         popupWindowsRef.current.set(participant.id, popup);
-        setupPopupWindow(popup, participant);
       }
     });
 
@@ -229,13 +274,24 @@ export default function VideoOverlay({
         description: "Please allow popups for this site to use PiP mode.",
         variant: "destructive",
       });
-    } else {
-      setIsPiPActive(true);
-      toast({
-        title: "Floating PiP Active",
-        description: "Each participant has their own window that follows across tabs!",
-      });
+      return;
     }
+
+    // Step 2: Fill popups asynchronously when streams are ready
+    setTimeout(() => {
+      allParticipants.forEach((participant) => {
+        const popup = popupWindowsRef.current.get(participant.id);
+        if (popup && !popup.closed) {
+          fillPopupWindow(popup, participant);
+        }
+      });
+    }, 0);
+
+    setIsPiPActive(true);
+    toast({
+      title: "Floating PiP Active",
+      description: "Each participant has their own window that follows across tabs!",
+    });
   };
 
   return (
