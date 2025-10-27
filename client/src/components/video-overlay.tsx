@@ -173,8 +173,9 @@ export default function VideoOverlay({
       const gap = 8;
       const padding = 12;
       const controlsWidth = 140;
+      const dragHandleHeight = 20;
       const windowWidth = (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth;
-      const windowHeight = 110;
+      const windowHeight = 110 + dragHandleHeight;
 
       // Create the PiP window
       const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
@@ -209,15 +210,33 @@ export default function VideoOverlay({
                 background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
                 height: 100vh;
                 display: flex;
-                align-items: center;
-                padding: 10px;
+                flex-direction: column;
                 overflow: hidden;
+              }
+              .drag-handle {
+                width: 100%;
+                height: 20px;
+                background: rgba(255, 255, 255, 0.05);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                cursor: move;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                -webkit-app-region: drag;
+              }
+              .drag-indicator {
+                width: 30px;
+                height: 3px;
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 2px;
               }
               .container {
                 display: flex;
                 gap: 10px;
                 align-items: center;
                 width: 100%;
+                padding: 10px;
+                flex: 1;
               }
               .videos {
                 display: flex;
@@ -348,6 +367,9 @@ export default function VideoOverlay({
             </style>
           </head>
           <body>
+            <div class="drag-handle" title="Drag to move">
+              <div class="drag-indicator"></div>
+            </div>
             <div class="container">
               <div class="videos" id="videos"></div>
               <div class="controls">
