@@ -222,7 +222,14 @@ export default function VideoOverlay({
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                -webkit-app-region: drag;
+                user-select: none;
+              }
+              .drag-handle:hover {
+                background: rgba(255, 255, 255, 0.1);
+              }
+              .drag-handle:active {
+                background: rgba(255, 255, 255, 0.15);
+                cursor: grabbing;
               }
               .drag-indicator {
                 width: 30px;
@@ -422,16 +429,20 @@ export default function VideoOverlay({
         videosContainer.appendChild(videoItem);
       });
 
+      // Track state within PiP window
+      let pipAudioMuted = isAudioMuted;
+      let pipVideoOff = isVideoOff;
+      
       // Add event listeners for controls
       const btnAudio = pipWindow.document.getElementById('btnAudio');
       const btnVideo = pipWindow.document.getElementById('btnVideo');
       
       btnAudio.addEventListener('click', () => {
         toggleAudio();
-        const newMutedState = !isAudioMuted;
+        pipAudioMuted = !pipAudioMuted;
         
         // Update button appearance
-        if (newMutedState) {
+        if (pipAudioMuted) {
           btnAudio.classList.add('muted');
           btnAudio.title = 'Click to Unmute';
           btnAudio.querySelector('.icon-wrapper').innerHTML = '🎤<div class="slash"></div>';
@@ -444,10 +455,10 @@ export default function VideoOverlay({
 
       btnVideo.addEventListener('click', () => {
         toggleVideo();
-        const newVideoOffState = !isVideoOff;
+        pipVideoOff = !pipVideoOff;
         
         // Update button appearance
-        if (newVideoOffState) {
+        if (pipVideoOff) {
           btnVideo.classList.add('off');
           btnVideo.title = 'Click to turn on camera';
           btnVideo.querySelector('.icon-wrapper').innerHTML = '📹<div class="slash"></div>';
@@ -460,6 +471,31 @@ export default function VideoOverlay({
 
       pipWindow.document.getElementById('btnClose').addEventListener('click', () => {
         pipWindow.close();
+      });
+
+      // Make the window draggable
+      const dragHandle = pipWindow.document.querySelector('.drag-handle');
+      let isDragging = false;
+      let dragOffsetX = 0;
+      let dragOffsetY = 0;
+
+      dragHandle.addEventListener('mousedown', (e: MouseEvent) => {
+        isDragging = true;
+        dragOffsetX = e.clientX;
+        dragOffsetY = e.clientY;
+        e.preventDefault();
+      });
+
+      pipWindow.addEventListener('mousemove', (e: MouseEvent) => {
+        if (isDragging) {
+          const deltaX = e.screenX - dragOffsetX;
+          const deltaY = e.screenY - dragOffsetY;
+          pipWindow.moveTo(deltaX, deltaY);
+        }
+      });
+
+      pipWindow.addEventListener('mouseup', () => {
+        isDragging = false;
       });
 
       pipWindow.addEventListener('pagehide', () => {
