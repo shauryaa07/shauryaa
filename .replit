@@ -15,7 +15,7 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 34111
+localPort = 41429
 externalPort = 3000
 
 [[ports]]
@@ -48,3 +48,4 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_websocket:1.0.0", "firebase_barebones_javascript:1.0.0"]
+expertMode = true

@@ -4,9 +4,10 @@ import { User, Preference, SignalingMessage } from "@shared/schema";
 interface UseWebSocketProps {
   user: User | null;
   preferences: Preference | null;
-  onMatched?: (peers: Array<{ userId: string; username: string }>) => void;
+  onMatched?: (peers: Array<{ userId: string; username: string; gender?: "male" | "female" }>) => void;
   onUserLeft?: (userId: string) => void;
   onSignal?: (message: SignalingMessage) => void;
+  onWaiting?: (data: { message: string; suggestion?: "male" | "female" | null; availability?: any }) => void;
 }
 
 export function useWebSocket({
@@ -15,6 +16,7 @@ export function useWebSocket({
   onMatched,
   onUserLeft,
   onSignal,
+  onWaiting,
 }: UseWebSocketProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
@@ -41,6 +43,7 @@ export function useWebSocket({
           type: "join",
           userId: user.id,
           username: user.username,
+          gender: user.gender,
           preferences,
         })
       );
@@ -57,7 +60,8 @@ export function useWebSocket({
             onMatched?.(message.peers);
             break;
           case "waiting":
-            console.log("Waiting for peers...");
+            console.log("Waiting for peers...", message);
+            onWaiting?.(message);
             break;
           case "user-left":
             onUserLeft?.(message.userId);

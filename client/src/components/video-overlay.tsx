@@ -114,6 +114,7 @@ export default function VideoOverlay({
                   {/* Local Video */}
                   <VideoThumbnail
                     username={user.username}
+                    gender={user.gender}
                     isLocal={true}
                     isMuted={isAudioMuted}
                     isVideoOff={isVideoOff}
@@ -125,6 +126,7 @@ export default function VideoOverlay({
                     <VideoThumbnail
                       key={peer.id}
                       username={peer.username}
+                      gender={peer.gender}
                       isLocal={false}
                       isMuted={peer.isMuted}
                       isVideoOff={peer.isVideoOff}

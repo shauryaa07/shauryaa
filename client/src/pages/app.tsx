@@ -20,7 +20,16 @@ export default function App() {
     autoHideOverlay: false,
   });
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [matchedPeers, setMatchedPeers] = useState<Array<{ userId: string; username: string }>>([]);
+  const [matchedPeers, setMatchedPeers] = useState<Array<{ userId: string; username: string; gender?: "male" | "female" }>>([]);
+  const [waitingMessage, setWaitingMessage] = useState<{
+    message: string;
+    suggestion?: "male" | "female" | null;
+    availability?: {
+      males: number;
+      females: number;
+      any: number;
+    };
+  } | null>(null);
 
   const {
     isConnected,
@@ -35,6 +44,7 @@ export default function App() {
       console.log("Matched with peers:", peers);
       setMatchedPeers(peers);
       setAppState("connected");
+      setWaitingMessage(null);
       // Don't create peers here - wait for localStream to be ready
       // This will be handled in the useEffect below
     },
@@ -47,8 +57,13 @@ export default function App() {
       // Find peer info from matchedPeers
       const peerInfo = matchedPeers.find(p => p.userId === message.from);
       const peerUsername = peerInfo?.username || message.from || "Unknown";
+      const peerGender = peerInfo?.gender;
       
-      webRTC.handleSignal(message.from!, peerUsername, message.data, message.type);
+      webRTC.handleSignal(message.from!, peerUsername, message.data, message.type, peerGender);
+    },
+    onWaiting: (data) => {
+      console.log("Waiting message:", data);
+      setWaitingMessage(data);
     },
   });
 
@@ -82,11 +97,12 @@ export default function App() {
     };
   }, [appState, localStream, settings.videoEnabled, settings.audioEnabled]);
 
-  const handleUsernameSubmit = (username: string) => {
+  const handleUsernameSubmit = (username: string, gender: "male" | "female") => {
     const newUser: User = {
       id: Math.random().toString(36).substring(7),
       username,
       displayName: username,
+      gender,
     };
     setUser(newUser);
     setAppState("preferences");
@@ -94,7 +110,25 @@ export default function App() {
 
   const handlePreferencesSubmit = (prefs: Preference) => {
     setPreferences(prefs);
+    setWaitingMessage(null);
     setAppState("matching");
+  };
+
+  const handleChangePreference = (newPreference: "any" | "male" | "female") => {
+    console.log("Changing preference to:", newPreference);
+    const newPrefs: Preference = {
+      partnerType: newPreference,
+    };
+    setPreferences(newPrefs);
+    setWaitingMessage(null);
+    
+    // Disconnect and reconnect with new preferences
+    disconnect();
+    
+    // Wait a bit then reconnect
+    setTimeout(() => {
+      setAppState("matching");
+    }, 500);
   };
 
   const handleDisconnect = () => {
@@ -129,7 +163,7 @@ export default function App() {
         if (shouldInitiate) {
           // Only create if we don't already have this peer
           if (!webRTC.peers.some(p => p.id === peer.userId)) {
-            webRTC.createPeer(peer.userId, peer.username, true);
+            webRTC.createPeer(peer.userId, peer.username, true, peer.gender);
           }
         }
       });
@@ -157,8 +191,11 @@ export default function App() {
           onComplete={() => {}} // Handled by WebSocket onMatched
           onCancel={() => {
             disconnect();
+            setWaitingMessage(null);
             setAppState("preferences");
           }}
+          waitingMessage={waitingMessage || undefined}
+          onChangePreference={handleChangePreference}
         />
       )}
       

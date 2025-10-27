@@ -5,6 +5,7 @@ export const userSchema = z.object({
   id: z.string(),
   username: z.string().min(2).max(20),
   displayName: z.string().optional(),
+  gender: z.enum(["male", "female"]),
 });
 
 export type User = z.infer<typeof userSchema>;
@@ -41,6 +42,7 @@ export type SignalingMessage = z.infer<typeof signalingMessageSchema>;
 export interface PeerConnection {
   id: string;
   username: string;
+  gender?: "male" | "female";
   stream?: MediaStream;
   peer?: any; // SimplePeer instance
   isMuted: boolean;
