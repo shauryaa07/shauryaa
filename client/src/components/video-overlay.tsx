@@ -175,21 +175,27 @@ export default function VideoOverlay({
       const controlsWidth = 140;
       const windowWidth = (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth;
       const windowHeight = 110;
-      
-      const screenWidth = window.screen.availWidth;
-      const screenHeight = window.screen.availHeight;
-      const xPosition = Math.max(0, (screenWidth - windowWidth) / 2);
-      const yPosition = Math.max(0, screenHeight - windowHeight - 60);
 
-      // Create the PiP window at bottom center
+      // Create the PiP window
       const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
         width: windowWidth,
         height: windowHeight,
-        left: xPosition,
-        top: yPosition,
       });
 
       pipDocumentRef.current = pipWindow;
+      
+      // Position the window at bottom center after creation
+      setTimeout(() => {
+        try {
+          const screenWidth = window.screen.availWidth;
+          const screenHeight = window.screen.availHeight;
+          const xPosition = Math.floor((screenWidth - windowWidth) / 2);
+          const yPosition = Math.floor(screenHeight - windowHeight - 60);
+          pipWindow.moveTo(xPosition, yPosition);
+        } catch (e) {
+          console.log('Could not reposition window:', e);
+        }
+      }, 100);
 
       // Write the HTML content
       pipWindow.document.write(`
