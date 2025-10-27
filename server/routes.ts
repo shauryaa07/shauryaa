@@ -21,8 +21,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Active sessions waiting to be matched
   const waitingUsers: Map<string, WSClient> = new Map();
   
+  // Track when each user started waiting (for 1-minute delay)
+  const waitingStartTimes: Map<string, number> = new Map();
+  
   // Active rooms (each room has 2-3 users)
   const rooms: Map<string, Set<WSClient>> = new Map();
+  
+  // Search timeout in milliseconds (1 minute)
+  const SEARCH_TIMEOUT = 60000;
 
   wss.on('connection', (ws: WSClient) => {
     console.log('New WebSocket connection');
@@ -120,46 +126,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Room ${roomId} created with ${roomUsers.size} users`);
     } else {
-      // No match found, check availability and send suggestions
-      const availability = checkAvailability(ws.gender, preferences.partnerType);
-      const userPreference = preferences.partnerType || "any";
-      
-      let message = 'Looking for study partners...';
-      let suggestion = null;
-
-      // If user wants specific gender but none available, suggest alternatives
-      if (userPreference === "female" && availability.females === 0) {
-        if (availability.males > 0) {
-          message = 'No females are available right now';
-          suggestion = 'male';
-        } else {
-          message = 'No one is available at this time';
-        }
-      } else if (userPreference === "male" && availability.males === 0) {
-        if (availability.females > 0) {
-          message = 'No males are available right now';
-          suggestion = 'female';
-        } else {
-          message = 'No one is available at this time';
-        }
-      } else if (availability.any === 0) {
-        message = 'No one is available at this time';
-      }
-      
-      // Add to waiting list
+      // No match found - add to waiting list and start searching
       waitingUsers.set(userId, ws);
-      console.log(`User ${username} added to waiting list. Total waiting: ${waitingUsers.size}`);
-      console.log(`Availability - Males: ${availability.males}, Females: ${availability.females}`);
+      const startTime = Date.now();
+      waitingStartTimes.set(userId, startTime);
       
+      console.log(`User ${username} added to waiting list. Total waiting: ${waitingUsers.size}`);
+      
+      // Always show "searching" message initially
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
           type: 'waiting',
-          message,
-          suggestion,
-          availability,
+          message: 'Looking for study partners...',
+          suggestion: null,
+          availability: checkAvailability(ws.gender, preferences.partnerType),
         }));
       }
+      
+      // Start periodic retry with 1-minute timeout
+      startPeriodicRetry(ws, userId, username, preferences);
     }
+  }
+
+  function startPeriodicRetry(ws: WSClient, userId: string, username: string, preferences: Preference) {
+    // Retry matching every 5 seconds
+    const retryInterval = setInterval(() => {
+      // Check if user is still waiting
+      if (!waitingUsers.has(userId)) {
+        clearInterval(retryInterval);
+        return;
+      }
+      
+      // Check if 1 minute has passed
+      const startTime = waitingStartTimes.get(userId);
+      const elapsed = Date.now() - (startTime || 0);
+      
+      if (elapsed >= SEARCH_TIMEOUT) {
+        // 1 minute passed - show "no one available" message
+        clearInterval(retryInterval);
+        
+        const availability = checkAvailability(ws.gender, preferences.partnerType);
+        const userPreference = preferences.partnerType || "any";
+        
+        let message = 'No one is available at this time';
+        let suggestion = null;
+
+        // If user wants specific gender but none available, suggest alternatives
+        if (userPreference === "female" && availability.females === 0) {
+          if (availability.males > 0) {
+            message = 'No females are available right now';
+            suggestion = 'male';
+          }
+        } else if (userPreference === "male" && availability.males === 0) {
+          if (availability.females > 0) {
+            message = 'No males are available right now';
+            suggestion = 'female';
+          }
+        }
+        
+        console.log(`Search timeout for ${username} after 1 minute`);
+        
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'waiting',
+            message,
+            suggestion,
+            availability,
+          }));
+        }
+        return;
+      }
+      
+      // Try to find a match again
+      const match = findMatch(ws);
+      
+      if (match) {
+        clearInterval(retryInterval);
+        
+        // Create a room with matched users
+        const roomId = `room-${Date.now()}`;
+        ws.roomId = roomId;
+        
+        const roomUsers = new Set<WSClient>([ws]);
+        
+        // Add all matched users to the room
+        match.forEach(matchedUser => {
+          matchedUser.roomId = roomId;
+          roomUsers.add(matchedUser);
+          waitingUsers.delete(matchedUser.userId!);
+          waitingStartTimes.delete(matchedUser.userId!);
+        });
+        
+        // Remove current user from waiting
+        waitingUsers.delete(userId);
+        waitingStartTimes.delete(userId);
+        
+        rooms.set(roomId, roomUsers);
+
+        // Notify all users in the room about each other
+        roomUsers.forEach(user => {
+          const peers = Array.from(roomUsers)
+            .filter(u => u.userId !== user.userId)
+            .map(u => ({
+              userId: u.userId,
+              username: u.username,
+              gender: u.gender,
+            }));
+
+          if (user.readyState === WebSocket.OPEN) {
+            user.send(JSON.stringify({
+              type: 'matched',
+              roomId,
+              peers,
+            }));
+          }
+        });
+
+        console.log(`Room ${roomId} created with ${roomUsers.size} users (from periodic retry)`);
+      } else {
+        console.log(`Still searching for match for ${username}... (${Math.floor(elapsed / 1000)}s elapsed)`);
+      }
+    }, 5000); // Retry every 5 seconds
   }
 
   function findMatch(newUser: WSClient): WSClient[] | null {
@@ -269,6 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Remove from waiting list
     if (ws.userId) {
       waitingUsers.delete(ws.userId);
+      waitingStartTimes.delete(ws.userId);
       storage.removeSession(ws.userId);
     }
 
