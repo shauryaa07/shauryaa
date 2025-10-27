@@ -134,30 +134,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const matches: WSClient[] = [];
     const maxRoomSize = 3; // 2-3 users per room
 
-    // Find users with similar preferences
-    for (const [userId, waitingUser] of waitingUsers.entries()) {
-      if (userId === newUser.userId) continue;
-
-      const isSimilar = 
-        waitingUser.preferences?.subject === newUser.preferences?.subject ||
-        waitingUser.preferences?.mood === newUser.preferences?.mood;
-
-      if (isSimilar) {
-        matches.push(waitingUser);
-        if (matches.length >= maxRoomSize - 1) break; // -1 because newUser counts
-      }
-    }
-
-    // If we have at least 1 match, create a room
-    // Otherwise, wait for more users
-    if (matches.length >= 1) {
-      return matches;
-    }
-
-    // If no similar users, but we have 2+ waiting users, match anyway
+    // Match with any waiting users since we don't have preference-based matching anymore
     if (waitingUsers.size >= 2) {
       const anyMatches: WSClient[] = [];
-      for (const [userId, waitingUser] of waitingUsers.entries()) {
+      for (const [userId, waitingUser] of Array.from(waitingUsers.entries())) {
         if (userId === newUser.userId) continue;
         anyMatches.push(waitingUser);
         if (anyMatches.length >= maxRoomSize - 1) break;

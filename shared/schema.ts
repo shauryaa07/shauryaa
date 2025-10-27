@@ -11,17 +11,6 @@ export type User = z.infer<typeof userSchema>;
 
 // User preferences for matching
 export const preferenceSchema = z.object({
-  subject: z.enum([
-    "mathematics",
-    "physics",
-    "chemistry",
-    "biology",
-    "computer-science",
-    "literature",
-    "history",
-    "general",
-  ]),
-  mood: z.enum(["focus", "chill", "balanced"]),
   partnerType: z.enum(["any", "male", "female"]),
 });
 

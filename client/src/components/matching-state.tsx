@@ -29,10 +29,7 @@ export default function MatchingState({
             </h2>
             
             <p className="text-muted-foreground dark:text-muted-foreground mb-2">
-              Matching you with students studying{" "}
-              <span className="font-medium text-foreground dark:text-foreground">
-                {preferences.subject.replace("-", " ")}
-              </span>
+              Looking for the perfect study group for you...
             </p>
             
             <div className="flex items-center justify-center gap-2 mt-6">
