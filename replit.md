@@ -10,6 +10,8 @@ StudyConnect is a peer-to-peer video chat application designed for students to c
 - **Smart Matching**: Connect students based on subject, study mood, and partner preferences
 - **WebRTC P2P Video/Audio**: Direct peer-to-peer connections for privacy and zero-cost scaling
 - **Draggable Overlay**: Floating window that can be moved anywhere on screen
+- **Enhanced Picture-in-Picture**: Each study partner appears in their own separate popup window
+- **Cross-Tab Persistence**: PiP windows follow across browser tabs and websites
 - **Minimal UI**: Non-intrusive design that doesn't interfere with online classes
 - **Real-time Controls**: Mute/unmute audio/video, settings, disconnect
 - **Privacy-First**: No data storage, all video/audio goes directly between peers
@@ -192,6 +194,11 @@ server/
 ```
 
 ## Recent Changes
+- 2025-10-27: **Enhanced PiP Feature** - Each participant now has a separate popup window
+  - Popups created synchronously in click handler to avoid browser blocking
+  - Automatic popup blocker detection with user-friendly toast notifications
+  - Each window follows across tabs and can be moved/resized using native browser controls
+  - Proper cleanup when windows are closed or PiP mode is deactivated
 - 2025-10-27: **MVP Complete** - All phases implemented
 - 2025-10-27: Fixed critical WebRTC timing issues (media stream initialization)
 - 2025-10-27: Implemented WebSocket signaling server with auto-matching
@@ -218,3 +225,6 @@ server/
 - **Simple Peer**: Uses simple-peer library with global polyfill for Vite compatibility
 - **Initiator selection**: Lower userId always initiates to prevent deadlock
 - **Media-first**: WebSocket connection delayed until getUserMedia succeeds
+- **Separate Popup Windows**: Uses window.open() for PiP, created synchronously during user click to avoid browser blocking
+- **Cross-tab Persistence**: Popup windows persist as long as main window is open, following user across tabs
+- **Popup Blocker Handling**: Detects blocked popups and shows helpful toast notification to users
