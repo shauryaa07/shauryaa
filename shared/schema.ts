@@ -1,18 +1,69 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+// User schema - simple username-based authentication
+export const userSchema = z.object({
+  id: z.string(),
+  username: z.string().min(2).max(20),
+  displayName: z.string().optional(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export type User = z.infer<typeof userSchema>;
+
+// User preferences for matching
+export const preferenceSchema = z.object({
+  subject: z.enum([
+    "mathematics",
+    "physics",
+    "chemistry",
+    "biology",
+    "computer-science",
+    "literature",
+    "history",
+    "general",
+  ]),
+  mood: z.enum(["focus", "chill", "balanced"]),
+  partnerType: z.enum(["any", "male", "female"]),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export type Preference = z.infer<typeof preferenceSchema>;
+
+// Session/Room information
+export const sessionSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  username: z.string(),
+  preferences: preferenceSchema,
+  createdAt: z.date(),
+});
+
+export type Session = z.infer<typeof sessionSchema>;
+
+// WebRTC signaling messages
+export const signalingMessageSchema = z.object({
+  type: z.enum(["offer", "answer", "ice-candidate", "join", "leave", "user-joined", "user-left"]),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  data: z.any().optional(),
+});
+
+export type SignalingMessage = z.infer<typeof signalingMessageSchema>;
+
+// Peer connection state
+export interface PeerConnection {
+  id: string;
+  username: string;
+  stream?: MediaStream;
+  peer?: any; // SimplePeer instance
+  isMuted: boolean;
+  isVideoOff: boolean;
+}
+
+// Settings
+export const settingsSchema = z.object({
+  videoEnabled: z.boolean().default(true),
+  audioEnabled: z.boolean().default(true),
+  videoQuality: z.enum(["low", "medium", "high"]).default("medium"),
+  autoHideOverlay: z.boolean().default(false),
+});
+
+export type Settings = z.infer<typeof settingsSchema>;
