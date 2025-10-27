@@ -307,16 +307,36 @@ export default function VideoOverlay({
                 justify-content: center;
                 font-size: 16px;
                 transition: all 0.2s;
+                position: relative;
+              }
+              .icon-wrapper {
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+              .slash {
+                position: absolute;
+                width: 26px;
+                height: 2px;
+                background: white;
+                transform: rotate(-45deg);
+                border-radius: 1px;
+                box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
               }
               .btn-audio, .btn-video {
-                background: rgba(255, 255, 255, 0.1);
+                background: rgba(34, 197, 94, 0.9);
                 color: white;
               }
               .btn-audio:hover, .btn-video:hover {
-                background: rgba(255, 255, 255, 0.2);
+                background: rgba(34, 197, 94, 1);
+                transform: scale(1.05);
               }
               .btn-audio.muted, .btn-video.off {
                 background: rgba(239, 68, 68, 0.9);
+              }
+              .btn-audio.muted:hover, .btn-video.off:hover {
+                background: rgba(220, 38, 38, 1);
               }
               .btn-close {
                 background: rgba(239, 68, 68, 0.9);
@@ -331,11 +351,17 @@ export default function VideoOverlay({
             <div class="container">
               <div class="videos" id="videos"></div>
               <div class="controls">
-                <button class="btn-audio ${isAudioMuted ? 'muted' : ''}" id="btnAudio" title="${isAudioMuted ? 'Unmute' : 'Mute'}">
-                  ${isAudioMuted ? '🔇' : '🎤'}
+                <button class="btn-audio ${isAudioMuted ? 'muted' : ''}" id="btnAudio" title="${isAudioMuted ? 'Click to Unmute' : 'Click to Mute'}">
+                  <div class="icon-wrapper">
+                    🎤
+                    ${isAudioMuted ? '<div class="slash"></div>' : ''}
+                  </div>
                 </button>
-                <button class="btn-video ${isVideoOff ? 'off' : ''}" id="btnVideo" title="${isVideoOff ? 'Turn on video' : 'Turn off video'}">
-                  ${isVideoOff ? '📹' : '📷'}
+                <button class="btn-video ${isVideoOff ? 'off' : ''}" id="btnVideo" title="${isVideoOff ? 'Click to turn on camera' : 'Click to turn off camera'}">
+                  <div class="icon-wrapper">
+                    📹
+                    ${isVideoOff ? '<div class="slash"></div>' : ''}
+                  </div>
                 </button>
                 <button class="btn-close" id="btnClose" title="Close PiP">
                   ✕
@@ -375,12 +401,39 @@ export default function VideoOverlay({
       });
 
       // Add event listeners for controls
-      pipWindow.document.getElementById('btnAudio').addEventListener('click', () => {
+      const btnAudio = pipWindow.document.getElementById('btnAudio');
+      const btnVideo = pipWindow.document.getElementById('btnVideo');
+      
+      btnAudio.addEventListener('click', () => {
         toggleAudio();
+        const newMutedState = !isAudioMuted;
+        
+        // Update button appearance
+        if (newMutedState) {
+          btnAudio.classList.add('muted');
+          btnAudio.title = 'Click to Unmute';
+          btnAudio.querySelector('.icon-wrapper').innerHTML = '🎤<div class="slash"></div>';
+        } else {
+          btnAudio.classList.remove('muted');
+          btnAudio.title = 'Click to Mute';
+          btnAudio.querySelector('.icon-wrapper').innerHTML = '🎤';
+        }
       });
 
-      pipWindow.document.getElementById('btnVideo').addEventListener('click', () => {
+      btnVideo.addEventListener('click', () => {
         toggleVideo();
+        const newVideoOffState = !isVideoOff;
+        
+        // Update button appearance
+        if (newVideoOffState) {
+          btnVideo.classList.add('off');
+          btnVideo.title = 'Click to turn on camera';
+          btnVideo.querySelector('.icon-wrapper').innerHTML = '📹<div class="slash"></div>';
+        } else {
+          btnVideo.classList.remove('off');
+          btnVideo.title = 'Click to turn off camera';
+          btnVideo.querySelector('.icon-wrapper').innerHTML = '📹';
+        }
       });
 
       pipWindow.document.getElementById('btnClose').addEventListener('click', () => {
