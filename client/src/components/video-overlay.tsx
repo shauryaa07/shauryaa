@@ -166,20 +166,27 @@ export default function VideoOverlay({
           isMuted: p.isMuted,
           isVideoOff: p.isVideoOff,
         })),
-      ];
+      ].slice(0, 3);
 
       const participantCount = allParticipants.length;
-      const videoWidth = 160;
-      const gap = 10;
-      const padding = 20;
-      const controlsWidth = 200;
+      const videoWidth = 120;
+      const gap = 8;
+      const padding = 12;
+      const controlsWidth = 140;
       const windowWidth = (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth;
-      const windowHeight = 140;
+      const windowHeight = 110;
+      
+      const screenWidth = window.screen.availWidth;
+      const screenHeight = window.screen.availHeight;
+      const xPosition = Math.max(0, (screenWidth - windowWidth) / 2);
+      const yPosition = Math.max(0, screenHeight - windowHeight - 60);
 
-      // Create the PiP window
+      // Create the PiP window at bottom center
       const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
         width: windowWidth,
         height: windowHeight,
+        left: xPosition,
+        top: yPosition,
       });
 
       pipDocumentRef.current = pipWindow;
@@ -213,9 +220,9 @@ export default function VideoOverlay({
               }
               .video-item {
                 position: relative;
-                width: 160px;
-                height: 120px;
-                border-radius: 8px;
+                width: 120px;
+                height: 90px;
+                border-radius: 6px;
                 overflow: hidden;
                 background: #000;
                 border: 2px solid rgba(59, 130, 246, 0.3);
@@ -238,14 +245,14 @@ export default function VideoOverlay({
                 background: #222;
               }
               .avatar {
-                width: 50px;
-                height: 50px;
+                width: 40px;
+                height: 40px;
                 border-radius: 50%;
                 background: rgba(59, 130, 246, 0.2);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 24px;
+                font-size: 18px;
                 font-weight: 600;
                 color: #3b82f6;
               }
@@ -284,15 +291,15 @@ export default function VideoOverlay({
                 border-left: 1px solid rgba(255, 255, 255, 0.1);
               }
               button {
-                width: 36px;
-                height: 36px;
+                width: 32px;
+                height: 32px;
                 border-radius: 50%;
                 border: none;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 18px;
+                font-size: 16px;
                 transition: all 0.2s;
               }
               .btn-audio, .btn-video {
@@ -582,7 +589,11 @@ export default function VideoOverlay({
               <ul className="text-sm text-muted-foreground dark:text-muted-foreground space-y-1">
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
-                  <span>All participants appear in a horizontal row in one compact floating window</span>
+                  <span>Up to 3 participants appear in a compact floating window at the bottom center of your screen</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  <span>Small size that doesn't cover much area - perfect for studying!</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
