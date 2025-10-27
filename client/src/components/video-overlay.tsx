@@ -476,21 +476,25 @@ export default function VideoOverlay({
       // Make the window draggable
       const dragHandle = pipWindow.document.querySelector('.drag-handle');
       let isDragging = false;
-      let dragOffsetX = 0;
-      let dragOffsetY = 0;
+      let startX = 0;
+      let startY = 0;
+      let startWindowX = 0;
+      let startWindowY = 0;
 
       dragHandle.addEventListener('mousedown', (e: MouseEvent) => {
         isDragging = true;
-        dragOffsetX = e.clientX;
-        dragOffsetY = e.clientY;
+        startX = e.screenX;
+        startY = e.screenY;
+        startWindowX = pipWindow.screenX;
+        startWindowY = pipWindow.screenY;
         e.preventDefault();
       });
 
       pipWindow.addEventListener('mousemove', (e: MouseEvent) => {
         if (isDragging) {
-          const deltaX = e.screenX - dragOffsetX;
-          const deltaY = e.screenY - dragOffsetY;
-          pipWindow.moveTo(deltaX, deltaY);
+          const deltaX = e.screenX - startX;
+          const deltaY = e.screenY - startY;
+          pipWindow.moveTo(startWindowX + deltaX, startWindowY + deltaY);
         }
       });
 
