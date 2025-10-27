@@ -31,8 +31,25 @@ export default function VideoThumbnail({
   useEffect(() => {
     if (!isLocal && stream && peerVideoRef.current) {
       console.log(`Setting remote stream for ${username}:`, stream);
-      console.log(`Stream ID: ${stream.id}, Video tracks:`, stream.getVideoTracks());
+      console.log(`Stream ID: ${stream.id}, Video tracks:`, stream.getVideoTracks(), `Audio tracks:`, stream.getAudioTracks());
       peerVideoRef.current.srcObject = stream;
+      
+      // Ensure audio plays - handle autoplay policy
+      peerVideoRef.current.play().then(() => {
+        console.log(`Started playing audio/video for ${username}`);
+      }).catch((error) => {
+        console.warn(`Autoplay blocked for ${username}, attempting to play after user gesture:`, error);
+        // Try to play on user interaction
+        const playOnInteraction = () => {
+          peerVideoRef.current?.play().then(() => {
+            console.log(`Audio/video started after user interaction for ${username}`);
+            document.removeEventListener('click', playOnInteraction);
+            document.removeEventListener('touchstart', playOnInteraction);
+          }).catch(console.error);
+        };
+        document.addEventListener('click', playOnInteraction, { once: true });
+        document.addEventListener('touchstart', playOnInteraction, { once: true });
+      });
     }
   }, [isLocal, stream, username]);
 
@@ -102,6 +119,7 @@ export default function VideoThumbnail({
           <video
             ref={peerVideoRef}
             autoPlay
+            muted={false}
             playsInline
             className="w-full h-full object-cover"
           />

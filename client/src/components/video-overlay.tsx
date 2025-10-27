@@ -83,12 +83,56 @@ export default function VideoOverlay({
     }
   };
 
-  const toggleVideo = () => {
+  const toggleVideo = async () => {
     if (localStream) {
       const videoTrack = localStream.getVideoTracks()[0];
       if (videoTrack) {
+        const wasEnabled = videoTrack.enabled;
         videoTrack.enabled = !videoTrack.enabled;
         setIsVideoOff(!videoTrack.enabled);
+        
+        // If re-enabling video and track is ended, get new stream
+        if (videoTrack.enabled && videoTrack.readyState === 'ended') {
+          try {
+            const newStream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false
+            });
+            
+            const newVideoTrack = newStream.getVideoTracks()[0];
+            
+            // Replace the old video track
+            localStream.removeTrack(videoTrack);
+            localStream.addTrack(newVideoTrack);
+            
+            // Update peers with new track
+            peers.forEach((peer) => {
+              if (peer.peer) {
+                const sender = (peer.peer as any)._pc?.getSenders().find((s: RTCRtpSender) => 
+                  s.track?.kind === 'video'
+                );
+                if (sender) {
+                  sender.replaceTrack(newVideoTrack).catch(console.error);
+                }
+              }
+            });
+            
+            // Update video element
+            if (videoRef.current) {
+              videoRef.current.srcObject = localStream;
+            }
+          } catch (error) {
+            console.error('Error restarting video:', error);
+            // Revert state to match reality
+            videoTrack.enabled = wasEnabled;
+            setIsVideoOff(!wasEnabled);
+            toast({
+              title: "Camera Error",
+              description: "Could not restart camera. Please check permissions and try again.",
+              variant: "destructive",
+            });
+          }
+        }
       }
     }
   };
@@ -126,57 +170,32 @@ export default function VideoOverlay({
     const existingVideos = Array.from(container.querySelectorAll('[data-participant-id]'));
     existingVideos.forEach(el => el.remove());
 
-    // Add title (fixed at top)
-    let title = container.querySelector('.pip-title') as HTMLDivElement;
-    if (!title) {
-      title = pipWindow.document.createElement('div');
-      title.className = 'pip-title';
-      title.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; z-index: 10000; color: white; font-size: 13px; font-weight: bold; padding: 10px; background: rgba(0,0,0,0.9); border-bottom: 1px solid #333;';
-      container.appendChild(title);
-    }
-    title.textContent = `StudyConnect - ${peers.length + 1} Participant${peers.length > 0 ? 's' : ''}`;
+    // Remove title and controls - just show videos
+    const existingTitle = container.querySelector('.pip-title');
+    const existingControls = container.querySelector('.pip-controls');
+    if (existingTitle) existingTitle.remove();
+    if (existingControls) existingControls.remove();
+
+    // Calculate positions for grid layout
+    const totalVideos = (localStream ? 1 : 0) + peers.filter(p => p.stream).length;
+    const margin = 10;
+    let videoIndex = 0;
 
     // Add user's own video
     if (localStream) {
-      const userVideoBox = createPiPVideoBox(pipWindow, localStream, `${user.username} (You)`, true, isAudioMuted, isVideoOff, 'local');
+      const userVideoBox = createPiPVideoBox(pipWindow, localStream, `${user.username} (You)`, true, isAudioMuted, isVideoOff, 'local', videoIndex, totalVideos, margin);
       container.appendChild(userVideoBox);
+      videoIndex++;
     }
 
     // Add peer videos
     peers.forEach((peer) => {
       if (peer.stream) {
-        const peerVideoBox = createPiPVideoBox(pipWindow, peer.stream, peer.username, false, peer.isMuted, peer.isVideoOff, peer.id);
+        const peerVideoBox = createPiPVideoBox(pipWindow, peer.stream, peer.username, false, peer.isMuted, peer.isVideoOff, peer.id, videoIndex, totalVideos, margin);
         container.appendChild(peerVideoBox);
+        videoIndex++;
       }
     });
-
-    // Add controls at bottom (fixed)
-    let controlsContainer = container.querySelector('.pip-controls') as HTMLDivElement;
-    if (!controlsContainer) {
-      controlsContainer = pipWindow.document.createElement('div');
-      controlsContainer.className = 'pip-controls';
-      controlsContainer.style.cssText = 'position: fixed; bottom: 0; left: 0; right: 0; z-index: 10000; padding: 10px; background: rgba(0,0,0,0.9); border-top: 1px solid #333; display: flex; gap: 8px; justify-content: center;';
-      container.appendChild(controlsContainer);
-    } else {
-      controlsContainer.innerHTML = '';
-    }
-    
-    // Get current state from MediaStream
-    const currentAudioMuted = localStream ? !localStream.getAudioTracks()[0]?.enabled : true;
-    const currentVideoOff = localStream ? !localStream.getVideoTracks()[0]?.enabled : true;
-    
-    const toggleAudioBtn = createPiPButton(pipWindow, currentAudioMuted ? '🎤 Unmute' : '🔇 Mute', () => {
-      toggleAudio();
-      // Update will happen via useEffect
-    });
-    
-    const toggleVideoBtn = createPiPButton(pipWindow, currentVideoOff ? '📹 Camera On' : '📵 Camera Off', () => {
-      toggleVideo();
-      // Update will happen via useEffect
-    });
-
-    controlsContainer.appendChild(toggleAudioBtn);
-    controlsContainer.appendChild(toggleVideoBtn);
   };
 
   const drawVideosToCanvas = () => {
@@ -283,9 +302,17 @@ export default function VideoOverlay({
       // Check for Document Picture-in-Picture API
       if ('documentPictureInPicture' in window) {
         // Use Document PiP for advanced controls with more space for dragging
+        const totalVideos = Math.max(1, (localStream ? 1 : 0) + peers.filter(p => p.stream).length);
+        const cols = Math.ceil(Math.sqrt(totalVideos));
+        const rows = Math.ceil(totalVideos / cols);
+        
+        const videoWidth = 280;
+        const videoHeight = 200;
+        const margin = 10;
+        
         const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
-          width: 650,
-          height: 600,
+          width: margin + cols * (videoWidth + margin),
+          height: margin + rows * (videoHeight + margin),
         });
 
         pipWindowRef.current = pipWindow;
@@ -308,13 +335,13 @@ export default function VideoOverlay({
           }
         });
 
-        // Create container
+        // Create container with transparent/minimal background
         const container = pipWindow.document.createElement('div');
-        container.style.cssText = 'width: 100%; height: 100%; background: #0a0a0a; position: relative; overflow: hidden;';
+        container.style.cssText = 'width: 100%; height: 100%; background: transparent; position: relative; overflow: visible;';
         pipWindow.document.body.appendChild(container);
         pipWindow.document.body.style.margin = '0';
-        pipWindow.document.body.style.background = '#0a0a0a';
-        pipWindow.document.body.style.overflow = 'hidden';
+        pipWindow.document.body.style.background = 'transparent';
+        pipWindow.document.body.style.overflow = 'visible';
 
         // Store container reference for updates
         pipContainerRef.current = container;
@@ -383,17 +410,25 @@ export default function VideoOverlay({
   };
 
   // Helper function to create video box in PiP window
-  const createPiPVideoBox = (pipWindow: Window, stream: MediaStream, username: string, isLocal: boolean, isMuted: boolean, isVideoOff: boolean, id: string) => {
+  const createPiPVideoBox = (pipWindow: Window, stream: MediaStream, username: string, isLocal: boolean, isMuted: boolean, isVideoOff: boolean, id: string, videoIndex: number, totalVideos: number, margin: number) => {
     const box = pipWindow.document.createElement('div');
-    box.style.cssText = 'background: #1a1a1a; border-radius: 8px; padding: 8px; position: absolute; cursor: move; min-width: 150px; min-height: 100px; border: 2px solid transparent; transition: border-color 0.2s;';
+    box.style.cssText = 'background: #1a1a1a; border-radius: 8px; padding: 8px; position: absolute; cursor: move; min-width: 150px; min-height: 100px; border: 2px solid transparent; transition: border-color 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.3);';
     box.setAttribute('data-participant-id', id);
 
+    // Calculate grid position
+    const cols = Math.ceil(Math.sqrt(totalVideos));
+    const col = videoIndex % cols;
+    const row = Math.floor(videoIndex / cols);
+    
+    const defaultWidth = 280;
+    const defaultHeight = 200;
+    
     // Default position and size (will be overridden if saved in state)
     const savedState = (pipWindow as any).participantStates?.[id];
-    const left = savedState?.left ?? 10 + (Object.keys((pipWindow as any).participantStates || {}).length * 20);
-    const top = savedState?.top ?? 60 + (Object.keys((pipWindow as any).participantStates || {}).length * 20);
-    const width = savedState?.width ?? 250;
-    const height = savedState?.height ?? 180;
+    const left = savedState?.left ?? margin + col * (defaultWidth + margin);
+    const top = savedState?.top ?? margin + row * (defaultHeight + margin);
+    const width = savedState?.width ?? defaultWidth;
+    const height = savedState?.height ?? defaultHeight;
 
     box.style.left = `${left}px`;
     box.style.top = `${top}px`;
@@ -413,6 +448,13 @@ export default function VideoOverlay({
     videoElement.playsInline = true;
     videoElement.style.cssText = 'width: 100%; height: calc(100% - 32px); object-fit: cover; border-radius: 4px; background: #000; pointer-events: none;';
     box.appendChild(videoElement);
+    
+    // Ensure remote audio plays
+    if (!isLocal) {
+      videoElement.play().catch((error) => {
+        console.warn(`PiP audio/video autoplay blocked for ${username}:`, error);
+      });
+    }
 
     const label = pipWindow.document.createElement('div');
     label.style.cssText = 'position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px; pointer-events: none;';
