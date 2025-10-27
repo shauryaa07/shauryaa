@@ -42,6 +42,7 @@ export default function App() {
     preferences,
     onMatched: (peers) => {
       console.log("Matched with peers:", peers);
+      console.log("Peer details:", peers.map(p => `userId: ${p.userId}, username: ${p.username}, gender: ${p.gender}`));
       setMatchedPeers(peers);
       setAppState("connected");
       setWaitingMessage(null);
@@ -55,9 +56,14 @@ export default function App() {
     onSignal: (message) => {
       // Handle WebRTC signaling messages
       // Find peer info from matchedPeers
+      console.log(`Received signal from ${message.from}, type: ${message.type}`);
+      console.log("Current matchedPeers:", matchedPeers.map(p => `userId: ${p.userId}, username: ${p.username}`));
+      
       const peerInfo = matchedPeers.find(p => p.userId === message.from);
       const peerUsername = peerInfo?.username || message.from || "Unknown";
       const peerGender = peerInfo?.gender;
+      
+      console.log(`Found peer info: userId=${message.from}, username=${peerUsername}, gender=${peerGender}`);
       
       webRTC.handleSignal(message.from!, peerUsername, message.data, message.type, peerGender);
     },
@@ -158,12 +164,16 @@ export default function App() {
       
       matchedPeers.forEach((peer) => {
         const shouldInitiate = user.id < peer.userId;
-        console.log(`Creating peer with ${peer.username}, initiator: ${shouldInitiate}`);
+        console.log(`Processing peer: userId=${peer.userId}, username=${peer.username}, gender=${peer.gender}`);
+        console.log(`My userId: ${user.id}, Peer userId: ${peer.userId}, Should initiate: ${shouldInitiate}`);
         
         if (shouldInitiate) {
           // Only create if we don't already have this peer
           if (!webRTC.peers.some(p => p.id === peer.userId)) {
+            console.log(`Creating initiator peer with userId=${peer.userId}, username=${peer.username}, gender=${peer.gender}`);
             webRTC.createPeer(peer.userId, peer.username, true, peer.gender);
+          } else {
+            console.log(`Peer ${peer.userId} already exists, skipping creation`);
           }
         }
       });

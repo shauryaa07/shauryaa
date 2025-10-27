@@ -206,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
 
     // Count only mutually compatible users
-    for (const [_, user] of waitingUsers.entries()) {
+    for (const [_, user] of Array.from(waitingUsers.entries())) {
       const userGender = user.gender;
       const userPreference = user.preferences?.partnerType || "any";
       
