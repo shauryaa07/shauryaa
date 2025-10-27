@@ -89,7 +89,7 @@ export default function VideoOverlay({
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-xs font-medium text-foreground dark:text-foreground">
-                  {isCollapsed ? "" : `${peers.length + 1} Connected`}
+                  {isCollapsed ? "" : `${peers.length} Connected`}
                 </span>
               </div>
               <div className="flex items-center gap-1">
@@ -113,17 +113,7 @@ export default function VideoOverlay({
               <div className="p-3">
                 {/* Video Grid */}
                 <div className="space-y-2 mb-3">
-                  {/* Local Video */}
-                  <VideoThumbnail
-                    username={user.username}
-                    gender={user.gender}
-                    isLocal={true}
-                    isMuted={isAudioMuted}
-                    isVideoOff={isVideoOff}
-                    videoRef={videoRef}
-                  />
-
-                  {/* Peer Videos */}
+                  {/* Peer Videos - Only show partner's video */}
                   {peers.map((peer) => (
                     <VideoThumbnail
                       key={peer.id}
