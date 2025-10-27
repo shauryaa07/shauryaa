@@ -1,0 +1,193 @@
+Perfect 🔥 You’re asking for a complete master prompt — something you can directly give to an AI builder (like V0, Bolt, Replit AI, or v0.dev) so it knows exactly what to build and how to make it nearly free.
+
+Here’s your ready-to-use, optimized prompt 👇
+Just copy-paste this into any AI website builder or code generator — it’s complete and technical enough to create your MVP.
+
+
+---
+
+🧠 MASTER PROMPT – “Student Live Connect Overlay App”
+
+Goal:
+Build a lightweight web app (or browser extension) that connects students with each other during live online classes (like Physics Wallah or Unacademy), letting them see and talk to 2–3 friends while watching the class — without disturbing the main live lecture or getting banned.
+
+
+---
+
+🧩 Core Concept
+
+The app should create a small floating overlay window (like picture-in-picture) that shows live video thumbnails of 2–3 connected students.
+
+Students can see and talk to each other while watching the class on another tab.
+
+The teacher’s class continues normally — the teacher doesn’t see or hear the students.
+
+The overlay can be resized, hidden, or muted anytime.
+
+Students can choose their study partner preferences (boy/girl/both).
+
+
+
+---
+
+⚙ Tech Stack (Free / Low Cost Setup)
+
+1. Frontend:
+
+HTML + TailwindCSS + React (or plain JS if simpler)
+
+Minimal UI with floating draggable overlay component
+
+Host on Vercel / Netlify (Free)
+
+
+
+2. Video & Voice Connection:
+
+Use WebRTC (Peer-to-Peer) for direct student communication
+
+Use Google STUN server:
+stun:stun.l.google.com:19302
+
+Fallback: Add optional TURN server for users behind firewalls
+(cheap option: coturn on DigitalOcean $5/month)
+
+
+
+3. Signaling Server (to connect peers):
+
+Lightweight Node.js + Express + Socket.io backend
+
+Handles connection setup only (no data transfer)
+
+Host free on Render / Railway / Vercel Serverless Functions
+
+
+
+4. Database (optional)
+
+Use Firebase or Supabase (free tier) for storing:
+
+User profiles
+
+Friend preferences
+
+Study partner history
+
+
+No video or chat data stored
+
+
+
+5. Authentication:
+
+Google Sign-In or anonymous login via Firebase Auth
+
+
+
+6. Overlay Integration:
+
+Works as a browser extension or web overlay
+
+Displayed on top of any live class (YouTube, PW, etc.)
+
+Users can toggle the overlay using a floating button
+
+
+
+
+
+---
+
+💬 Key Features
+
+Join random or chosen 2–3 students in a small study circle
+
+Voice + optional camera (user toggle)
+
+Each student can mute any other if distracting
+
+Option to add as friend or block
+
+When class ends, overlay closes automatically
+
+No recording or chat logs (privacy + cost reduction)
+
+
+
+---
+
+💰 Cost Optimization Plan
+
+Component	Tool	Cost	Notes
+
+Video/Audio	WebRTC P2P	₹0	Direct between users
+Signaling	Socket.io on Render	₹0	Free tier
+Hosting	Vercel	₹0	Free forever
+Database	Firebase	₹0	Free tier
+TURN backup	coturn server	₹400–₹600/month	Only when needed
+
+
+✅ Expected Total Cost: ₹400–₹600/month even with 1000 users
+
+
+---
+
+🔒 Anti-Ban & Focus Features
+
+Overlay uses transparent draggable window — doesn’t interfere with class UI
+
+Optional “Study Mode” that hides overlay when teacher is talking
+
+Peer moderation: any student can mute another
+
+Lightweight — no data stored, so no privacy risk for class platforms
+
+
+
+---
+
+🎯 User Flow
+
+1. Student installs extension / opens web app
+
+
+2. Logs in with Google / anonymous mode
+
+
+3. Chooses:
+
+Subject
+
+Mood (Focus / Chill)
+
+Partner type (Boy/Girl/Both)
+
+
+
+4. Connects automatically with 2–3 similar students
+
+
+5. Small overlay shows up on class screen (bottom-right corner)
+
+
+6. They can talk or mute while watching live class
+
+
+7. After class ends, overlay auto-closes
+
+
+
+
+---
+
+🧠 Summary Line for AI Builder
+
+> Build a minimal, P2P-based student overlay app using WebRTC, Socket.io, and Firebase. It should connect 2–3 students for live voice/video during classes, show their faces in a draggable overlay window on top of any tab, and cost under ₹600/month to operate. Focus on simplicity, privacy, and zero-server video transfer.
+
+
+
+
+---
+
+Would you like me to tweak this prompt so it’s written specifically for Replit Bolt or v0.dev, depending on which AI builder you’ll use?
