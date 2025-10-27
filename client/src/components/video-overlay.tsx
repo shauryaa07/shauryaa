@@ -213,30 +213,6 @@ export default function VideoOverlay({
                 flex-direction: column;
                 overflow: hidden;
               }
-              .drag-handle {
-                width: 100%;
-                height: 20px;
-                background: rgba(255, 255, 255, 0.05);
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                cursor: move;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                user-select: none;
-              }
-              .drag-handle:hover {
-                background: rgba(255, 255, 255, 0.1);
-              }
-              .drag-handle:active {
-                background: rgba(255, 255, 255, 0.15);
-                cursor: grabbing;
-              }
-              .drag-indicator {
-                width: 30px;
-                height: 3px;
-                background: rgba(255, 255, 255, 0.3);
-                border-radius: 2px;
-              }
               .container {
                 display: flex;
                 gap: 10px;
@@ -374,9 +350,6 @@ export default function VideoOverlay({
             </style>
           </head>
           <body>
-            <div class="drag-handle" title="Drag to move">
-              <div class="drag-indicator"></div>
-            </div>
             <div class="container">
               <div class="videos" id="videos"></div>
               <div class="controls">
@@ -471,35 +444,6 @@ export default function VideoOverlay({
 
       pipWindow.document.getElementById('btnClose').addEventListener('click', () => {
         pipWindow.close();
-      });
-
-      // Make the window draggable
-      const dragHandle = pipWindow.document.querySelector('.drag-handle');
-      let isDragging = false;
-      let startX = 0;
-      let startY = 0;
-      let startWindowX = 0;
-      let startWindowY = 0;
-
-      dragHandle.addEventListener('mousedown', (e: MouseEvent) => {
-        isDragging = true;
-        startX = e.screenX;
-        startY = e.screenY;
-        startWindowX = pipWindow.screenX;
-        startWindowY = pipWindow.screenY;
-        e.preventDefault();
-      });
-
-      pipWindow.addEventListener('mousemove', (e: MouseEvent) => {
-        if (isDragging) {
-          const deltaX = e.screenX - startX;
-          const deltaY = e.screenY - startY;
-          pipWindow.moveTo(startWindowX + deltaX, startWindowY + deltaY);
-        }
-      });
-
-      pipWindow.addEventListener('mouseup', () => {
-        isDragging = false;
       });
 
       pipWindow.addEventListener('pagehide', () => {
