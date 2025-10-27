@@ -45,6 +45,9 @@ export default function VideoOverlay({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pipVideoRef = useRef<HTMLVideoElement>(null);
   const animationFrameRef = useRef<number>();
+  const pipWindowRef = useRef<Window | null>(null);
+  const pipContainerRef = useRef<HTMLDivElement | null>(null);
+  const canvasVideoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -54,6 +57,20 @@ export default function VideoOverlay({
       videoRef.current.srcObject = localStream;
     }
   }, [localStream]);
+
+  // Update PiP window when state changes
+  useEffect(() => {
+    if (isPiPActive && pipContainerRef.current && pipWindowRef.current && !pipWindowRef.current.closed) {
+      updatePiPContent();
+    }
+  }, [peers, isAudioMuted, isVideoOff, isPiPActive]);
+
+  // Start canvas animation loop when PiP is activated with fallback mode
+  useEffect(() => {
+    if (isPiPActive && !pipWindowRef.current && canvasRef.current) {
+      drawVideosToCanvas();
+    }
+  }, [isPiPActive]);
 
   const toggleAudio = () => {
     if (localStream) {
@@ -79,6 +96,9 @@ export default function VideoOverlay({
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
     }
+    if (pipWindowRef.current && !pipWindowRef.current.closed) {
+      pipWindowRef.current.close();
+    }
     if (isPiPActive && pipVideoRef.current && document.pictureInPictureElement) {
       document.exitPictureInPicture();
     }
@@ -88,13 +108,76 @@ export default function VideoOverlay({
     onDisconnect();
   };
 
+  const updatePiPContent = () => {
+    if (!pipContainerRef.current || !pipWindowRef.current || pipWindowRef.current.closed) return;
+
+    const container = pipContainerRef.current;
+    const pipWindow = pipWindowRef.current;
+
+    // Clear existing content
+    container.innerHTML = '';
+
+    // Add title
+    const title = pipWindow.document.createElement('div');
+    title.style.cssText = 'color: white; font-size: 14px; font-weight: bold; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #333;';
+    title.textContent = `StudyConnect - ${peers.length + 1} Participant${peers.length > 0 ? 's' : ''}`;
+    container.appendChild(title);
+
+    // Add videos container
+    const videosContainer = pipWindow.document.createElement('div');
+    videosContainer.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
+    container.appendChild(videosContainer);
+
+    // Add user's own video
+    if (localStream) {
+      const userVideoBox = createPiPVideoBox(pipWindow, localStream, `${user.username} (You)`, true, isAudioMuted, isVideoOff);
+      videosContainer.appendChild(userVideoBox);
+    }
+
+    // Add peer videos
+    peers.forEach((peer) => {
+      if (peer.stream) {
+        const peerVideoBox = createPiPVideoBox(pipWindow, peer.stream, peer.username, false, peer.isMuted, peer.isVideoOff);
+        videosContainer.appendChild(peerVideoBox);
+      }
+    });
+
+    // Add controls at bottom
+    const controlsContainer = pipWindow.document.createElement('div');
+    controlsContainer.style.cssText = 'margin-top: 12px; padding-top: 12px; border-top: 1px solid #333; display: flex; gap: 8px; justify-content: center;';
+    
+    // Get current state from MediaStream
+    const currentAudioMuted = localStream ? !localStream.getAudioTracks()[0]?.enabled : true;
+    const currentVideoOff = localStream ? !localStream.getVideoTracks()[0]?.enabled : true;
+    
+    const toggleAudioBtn = createPiPButton(pipWindow, currentAudioMuted ? '🎤 Unmute' : '🔇 Mute', () => {
+      toggleAudio();
+      // Update will happen via useEffect
+    });
+    
+    const toggleVideoBtn = createPiPButton(pipWindow, currentVideoOff ? '📹 Camera On' : '📵 Camera Off', () => {
+      toggleVideo();
+      // Update will happen via useEffect
+    });
+
+    controlsContainer.appendChild(toggleAudioBtn);
+    controlsContainer.appendChild(toggleVideoBtn);
+    container.appendChild(controlsContainer);
+  };
+
   const drawVideosToCanvas = () => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
+    // Include user's own video + all peers
+    const allVideos = [
+      { stream: localStream, username: `${user.username} (You)`, gender: user.gender, isLocal: true, id: 'local' },
+      ...peers.map(p => ({ stream: p.stream, username: p.username, gender: p.gender, isLocal: false, id: p.id }))
+    ];
+
     // Set canvas size
-    const videoCount = peers.length;
+    const videoCount = allVideos.filter(v => v.stream).length;
     const cols = Math.ceil(Math.sqrt(videoCount));
     const rows = Math.ceil(videoCount / cols);
     
@@ -107,31 +190,61 @@ export default function VideoOverlay({
     const videoWidth = canvas.width / cols;
     const videoHeight = canvas.height / rows;
 
-    // Draw each peer video
-    peers.forEach((peer, index) => {
-      if (!peer.stream) return;
-      
-      const videoElement = document.createElement('video');
-      videoElement.srcObject = peer.stream;
-      videoElement.play().catch(() => {});
+    // Track current stream IDs
+    const currentStreamIds = new Set(allVideos.filter(v => v.stream).map(v => v.id));
+    
+    // Clean up video elements for removed streams
+    Array.from(canvasVideoElementsRef.current.entries()).forEach(([id, element]) => {
+      if (!currentStreamIds.has(id)) {
+        element.srcObject = null;
+        canvasVideoElementsRef.current.delete(id);
+      }
+    });
 
-      const col = index % cols;
-      const row = Math.floor(index / cols);
+    // Draw each video
+    let videoIndex = 0;
+    allVideos.forEach((videoData) => {
+      if (!videoData.stream) return;
+      
+      // Get or create persistent video element
+      let videoElement = canvasVideoElementsRef.current.get(videoData.id);
+      if (!videoElement) {
+        videoElement = document.createElement('video');
+        videoElement.autoplay = true;
+        videoElement.muted = true;
+        videoElement.playsInline = true;
+        videoElement.srcObject = videoData.stream;
+        videoElement.play().catch(() => {});
+        canvasVideoElementsRef.current.set(videoData.id, videoElement);
+      }
+
+      const col = videoIndex % cols;
+      const row = Math.floor(videoIndex / cols);
       const x = col * videoWidth;
       const y = row * videoHeight;
 
       try {
-        ctx.drawImage(videoElement, x, y, videoWidth, videoHeight);
+        if (videoElement.readyState >= videoElement.HAVE_CURRENT_DATA) {
+          ctx.drawImage(videoElement, x, y, videoWidth, videoHeight);
+        } else {
+          // Show placeholder while video loads
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillRect(x, y, videoWidth, videoHeight);
+        }
         
         // Draw username label
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(x, y + videoHeight - 30, videoWidth, 30);
         ctx.fillStyle = '#fff';
         ctx.font = '14px Arial';
-        ctx.fillText(`${peer.gender === 'male' ? '👨' : '👩'} ${peer.username}`, x + 10, y + videoHeight - 10);
+        const displayName = videoData.isLocal ? '👤 You' : `${videoData.gender === 'male' ? '👨' : '👩'} ${videoData.username}`;
+        ctx.fillText(displayName, x + 10, y + videoHeight - 10);
       } catch (err) {
-        // Video not ready yet
+        // Video not ready yet, show placeholder
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(x, y, videoWidth, videoHeight);
       }
+      videoIndex++;
     });
 
     if (isPiPActive) {
@@ -141,26 +254,11 @@ export default function VideoOverlay({
 
   const togglePictureInPicture = async () => {
     try {
-      if (!document.pictureInPictureEnabled) {
-        toast({
-          title: "Not Supported",
-          description: "Picture-in-Picture is not supported in your browser",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (peers.length === 0) {
-        toast({
-          title: "No Videos",
-          description: "No study partners connected to show in PiP mode",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
+      // Check if already in PiP, exit if so
+      if (pipWindowRef.current && !pipWindowRef.current.closed) {
+        pipWindowRef.current.close();
+        pipWindowRef.current = null;
+        pipContainerRef.current = null;
         setIsPiPActive(false);
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
@@ -168,55 +266,89 @@ export default function VideoOverlay({
         return;
       }
 
-      // For single peer, use their video directly
-      if (peers.length === 1 && peers[0].stream) {
-        const videoElement = pipVideoRef.current;
-        if (videoElement) {
-          videoElement.srcObject = peers[0].stream;
-          await videoElement.play();
-          await videoElement.requestPictureInPicture();
-          setIsPiPActive(true);
-          
-          videoElement.addEventListener('leavepictureinpicture', () => {
-            setIsPiPActive(false);
-          }, { once: true });
+      // Check for Document Picture-in-Picture API
+      if ('documentPictureInPicture' in window) {
+        // Use Document PiP for advanced controls
+        const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
+          width: 400,
+          height: 500,
+        });
 
-          toast({
-            title: "Picture-in-Picture Active",
-            description: "Video will stay on top of all tabs and apps!",
-          });
-        }
+        pipWindowRef.current = pipWindow;
+        setIsPiPActive(true);
+
+        // Copy styles to PiP window
+        const styleSheets = Array.from(document.styleSheets);
+        styleSheets.forEach((sheet) => {
+          try {
+            const css = Array.from(sheet.cssRules).map(rule => rule.cssText).join('\n');
+            const style = pipWindow.document.createElement('style');
+            style.textContent = css;
+            pipWindow.document.head.appendChild(style);
+          } catch (e) {
+            // External stylesheets might throw CORS errors
+            const link = pipWindow.document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = (sheet as any).href;
+            pipWindow.document.head.appendChild(link);
+          }
+        });
+
+        // Create container
+        const container = pipWindow.document.createElement('div');
+        container.style.cssText = 'width: 100%; height: 100%; background: #0a0a0a; padding: 12px; box-sizing: border-box; overflow-y: auto;';
+        pipWindow.document.body.appendChild(container);
+        pipWindow.document.body.style.margin = '0';
+        pipWindow.document.body.style.background = '#0a0a0a';
+
+        // Store container reference for updates
+        pipContainerRef.current = container;
+
+        // Populate initial content
+        updatePiPContent();
+
+        // Handle window close
+        pipWindow.addEventListener('pagehide', () => {
+          pipWindowRef.current = null;
+          pipContainerRef.current = null;
+          setIsPiPActive(false);
+        });
+
+        toast({
+          title: "Picture-in-Picture Active",
+          description: "All participants visible with full controls!",
+        });
       } else {
-        // For multiple peers, use canvas
+        // Fallback to standard PiP with canvas
         const canvas = canvasRef.current;
         const videoElement = pipVideoRef.current;
         
-        if (canvas && videoElement) {
-          // Draw initial frame
-          drawVideosToCanvas();
-          
-          // Create stream from canvas
-          const stream = canvas.captureStream(30);
-          videoElement.srcObject = stream;
-          await videoElement.play();
-          await videoElement.requestPictureInPicture();
-          setIsPiPActive(true);
+        if (!canvas || !videoElement) return;
 
-          // Continue updating canvas
-          drawVideosToCanvas();
+        // Draw initial frame
+        drawVideosToCanvas();
+        
+        // Create stream from canvas
+        const stream = canvas.captureStream(30);
+        videoElement.srcObject = stream;
+        await videoElement.play();
+        await videoElement.requestPictureInPicture();
+        setIsPiPActive(true);
 
-          videoElement.addEventListener('leavepictureinpicture', () => {
-            setIsPiPActive(false);
-            if (animationFrameRef.current) {
-              cancelAnimationFrame(animationFrameRef.current);
-            }
-          }, { once: true });
+        // Continue updating canvas
+        drawVideosToCanvas();
 
-          toast({
-            title: "Picture-in-Picture Active",
-            description: "All study partners visible across all tabs!",
-          });
-        }
+        videoElement.addEventListener('leavepictureinpicture', () => {
+          setIsPiPActive(false);
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+          }
+        }, { once: true });
+
+        toast({
+          title: "Picture-in-Picture Active",
+          description: "All participants visible across all tabs!",
+        });
       }
     } catch (error) {
       console.error('PiP error:', error);
@@ -226,6 +358,52 @@ export default function VideoOverlay({
         variant: "destructive",
       });
     }
+  };
+
+  // Helper function to create video box in PiP window
+  const createPiPVideoBox = (pipWindow: Window, stream: MediaStream, username: string, isLocal: boolean, isMuted: boolean, isVideoOff: boolean) => {
+    const box = pipWindow.document.createElement('div');
+    box.style.cssText = 'background: #1a1a1a; border-radius: 8px; padding: 8px; position: relative;';
+
+    const videoElement = pipWindow.document.createElement('video');
+    videoElement.srcObject = stream;
+    videoElement.autoplay = true;
+    videoElement.muted = isLocal;
+    videoElement.playsInline = true;
+    videoElement.style.cssText = 'width: 100%; height: 120px; object-fit: cover; border-radius: 4px; background: #000;';
+    box.appendChild(videoElement);
+
+    const label = pipWindow.document.createElement('div');
+    label.style.cssText = 'position: absolute; bottom: 16px; left: 16px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;';
+    label.textContent = username;
+    box.appendChild(label);
+
+    if (isMuted) {
+      const muteIndicator = pipWindow.document.createElement('div');
+      muteIndicator.style.cssText = 'position: absolute; top: 16px; right: 16px; background: rgba(220,38,38,0.9); color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px;';
+      muteIndicator.textContent = '🔇 Muted';
+      box.appendChild(muteIndicator);
+    }
+
+    if (isVideoOff) {
+      const videoOffIndicator = pipWindow.document.createElement('div');
+      videoOffIndicator.style.cssText = 'position: absolute; top: 44px; right: 16px; background: rgba(220,38,38,0.9); color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px;';
+      videoOffIndicator.textContent = '📵 Video Off';
+      box.appendChild(videoOffIndicator);
+    }
+
+    return box;
+  };
+
+  // Helper function to create button in PiP window
+  const createPiPButton = (pipWindow: Window, text: string, onClick: () => void) => {
+    const button = pipWindow.document.createElement('button');
+    button.textContent = text;
+    button.style.cssText = 'background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 16px;';
+    button.onmouseover = () => { button.style.background = '#2563eb'; };
+    button.onmouseout = () => { button.style.background = '#3b82f6'; };
+    button.onclick = onClick;
+    return button;
   };
 
   return (
@@ -266,7 +444,17 @@ export default function VideoOverlay({
               <div className="p-3">
                 {/* Video Grid */}
                 <div className="space-y-2 mb-3">
-                  {/* Peer Videos - Only show partner's video */}
+                  {/* User's own video */}
+                  <VideoThumbnail
+                    username={`${user.username} (You)`}
+                    gender={user.gender}
+                    isLocal={true}
+                    isMuted={isAudioMuted}
+                    isVideoOff={isVideoOff}
+                    videoRef={videoRef}
+                    stream={localStream || undefined}
+                  />
+                  {/* Peer Videos */}
                   {peers.map((peer) => (
                     <VideoThumbnail
                       key={peer.id}
@@ -396,9 +584,23 @@ export default function VideoOverlay({
             </div>
 
             <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 rounded-lg p-4">
-              <p className="text-sm text-foreground dark:text-foreground">
-                <span className="font-semibold">💡 Pro Tip:</span> Click the Picture-in-Picture button to pop out the video and watch your study partners while browsing Physics Wallah, Unacademy, or any other tab!
+              <p className="text-sm text-foreground dark:text-foreground mb-3">
+                <span className="font-semibold">💡 Enhanced Picture-in-Picture:</span> Click the PiP button to pop out ALL videos (including yourself) in a compact window with full controls!
               </p>
+              <ul className="text-sm text-muted-foreground dark:text-muted-foreground space-y-1">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  <span>See yourself and all study partners together in one window</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  <span>Toggle camera and mic directly from the PiP window</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  <span>Works across all tabs and apps - perfect for Physics Wallah, Unacademy, or any website!</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
