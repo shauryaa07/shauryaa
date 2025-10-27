@@ -25,7 +25,7 @@ export default function LandingPage() {
               </h1>
               
               <p className="text-lg text-muted-foreground dark:text-muted-foreground">
-                Connect with 2-3 study partners during live online classes. Share a floating video overlay while watching lectures together on Physics Wallah, Unacademy, and more.
+                Connect with up to 5 study partners during live online classes. Share a floating video overlay while watching lectures together on Physics Wallah, Unacademy, and more.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 mt-8">
@@ -123,7 +123,7 @@ export default function LandingPage() {
                 Smart Matching
               </h3>
               <p className="text-sm text-muted-foreground dark:text-muted-foreground">
-                Find 2-3 study partners based on subject, study mood, and preferences. Connect instantly.
+                Find up to 5 study partners based on subject, study mood, and preferences. Connect instantly.
               </p>
             </div>
             
@@ -159,7 +159,7 @@ export default function LandingPage() {
             {[
               { num: 1, title: "Enter Username", desc: "Quick and simple - no registration required" },
               { num: 2, title: "Set Preferences", desc: "Choose subject, mood, and partner type" },
-              { num: 3, title: "Get Matched", desc: "Connect with 2-3 similar students instantly" },
+              { num: 3, title: "Get Matched", desc: "Connect with up to 5 similar students instantly" },
               { num: 4, title: "Study Together", desc: "Watch class with overlay, talk anytime" },
             ].map((step, idx) => (
               <div key={idx} className="flex flex-col items-center text-center" data-testid={`step-${idx + 1}`}>

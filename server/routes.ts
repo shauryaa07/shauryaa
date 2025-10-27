@@ -163,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   function findMatch(newUser: WSClient): WSClient[] | null {
-    const maxRoomSize = 3; // 2-3 users per room
+    const maxRoomSize = 5; // Up to 5 users per room
     const userPreference = newUser.preferences?.partnerType || "any";
     const userGender = newUser.gender;
 
