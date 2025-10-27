@@ -7,8 +7,6 @@ import { Session, Preference } from "@shared/schema";
 interface WSClient extends WebSocket {
   userId?: string;
   username?: string;
-  gender?: "male" | "female";
-  preferences?: Preference;
   roomId?: string;
 }
 

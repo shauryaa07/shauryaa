@@ -1,18 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Preference, Settings } from "@shared/schema";
+import { User, Settings } from "@shared/schema";
 import UsernameEntry from "@/components/username-entry";
-import PreferenceSelection from "@/components/preference-selection";
 import VideoOverlay from "@/components/video-overlay";
 import MatchingState from "@/components/matching-state";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { useWebRTC } from "@/lib/useWebRTC-native";
 
-type AppState = "username" | "preferences" | "matching" | "connected";
+type AppState = "username" | "matching" | "connected";
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>("username");
   const [user, setUser] = useState<User | null>(null);
-  const [preferences, setPreferences] = useState<Preference | null>(null);
   const [settings, setSettings] = useState<Settings>({
     videoEnabled: true,
     audioEnabled: true,
@@ -20,15 +18,9 @@ export default function App() {
     autoHideOverlay: false,
   });
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [matchedPeers, setMatchedPeers] = useState<Array<{ userId: string; username: string; gender?: "male" | "female" }>>([]);
+  const [matchedPeers, setMatchedPeers] = useState<Array<{ userId: string; username: string }>>([]);
   const [waitingMessage, setWaitingMessage] = useState<{
     message: string;
-    suggestion?: "male" | "female" | null;
-    availability?: {
-      males: number;
-      females: number;
-      any: number;
-    };
   } | null>(null);
 
   const {
@@ -39,33 +31,27 @@ export default function App() {
     sendSignal,
   } = useWebSocket({
     user,
-    preferences,
     onMatched: (peers) => {
       console.log("Matched with peers:", peers);
-      console.log("Peer details:", peers.map(p => `userId: ${p.userId}, username: ${p.username}, gender: ${p.gender}`));
+      console.log("Peer details:", peers.map(p => `userId: ${p.userId}, username: ${p.username}`));
       setMatchedPeers(peers);
       setAppState("connected");
       setWaitingMessage(null);
-      // Don't create peers here - wait for localStream to be ready
-      // This will be handled in the useEffect below
     },
     onUserLeft: (userId) => {
       console.log("User left:", userId);
       webRTC.removePeer(userId);
     },
     onSignal: (message) => {
-      // Handle WebRTC signaling messages
-      // Find peer info from matchedPeers
       console.log(`Received signal from ${message.from}, type: ${message.type}`);
       console.log("Current matchedPeers:", matchedPeers.map(p => `userId: ${p.userId}, username: ${p.username}`));
       
       const peerInfo = matchedPeers.find(p => p.userId === message.from);
       const peerUsername = peerInfo?.username || message.from || "Unknown";
-      const peerGender = peerInfo?.gender;
       
-      console.log(`Found peer info: userId=${message.from}, username=${peerUsername}, gender=${peerGender}`);
+      console.log(`Found peer info: userId=${message.from}, username=${peerUsername}`);
       
-      webRTC.handleSignal(message.from!, peerUsername, message.data, message.type, peerGender);
+      webRTC.handleSignal(message.from!, peerUsername, message.data, message.type);
     },
     onWaiting: (data) => {
       console.log("Waiting message:", data);
@@ -103,38 +89,14 @@ export default function App() {
     };
   }, [appState, localStream, settings.videoEnabled, settings.audioEnabled]);
 
-  const handleUsernameSubmit = (username: string, gender: "male" | "female") => {
+  const handleUsernameSubmit = (username: string) => {
     const newUser: User = {
       id: Math.random().toString(36).substring(7),
       username,
       displayName: username,
-      gender,
     };
     setUser(newUser);
-    setAppState("preferences");
-  };
-
-  const handlePreferencesSubmit = (prefs: Preference) => {
-    setPreferences(prefs);
-    setWaitingMessage(null);
     setAppState("matching");
-  };
-
-  const handleChangePreference = (newPreference: "any" | "male" | "female") => {
-    console.log("Changing preference to:", newPreference);
-    const newPrefs: Preference = {
-      partnerType: newPreference,
-    };
-    setPreferences(newPrefs);
-    setWaitingMessage(null);
-    
-    // Disconnect and reconnect with new preferences
-    disconnect();
-    
-    // Wait a bit then reconnect
-    setTimeout(() => {
-      setAppState("matching");
-    }, 500);
   };
 
   const handleDisconnect = () => {
@@ -144,18 +106,17 @@ export default function App() {
       localStream.getTracks().forEach((track) => track.stop());
       setLocalStream(null);
     }
-    setAppState("preferences");
-    setPreferences(null);
+    setAppState("username");
     setMatchedPeers([]);
   };
 
   // Auto-connect to WebSocket only after localStream is ready
   useEffect(() => {
-    if (appState === "matching" && user && preferences && localStream && !isConnected) {
+    if (appState === "matching" && user && localStream && !isConnected) {
       console.log("LocalStream ready, connecting to WebSocket");
       connect();
     }
-  }, [appState, user, preferences, localStream, isConnected, connect]);
+  }, [appState, user, localStream, isConnected, connect]);
 
   // Create initiator peers only after localStream is ready
   useEffect(() => {
@@ -164,14 +125,13 @@ export default function App() {
       
       matchedPeers.forEach((peer) => {
         const shouldInitiate = user.id < peer.userId;
-        console.log(`Processing peer: userId=${peer.userId}, username=${peer.username}, gender=${peer.gender}`);
+        console.log(`Processing peer: userId=${peer.userId}, username=${peer.username}`);
         console.log(`My userId: ${user.id}, Peer userId: ${peer.userId}, Should initiate: ${shouldInitiate}`);
         
         if (shouldInitiate) {
-          // Only create if we don't already have this peer
           if (!webRTC.peers.some(p => p.id === peer.userId)) {
-            console.log(`Creating initiator peer with userId=${peer.userId}, username=${peer.username}, gender=${peer.gender}`);
-            webRTC.createPeer(peer.userId, peer.username, true, peer.gender);
+            console.log(`Creating initiator peer with userId=${peer.userId}, username=${peer.username}`);
+            webRTC.createPeer(peer.userId, peer.username, true);
           } else {
             console.log(`Peer ${peer.userId} already exists, skipping creation`);
           }
@@ -186,33 +146,22 @@ export default function App() {
         <UsernameEntry onSubmit={handleUsernameSubmit} />
       )}
       
-      {appState === "preferences" && user && (
-        <PreferenceSelection
-          user={user}
-          onSubmit={handlePreferencesSubmit}
-          onBack={() => setAppState("username")}
-        />
-      )}
-      
-      {appState === "matching" && user && preferences && (
+      {appState === "matching" && user && (
         <MatchingState
           user={user}
-          preferences={preferences}
-          onComplete={() => {}} // Handled by WebSocket onMatched
+          onComplete={() => {}}
           onCancel={() => {
             disconnect();
             setWaitingMessage(null);
-            setAppState("preferences");
+            setAppState("username");
           }}
           waitingMessage={waitingMessage || undefined}
-          onChangePreference={handleChangePreference}
         />
       )}
       
-      {appState === "connected" && user && preferences && (
+      {appState === "connected" && user && (
         <VideoOverlay
           user={user}
-          preferences={preferences}
           settings={settings}
           onSettingsChange={setSettings}
           onDisconnect={handleDisconnect}

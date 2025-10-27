@@ -5,24 +5,15 @@ export const userSchema = z.object({
   id: z.string(),
   username: z.string().min(2).max(20),
   displayName: z.string().optional(),
-  gender: z.enum(["male", "female"]),
 });
 
 export type User = z.infer<typeof userSchema>;
-
-// User preferences for matching
-export const preferenceSchema = z.object({
-  partnerType: z.enum(["any", "male", "female"]),
-});
-
-export type Preference = z.infer<typeof preferenceSchema>;
 
 // Session/Room information
 export const sessionSchema = z.object({
   id: z.string(),
   userId: z.string(),
   username: z.string(),
-  preferences: preferenceSchema,
   createdAt: z.date(),
 });
 
@@ -42,7 +33,6 @@ export type SignalingMessage = z.infer<typeof signalingMessageSchema>;
 export interface PeerConnection {
   id: string;
   username: string;
-  gender?: "male" | "female";
   stream?: MediaStream;
   peer?: any; // SimplePeer instance
   isMuted: boolean;

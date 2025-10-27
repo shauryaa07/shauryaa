@@ -5,12 +5,11 @@ import { Video, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 
 interface UsernameEntryProps {
-  onSubmit: (username: string, gender: "male" | "female") => void;
+  onSubmit: (username: string) => void;
 }
 
 export default function UsernameEntry({ onSubmit }: UsernameEntryProps) {
   const [username, setUsername] = useState("");
-  const [gender, setGender] = useState<"male" | "female">("male");
   const [error, setError] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -26,7 +25,7 @@ export default function UsernameEntry({ onSubmit }: UsernameEntryProps) {
       return;
     }
     
-    onSubmit(username.trim(), gender);
+    onSubmit(username.trim());
   };
 
   return (
@@ -74,40 +73,6 @@ export default function UsernameEntry({ onSubmit }: UsernameEntryProps) {
                   {error}
                 </p>
               )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground dark:text-foreground">
-                Gender
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setGender("male")}
-                  className={`p-4 rounded-lg border-2 transition-all duration-150 text-center ${
-                    gender === "male"
-                      ? "border-primary bg-primary/5 dark:bg-primary/10"
-                      : "border-border dark:border-border hover:border-primary/50 bg-background dark:bg-background"
-                  }`}
-                  data-testid="button-gender-male"
-                >
-                  <div className="text-2xl mb-1">👨</div>
-                  <div className="font-medium text-sm text-foreground dark:text-foreground">Male</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGender("female")}
-                  className={`p-4 rounded-lg border-2 transition-all duration-150 text-center ${
-                    gender === "female"
-                      ? "border-primary bg-primary/5 dark:bg-primary/10"
-                      : "border-border dark:border-border hover:border-primary/50 bg-background dark:bg-background"
-                  }`}
-                  data-testid="button-gender-female"
-                >
-                  <div className="text-2xl mb-1">👩</div>
-                  <div className="font-medium text-sm text-foreground dark:text-foreground">Female</div>
-                </button>
-              </div>
             </div>
 
             <Button

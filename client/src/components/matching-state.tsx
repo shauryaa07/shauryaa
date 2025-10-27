@@ -1,10 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { User, Preference } from "@shared/schema";
+import { User } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -15,47 +14,29 @@ import { useState, useEffect } from "react";
 
 interface MatchingStateProps {
   user: User;
-  preferences: Preference;
   onComplete: () => void;
   onCancel: () => void;
   waitingMessage?: {
     message: string;
-    suggestion?: "male" | "female" | null;
-    availability?: {
-      males: number;
-      females: number;
-      any: number;
-    };
   };
-  onChangePreference?: (newPreference: "any" | "male" | "female") => void;
 }
 
 export default function MatchingState({
   user,
-  preferences,
   onComplete,
   onCancel,
   waitingMessage,
-  onChangePreference,
 }: MatchingStateProps) {
-  const [showSuggestionDialog, setShowSuggestionDialog] = useState(false);
+  const [showNoOneDialog, setShowNoOneDialog] = useState(false);
 
   useEffect(() => {
-    // Show dialog when there's a suggestion or no one available
-    if (waitingMessage?.suggestion || (waitingMessage?.message && waitingMessage.message.includes('No one is available'))) {
-      setShowSuggestionDialog(true);
+    if (waitingMessage?.message && waitingMessage.message.includes('No one is available')) {
+      setShowNoOneDialog(true);
     }
   }, [waitingMessage]);
 
-  const handleAcceptSuggestion = () => {
-    if (waitingMessage?.suggestion && onChangePreference) {
-      onChangePreference(waitingMessage.suggestion);
-    }
-    setShowSuggestionDialog(false);
-  };
-
-  const handleDeclineSuggestion = () => {
-    setShowSuggestionDialog(false);
+  const handleCloseDialog = () => {
+    setShowNoOneDialog(false);
   };
 
   return (
@@ -97,38 +78,20 @@ export default function MatchingState({
         </p>
       </div>
 
-      <AlertDialog open={showSuggestionDialog} onOpenChange={setShowSuggestionDialog}>
+      <AlertDialog open={showNoOneDialog} onOpenChange={setShowNoOneDialog}>
         <AlertDialogContent data-testid="dialog-no-match">
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {waitingMessage?.suggestion ? "No Matches Found" : "No One Available"}
+              No One Available
             </AlertDialogTitle>
             <AlertDialogDescription>
               {waitingMessage?.message}
-              {waitingMessage?.suggestion && (
-                <>
-                  <br /><br />
-                  Would you like to connect with {waitingMessage.suggestion === "male" ? "males" : "females"} instead?
-                  ({waitingMessage.availability?.[`${waitingMessage.suggestion}s` as keyof typeof waitingMessage.availability]} available)
-                </>
-              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            {waitingMessage?.suggestion ? (
-              <>
-                <AlertDialogCancel onClick={handleDeclineSuggestion} data-testid="button-decline-suggestion">
-                  No, keep waiting
-                </AlertDialogCancel>
-                <AlertDialogAction onClick={handleAcceptSuggestion} data-testid="button-accept-suggestion">
-                  Yes, connect with {waitingMessage.suggestion}s
-                </AlertDialogAction>
-              </>
-            ) : (
-              <AlertDialogAction onClick={handleDeclineSuggestion} data-testid="button-close-dialog">
-                OK
-              </AlertDialogAction>
-            )}
+            <AlertDialogAction onClick={handleCloseDialog} data-testid="button-close-dialog">
+              OK
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
