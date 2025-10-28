@@ -186,7 +186,7 @@ export default function VideoOverlay({
           isMuted: p.isMuted,
           isVideoOff: p.isVideoOff,
         })),
-      ].slice(0, 3);
+      ].slice(0, 5); // Support up to 5 participants
 
       const participantCount = allParticipants.length;
       const videoWidth = 120;

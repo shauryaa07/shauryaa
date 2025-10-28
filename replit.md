@@ -1,13 +1,13 @@
 # StudyConnect - Student Live Connect Overlay App
 
 ## Overview
-StudyConnect is a peer-to-peer video chat application designed for students to connect with 2-3 study partners during live online classes. The app features a floating, draggable video overlay that allows students to see and talk to each other while watching lectures on platforms like Physics Wallah, Unacademy, and other online learning platforms.
+StudyConnect is a peer-to-peer video chat application designed for students to connect with up to 4 study partners (5 people total) during live online classes. The app features a floating, draggable video overlay that allows students to see and talk to each other while watching lectures on platforms like Physics Wallah, Unacademy, and other online learning platforms.
 
 **Status:** MVP Complete - All phases implemented and tested
 
 ## Core Features
 - **Simple Authentication**: Username-based entry (no registration required)
-- **Smart Matching**: Connect students based on subject, study mood, and partner preferences
+- **Smart Matching**: Connect students based on subject, study mood, and partner preferences (up to 5 people per room)
 - **WebRTC P2P Video/Audio**: Direct peer-to-peer connections for privacy and zero-cost scaling
 - **Draggable Overlay**: Floating window that can be moved anywhere on screen
 - **Enhanced Picture-in-Picture**: Each study partner appears in their own separate popup window
@@ -15,6 +15,7 @@ StudyConnect is a peer-to-peer video chat application designed for students to c
 - **Minimal UI**: Non-intrusive design that doesn't interfere with online classes
 - **Real-time Controls**: Mute/unmute audio/video, settings, disconnect
 - **Privacy-First**: No data storage, all video/audio goes directly between peers
+- **Scalable**: Supports up to 5 simultaneous participants with mesh peer-to-peer connections
 
 ## Project Architecture
 
@@ -83,7 +84,7 @@ StudyConnect is a peer-to-peer video chat application designed for students to c
 1. **Landing Page** → User views features and clicks "Get Started"
 2. **Username Entry** → User enters a username (2-20 characters)
 3. **Preference Selection** → User selects subject, mood, and partner type
-4. **Matching** → System finds 2-3 similar students (simulated for now)
+4. **Matching** → System finds 1-4 similar students (up to 5 people total in a room)
 5. **Connected** → Draggable video overlay appears with video chat controls
 6. **Study Together** → Users can talk, mute, toggle video, adjust settings
 7. **Disconnect** → End session and return to preferences
