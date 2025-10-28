@@ -2,15 +2,267 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
+import { z } from "zod";
 
 interface WSClient extends WebSocket {
   userId?: string;
   username?: string;
   roomId?: string;
+  lobbyRoomId?: string; // Track the original lobby/storage room ID separately
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+
+  // Room API Routes
+  app.post("/api/rooms", async (req, res) => {
+    try {
+      const { name, type, password, createdBy } = req.body;
+      
+      if (!name || !type || !createdBy) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      if (type === "private" && !password) {
+        return res.status(400).json({ error: "Private rooms require a password" });
+      }
+      
+      const room = storage.createRoom({
+        name,
+        type,
+        password: password || undefined,
+        createdBy,
+        currentOccupancy: 0,
+        maxOccupancy: 5,
+        createdAt: new Date(),
+      });
+      
+      res.json(room);
+    } catch (error) {
+      console.error("Error creating room:", error);
+      res.status(500).json({ error: "Failed to create room" });
+    }
+  });
+  
+  app.get("/api/rooms/public", async (req, res) => {
+    try {
+      const publicRooms = storage.getPublicRooms();
+      res.json(publicRooms);
+    } catch (error) {
+      console.error("Error fetching public rooms:", error);
+      res.status(500).json({ error: "Failed to fetch rooms" });
+    }
+  });
+  
+  app.post("/api/rooms/:roomId/join", async (req, res) => {
+    try {
+      const { roomId } = req.params;
+      const { password } = req.body;
+      
+      const room = storage.getRoom(roomId);
+      
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" });
+      }
+      
+      if (room.currentOccupancy >= room.maxOccupancy) {
+        return res.status(400).json({ error: "Room is full" });
+      }
+      
+      if (room.type === "private" && room.password !== password) {
+        return res.status(401).json({ error: "Incorrect password" });
+      }
+      
+      storage.updateRoomOccupancy(roomId, room.currentOccupancy + 1);
+      
+      res.json({ success: true, room });
+    } catch (error) {
+      console.error("Error joining room:", error);
+      res.status(500).json({ error: "Failed to join room" });
+    }
+  });
+  
+  // Profile API Routes
+  app.post("/api/profiles", async (req, res) => {
+    try {
+      const { userId, bio, photoUrl } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "userId is required" });
+      }
+      
+      const profile = storage.createProfile({
+        userId,
+        bio,
+        photoUrl,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error creating profile:", error);
+      res.status(500).json({ error: "Failed to create profile" });
+    }
+  });
+  
+  app.get("/api/profiles/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const profile = storage.getProfile(userId);
+      
+      if (!profile) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  });
+  
+  app.patch("/api/profiles/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { bio, photoUrl } = req.body;
+      
+      const profile = storage.updateProfile(userId, { bio, photoUrl });
+      
+      if (!profile) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+  
+  // Friend API Routes
+  app.post("/api/friends/request", async (req, res) => {
+    try {
+      const { requesterId, receiverId } = req.body;
+      
+      if (!requesterId || !receiverId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const friendRequest = storage.createFriendRequest({
+        requesterId,
+        receiverId,
+        status: "pending",
+        createdAt: new Date(),
+      });
+      
+      res.json(friendRequest);
+    } catch (error) {
+      console.error("Error creating friend request:", error);
+      res.status(500).json({ error: "Failed to create friend request" });
+    }
+  });
+  
+  app.patch("/api/friends/:requestId", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const { status } = req.body;
+      
+      if (status !== "accepted" && status !== "declined") {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      
+      const friendRequest = storage.updateFriendRequestStatus(requestId, status);
+      
+      if (!friendRequest) {
+        return res.status(404).json({ error: "Friend request not found" });
+      }
+      
+      res.json(friendRequest);
+    } catch (error) {
+      console.error("Error updating friend request:", error);
+      res.status(500).json({ error: "Failed to update friend request" });
+    }
+  });
+  
+  app.get("/api/friends/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const friends = storage.getFriends(userId);
+      res.json(friends);
+    } catch (error) {
+      console.error("Error fetching friends:", error);
+      res.status(500).json({ error: "Failed to fetch friends" });
+    }
+  });
+  
+  app.get("/api/friends/:userId/requests", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const requests = storage.getFriendRequestsByUser(userId);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching friend requests:", error);
+      res.status(500).json({ error: "Failed to fetch friend requests" });
+    }
+  });
+  
+  // Message API Routes
+  app.post("/api/messages", async (req, res) => {
+    try {
+      const { senderId, receiverId, content } = req.body;
+      
+      if (!senderId || !receiverId || !content) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const message = storage.createMessage({
+        senderId,
+        receiverId,
+        content,
+        read: false,
+        createdAt: new Date(),
+      });
+      
+      res.json(message);
+    } catch (error) {
+      console.error("Error creating message:", error);
+      res.status(500).json({ error: "Failed to create message" });
+    }
+  });
+  
+  app.get("/api/messages/:userId1/:userId2", async (req, res) => {
+    try {
+      const { userId1, userId2 } = req.params;
+      const messages = storage.getMessages(userId1, userId2);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+  
+  app.patch("/api/messages/:messageId/read", async (req, res) => {
+    try {
+      const { messageId } = req.params;
+      storage.markMessageAsRead(messageId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+      res.status(500).json({ error: "Failed to mark message as read" });
+    }
+  });
+  
+  app.get("/api/messages/:userId/unread-count", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const count = storage.getUnreadMessageCount(userId);
+      res.json({ count });
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+      res.status(500).json({ error: "Failed to fetch unread count" });
+    }
+  });
 
   // WebSocket server for signaling - using /ws path to avoid conflicts with Vite HMR
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
@@ -66,12 +318,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   function handleJoin(ws: WSClient, message: any) {
-    const { userId, username } = message;
+    const { userId, username, roomId } = message;
     
     ws.userId = userId;
     ws.username = username;
+    if (roomId) {
+      ws.lobbyRoomId = roomId; // Store as lobby room ID
+      ws.roomId = roomId; // Also set as current room ID for matching
+    }
 
-    console.log(`User ${username} (${userId}) joining`);
+    console.log(`User ${username} (${userId}) joining${roomId ? ` lobby room ${roomId}` : ''}`);
 
     // Store session
     storage.createSession({
@@ -84,21 +340,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const match = findMatch(ws);
 
     if (match) {
-      // Create a room with matched users
-      const roomId = `room-${Date.now()}`;
-      ws.roomId = roomId;
+      // Create a WebRTC room with matched users (keep lobbyRoomId intact)
+      const webrtcRoomId = `webrtc-${Date.now()}`;
+      ws.roomId = webrtcRoomId;
       
       const roomUsers = new Set<WSClient>([ws]);
       
-      // Add all matched users to the room
+      // Add all matched users to the WebRTC room
       match.forEach(matchedUser => {
-        matchedUser.roomId = roomId;
+        matchedUser.roomId = webrtcRoomId;
         roomUsers.add(matchedUser);
         waitingUsers.delete(matchedUser.userId!);
         waitingStartTimes.delete(matchedUser.userId!);
       });
       
-      rooms.set(roomId, roomUsers);
+      rooms.set(webrtcRoomId, roomUsers);
 
       // Notify all users in the room about each other
       roomUsers.forEach(user => {
@@ -176,15 +432,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (match) {
         clearInterval(retryInterval);
         
-        // Create a room with matched users
-        const roomId = `room-${Date.now()}`;
-        ws.roomId = roomId;
+        // Create a WebRTC room with matched users (keep lobbyRoomId intact)
+        const webrtcRoomId = `webrtc-${Date.now()}`;
+        ws.roomId = webrtcRoomId;
         
         const roomUsers = new Set<WSClient>([ws]);
         
-        // Add all matched users to the room
+        // Add all matched users to the WebRTC room
         match.forEach(matchedUser => {
-          matchedUser.roomId = roomId;
+          matchedUser.roomId = webrtcRoomId;
           roomUsers.add(matchedUser);
           waitingUsers.delete(matchedUser.userId!);
           waitingStartTimes.delete(matchedUser.userId!);
@@ -194,7 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         waitingUsers.delete(userId);
         waitingStartTimes.delete(userId);
         
-        rooms.set(roomId, roomUsers);
+        rooms.set(webrtcRoomId, roomUsers);
 
         // Notify all users in the room about each other
         roomUsers.forEach(user => {
@@ -208,13 +464,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (user.readyState === WebSocket.OPEN) {
             user.send(JSON.stringify({
               type: 'matched',
-              roomId,
+              roomId: webrtcRoomId,
               peers,
             }));
           }
         });
 
-        console.log(`Room ${roomId} created with ${roomUsers.size} users (from periodic retry)`);
+        console.log(`WebRTC room ${webrtcRoomId} created with ${roomUsers.size} users (from periodic retry)`);
       } else {
         console.log(`Still searching for match for ${username}... (${Math.floor(elapsed / 1000)}s elapsed)`);
       }
@@ -224,15 +480,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   function findMatch(newUser: WSClient): WSClient[] | null {
     const maxRoomSize = 5; // Up to 5 users per room
 
-    console.log(`Finding match for ${newUser.username}`);
+    console.log(`Finding match for ${newUser.username}${newUser.roomId ? ` in room ${newUser.roomId}` : ''}`);
 
-    // Find compatible waiting users (anyone!)
+    // If user specified a room, only match with users in the same room
     const compatibleUsers: WSClient[] = [];
     
     for (const [userId, waitingUser] of Array.from(waitingUsers.entries())) {
       if (userId === newUser.userId) continue;
       
-      // Anyone can match with anyone
+      // If user specified a room, only match with users in the same room
+      if (newUser.roomId && waitingUser.roomId !== newUser.roomId) {
+        continue;
+      }
+      
+      // If user didn't specify a room, only match with others who didn't specify a room
+      if (!newUser.roomId && waitingUser.roomId) {
+        continue;
+      }
+      
       compatibleUsers.push(waitingUser);
       if (compatibleUsers.length >= maxRoomSize - 1) break;
     }
@@ -280,7 +545,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       storage.removeSession(ws.userId);
     }
 
-    // Remove from room and notify others
+    // Decrement occupancy for the lobby room if user was in one
+    if (ws.lobbyRoomId) {
+      const storedRoom = storage.getRoom(ws.lobbyRoomId);
+      if (storedRoom) {
+        storage.updateRoomOccupancy(ws.lobbyRoomId, Math.max(0, storedRoom.currentOccupancy - 1));
+        console.log(`Decremented occupancy for lobby room ${ws.lobbyRoomId} to ${Math.max(0, storedRoom.currentOccupancy - 1)}`);
+      }
+    }
+
+    // Remove from WebRTC room and notify others
     if (ws.roomId) {
       const room = rooms.get(ws.roomId);
       if (room) {
@@ -297,10 +571,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
 
-        // Clean up empty rooms
+        // Clean up empty WebRTC rooms
         if (room.size === 0) {
           rooms.delete(ws.roomId);
-          console.log(`Room ${ws.roomId} deleted`);
+          console.log(`WebRTC room ${ws.roomId} deleted`);
         }
       }
     }

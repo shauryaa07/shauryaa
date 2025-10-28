@@ -3,10 +3,14 @@ import { User, Settings } from "@shared/schema";
 import UsernameEntry from "@/components/username-entry";
 import VideoOverlay from "@/components/video-overlay";
 import MatchingState from "@/components/matching-state";
+import RoomLobby from "@/components/room-lobby";
+import PublicRoomsList from "@/components/public-rooms-list";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { useWebRTC } from "@/lib/useWebRTC-native";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
-type AppState = "username" | "matching" | "connected";
+type AppState = "username" | "room-lobby" | "public-rooms" | "matching" | "connected";
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>("username");
@@ -22,6 +26,7 @@ export default function App() {
   const [waitingMessage, setWaitingMessage] = useState<{
     message: string;
   } | null>(null);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
 
   const {
     isConnected,
@@ -31,6 +36,7 @@ export default function App() {
     sendSignal,
   } = useWebSocket({
     user,
+    roomId: selectedRoomId,
     onMatched: (peers) => {
       console.log("Matched with peers:", peers);
       console.log("Peer details:", peers.map(p => `userId: ${p.userId}, username: ${p.username}`));
@@ -99,6 +105,8 @@ export default function App() {
     };
   }, [appState, localStream, settings.videoEnabled, settings.audioEnabled]);
 
+  const { toast } = useToast();
+
   const handleUsernameSubmit = (username: string) => {
     const newUser: User = {
       id: Math.random().toString(36).substring(7),
@@ -106,7 +114,63 @@ export default function App() {
       displayName: username,
     };
     setUser(newUser);
-    setAppState("matching");
+    setAppState("room-lobby");
+  };
+
+  const handleJoinRandom = () => {
+    setAppState("public-rooms");
+  };
+
+  const handleJoinPrivate = async (password: string) => {
+    setAppState("public-rooms");
+  };
+
+  const handleCreateRoom = async (name: string, type: "public" | "private", password?: string) => {
+    if (!user) return;
+
+    try {
+      const response = await apiRequest("POST", "/api/rooms", {
+        name,
+        type,
+        password,
+        createdBy: user.id,
+      });
+      
+      const room = await response.json();
+      setSelectedRoomId(room.id);
+
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms/public"] });
+
+      toast({
+        title: "Room Created",
+        description: `Your ${type} room "${name}" has been created successfully!`,
+      });
+
+      setAppState("matching");
+    } catch (error) {
+      console.error("Error creating room:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create room. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleJoinRoom = async (roomId: string, password?: string) => {
+    try {
+      await apiRequest("POST", `/api/rooms/${roomId}/join`, { password });
+      
+      setSelectedRoomId(roomId);
+      setAppState("matching");
+    } catch (error: any) {
+      console.error("Error joining room:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to join room. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDisconnect = () => {
@@ -116,7 +180,7 @@ export default function App() {
       localStream.getTracks().forEach((track) => track.stop());
       setLocalStream(null);
     }
-    setAppState("username");
+    setAppState("room-lobby");
     setMatchedPeers([]);
   };
 
@@ -155,6 +219,22 @@ export default function App() {
       {appState === "username" && (
         <UsernameEntry onSubmit={handleUsernameSubmit} />
       )}
+
+      {appState === "room-lobby" && user && (
+        <RoomLobby
+          user={user}
+          onJoinRandom={handleJoinRandom}
+          onJoinPrivate={handleJoinPrivate}
+          onCreateRoom={handleCreateRoom}
+        />
+      )}
+
+      {appState === "public-rooms" && (
+        <PublicRoomsList
+          onJoinRoom={handleJoinRoom}
+          onBack={() => setAppState("room-lobby")}
+        />
+      )}
       
       {appState === "matching" && user && (
         <MatchingState
@@ -163,7 +243,7 @@ export default function App() {
           onCancel={() => {
             disconnect();
             setWaitingMessage(null);
-            setAppState("username");
+            setAppState("room-lobby");
           }}
           waitingMessage={waitingMessage || undefined}
         />

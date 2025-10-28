@@ -124,6 +124,13 @@ export default function VideoOverlay({
         }
         
         setIsVideoOff(false);
+        
+        // Ensure the video element is playing to show the preview
+        if (videoRef.current) {
+          videoRef.current.play().catch((error) => {
+            console.warn('Could not play video element:', error);
+          });
+        }
       }
     } catch (error) {
       console.error('Error toggling video:', error);

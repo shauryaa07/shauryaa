@@ -3,6 +3,7 @@ import { User, SignalingMessage } from "@shared/schema";
 
 interface UseWebSocketProps {
   user: User | null;
+  roomId?: string | null;
   onMatched?: (peers: Array<{ userId: string; username: string }>) => void;
   onUserLeft?: (userId: string) => void;
   onSignal?: (message: SignalingMessage) => void;
@@ -11,6 +12,7 @@ interface UseWebSocketProps {
 
 export function useWebSocket({
   user,
+  roomId: selectedRoomId,
   onMatched,
   onUserLeft,
   onSignal,
@@ -41,6 +43,7 @@ export function useWebSocket({
           type: "join",
           userId: user.id,
           username: user.username,
+          roomId: selectedRoomId || undefined,
         })
       );
     };
