@@ -17,7 +17,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Room API Routes
   app.post("/api/rooms", async (req, res) => {
     try {
-      const { name, password, createdBy } = req.body;
+      const { name, password, createdBy, type } = req.body;
       
       if (!name || !createdBy) {
         return res.status(400).json({ error: "Missing required fields" });
@@ -27,9 +27,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "All rooms require a password" });
       }
       
+      if (!type || (type !== "public" && type !== "private")) {
+        return res.status(400).json({ error: "Invalid room type. Must be 'public' or 'private'" });
+      }
+      
       const room = storage.createRoom({
         name,
-        type: "private",
+        type,
         password,
         createdBy,
         currentOccupancy: 0,

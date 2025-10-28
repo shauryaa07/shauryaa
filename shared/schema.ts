@@ -49,11 +49,11 @@ export const settingsSchema = z.object({
 
 export type Settings = z.infer<typeof settingsSchema>;
 
-// Room schema - for managing study rooms (all rooms are now private)
+// Room schema - for managing study rooms (public and private)
 export const roomSchema = z.object({
   id: z.string(),
   name: z.string().min(1).max(50),
-  type: z.enum(["private"]).default("private"),
+  type: z.enum(["public", "private"]),
   password: z.string(),
   createdBy: z.string(),
   currentOccupancy: z.number().min(0).max(5).default(0),

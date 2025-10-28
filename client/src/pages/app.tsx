@@ -140,13 +140,14 @@ export default function App() {
     }
   };
 
-  const handleCreateRoom = async (name: string, password: string) => {
+  const handleCreateRoom = async (name: string, password: string, type: "public" | "private") => {
     if (!user) return;
 
     try {
       const response = await apiRequest("POST", "/api/rooms", {
         name,
         password,
+        type,
         createdBy: user.id,
       });
       
@@ -157,7 +158,7 @@ export default function App() {
 
       toast({
         title: "Room Created",
-        description: `Your private room "${name}" has been created successfully! Share the room ID: ${room.id}`,
+        description: `Your ${type} room "${name}" has been created successfully! ${type === "private" ? `Share the room ID: ${room.id}` : ""}`,
       });
 
       setAppState("matching");

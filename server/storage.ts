@@ -91,11 +91,13 @@ export class MemStorage implements IStorage {
   }
   
   getPublicRooms(): Room[] {
-    return Array.from(this.rooms.values());
+    return Array.from(this.rooms.values()).filter(room => room.type === "public");
   }
   
   getJoinableRooms(): Room[] {
-    return Array.from(this.rooms.values()).filter(room => room.currentOccupancy < room.maxOccupancy);
+    return Array.from(this.rooms.values()).filter(
+      room => room.type === "public" && room.currentOccupancy < room.maxOccupancy
+    );
   }
   
   updateRoomOccupancy(roomId: string, occupancy: number): void {

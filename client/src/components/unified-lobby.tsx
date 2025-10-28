@@ -11,14 +11,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { User, Room } from "@shared/schema";
-import { Search, Users, Video, Shuffle } from "lucide-react";
+import { Search, Users, Video, Shuffle, Lock, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface UnifiedLobbyProps {
   user: User;
   onJoinRoom: (roomId: string, password: string) => void;
-  onCreateRoom: (name: string, password: string) => void;
+  onCreateRoom: (name: string, password: string, type: "public" | "private") => void;
   onJoinRandom: () => void;
 }
 
@@ -30,10 +31,14 @@ export default function UnifiedLobby({
 }: UnifiedLobbyProps) {
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [showSearchRoom, setShowSearchRoom] = useState(false);
+  const [showJoinRoomDialog, setShowJoinRoomDialog] = useState(false);
+  const [selectedRoomForJoin, setSelectedRoomForJoin] = useState<Room | null>(null);
   const [roomName, setRoomName] = useState("");
   const [roomPassword, setRoomPassword] = useState("");
+  const [roomType, setRoomType] = useState<"public" | "private">("public");
   const [searchRoomId, setSearchRoomId] = useState("");
   const [searchPassword, setSearchPassword] = useState("");
+  const [joinPassword, setJoinPassword] = useState("");
   const { toast } = useToast();
 
   const { data: allRooms } = useQuery<Room[]>({
@@ -57,10 +62,11 @@ export default function UnifiedLobby({
       });
       return;
     }
-    onCreateRoom(roomName, roomPassword);
+    onCreateRoom(roomName, roomPassword, roomType);
     setShowCreateRoom(false);
     setRoomName("");
     setRoomPassword("");
+    setRoomType("public");
   };
 
   const handleSearchRoom = () => {
@@ -86,6 +92,29 @@ export default function UnifiedLobby({
     setSearchPassword("");
   };
 
+  const handleRoomClick = (room: Room) => {
+    setSelectedRoomForJoin(room);
+    setShowJoinRoomDialog(true);
+  };
+
+  const handleJoinSelectedRoom = () => {
+    if (!selectedRoomForJoin) return;
+    
+    if (!joinPassword.trim()) {
+      toast({
+        title: "Password Required",
+        description: "Please enter the room password",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    onJoinRoom(selectedRoomForJoin.id, joinPassword);
+    setShowJoinRoomDialog(false);
+    setJoinPassword("");
+    setSelectedRoomForJoin(null);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col p-6">
       <div className="flex items-center justify-between mb-6">
@@ -103,23 +132,28 @@ export default function UnifiedLobby({
       <div className="flex-1 flex flex-col">
         <div className="bg-slate-800/50 rounded-lg border border-slate-700 flex-1 mb-4 overflow-hidden flex flex-col">
           <div className="p-4 border-b border-slate-700">
-            <h2 className="text-lg font-semibold text-white">Available Private Rooms</h2>
-            <p className="text-sm text-gray-400 mt-1">Join a room to start studying with others</p>
+            <h2 className="text-lg font-semibold text-white">Available Rooms</h2>
+            <p className="text-sm text-gray-400 mt-1">Click on a room to join and start studying with others</p>
           </div>
 
           <div className="flex-1 overflow-y-auto">
             {allRooms && allRooms.length > 0 ? (
               <div className="divide-y divide-slate-700">
                 {allRooms.map((room) => (
-                  <div
+                  <button
                     key={room.id}
-                    className="p-4 hover:bg-slate-700/30 transition-colors flex items-center justify-between group"
+                    onClick={() => handleRoomClick(room)}
+                    className="w-full p-4 hover:bg-slate-700/30 transition-colors flex items-center justify-between group cursor-pointer text-left"
                     data-testid={`row-room-${room.id}`}
                   >
                     <div className="flex items-center gap-4 flex-1">
                       <div className="w-16 h-16 bg-slate-700 rounded overflow-hidden">
                         <div className="w-full h-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-                          <Video className="w-6 h-6 text-gray-400" />
+                          {room.type === "public" ? (
+                            <Globe className="w-6 h-6 text-blue-400" />
+                          ) : (
+                            <Lock className="w-6 h-6 text-purple-400" />
+                          )}
                         </div>
                       </div>
                       <div className="flex-1">
@@ -132,7 +166,19 @@ export default function UnifiedLobby({
 
                     <div className="flex items-center gap-6">
                       <div className="text-right">
-                        <div className="text-sm text-gray-400">Private Room</div>
+                        <div className="text-sm text-gray-400 flex items-center gap-1">
+                          {room.type === "public" ? (
+                            <>
+                              <Globe className="w-3 h-3" />
+                              Public Room
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-3 h-3" />
+                              Private Room
+                            </>
+                          )}
+                        </div>
                         <div className="text-sm text-gray-500">Password Required</div>
                       </div>
                       <div className="flex items-center gap-2 min-w-[100px] justify-end">
@@ -142,7 +188,7 @@ export default function UnifiedLobby({
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -191,12 +237,37 @@ export default function UnifiedLobby({
       <Dialog open={showCreateRoom} onOpenChange={setShowCreateRoom}>
         <DialogContent data-testid="dialog-create-room" className="bg-slate-800 border-slate-700">
           <DialogHeader>
-            <DialogTitle className="text-white">Create New Private Room</DialogTitle>
+            <DialogTitle className="text-white">Create New Room</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Set up your private study room. Share the room ID and password with friends to invite them.
+              Set up your study room. Public rooms can be joined by anyone with the password.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div>
+              <Label className="text-gray-300">Room Type</Label>
+              <RadioGroup value={roomType} onValueChange={(value) => setRoomType(value as "public" | "private")} className="flex gap-4 mt-2">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="public" id="public" data-testid="radio-public" />
+                  <Label htmlFor="public" className="text-gray-300 cursor-pointer flex items-center gap-1">
+                    <Globe className="w-4 h-4" />
+                    Public
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="private" id="private" data-testid="radio-private" />
+                  <Label htmlFor="private" className="text-gray-300 cursor-pointer flex items-center gap-1">
+                    <Lock className="w-4 h-4" />
+                    Private
+                  </Label>
+                </div>
+              </RadioGroup>
+              <p className="text-xs text-gray-500 mt-2">
+                {roomType === "public" 
+                  ? "Anyone can find and join this room with the password" 
+                  : "Only people you share the room ID with can join"}
+              </p>
+            </div>
+
             <div>
               <Label htmlFor="room-name" className="text-gray-300">Room Name</Label>
               <Input
@@ -293,6 +364,53 @@ export default function UnifiedLobby({
               onClick={handleSearchRoom}
               className="bg-blue-600 hover:bg-blue-700 text-white"
               data-testid="button-submit-search"
+            >
+              Join Room
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showJoinRoomDialog} onOpenChange={setShowJoinRoomDialog}>
+        <DialogContent data-testid="dialog-join-room" className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Join Room: {selectedRoomForJoin?.name}</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Enter the password to join this {selectedRoomForJoin?.type} room.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="join-password" className="text-gray-300">Password</Label>
+              <Input
+                id="join-password"
+                type="password"
+                placeholder="Enter room password..."
+                value={joinPassword}
+                onChange={(e) => setJoinPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleJoinSelectedRoom()}
+                className="bg-slate-700 border-slate-600 text-white"
+                data-testid="input-join-password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowJoinRoomDialog(false);
+                setJoinPassword("");
+                setSelectedRoomForJoin(null);
+              }} 
+              className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+              data-testid="button-cancel-join"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleJoinSelectedRoom}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              data-testid="button-submit-join"
             >
               Join Room
             </Button>
