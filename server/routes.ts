@@ -4,11 +4,25 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { z } from "zod";
 
+// Request validation schemas
+const createRoomSchema = z.object({
+  name: z.string().min(1, "Room name is required").max(50, "Room name too long"),
+  password: z.string().optional(),
+  createdBy: z.string().min(1, "Creator ID is required"),
+  type: z.enum(["public", "private"], { errorMap: () => ({ message: "Type must be 'public' or 'private'" }) }),
+});
+
+const joinRoomSchema = z.object({
+  password: z.string().optional(),
+  userId: z.string().min(1, "User ID is required"),
+});
+
 interface WSClient extends WebSocket {
   userId?: string;
   username?: string;
   roomId?: string;
   lobbyRoomId?: string; // Track the original lobby/storage room ID separately
+  isAlive?: boolean;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -17,15 +31,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Room API Routes
   app.post("/api/rooms", async (req, res) => {
     try {
-      const { name, password, createdBy, type } = req.body;
+      const validationResult = createRoomSchema.safeParse(req.body);
       
-      if (!name || !createdBy) {
-        return res.status(400).json({ error: "Missing required fields" });
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationResult.error.flatten().fieldErrors 
+        });
       }
       
-      if (!type || (type !== "public" && type !== "private")) {
-        return res.status(400).json({ error: "Invalid room type. Must be 'public' or 'private'" });
-      }
+      const { name, password, createdBy, type } = validationResult.data;
       
       // Only require password for private rooms
       if (type === "private" && !password) {
@@ -53,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/rooms/public", async (req, res) => {
     try {
-      const publicRooms = storage.getAllRooms();
+      const publicRooms = storage.getPublicRooms();
       const roomsWithoutPasswords = publicRooms.map(({ password, ...room }) => room);
       res.json(roomsWithoutPasswords);
     } catch (error) {
@@ -82,7 +97,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Search rooms by name
+  // Search rooms by name (public rooms only for privacy)
   app.get("/api/rooms/search", async (req, res) => {
     try {
       const { name } = req.query;
@@ -91,9 +106,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Search query is required" });
       }
       
-      const allRooms = storage.getAllRooms();
+      // Only search public rooms to prevent private room discovery
+      const publicRooms = storage.getPublicRooms();
       const searchQuery = (name as string).toLowerCase();
-      const matchingRooms = allRooms.filter(room => 
+      const matchingRooms = publicRooms.filter(room => 
         room.name.toLowerCase().includes(searchQuery)
       );
       
@@ -109,11 +125,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/rooms/:roomId/join", async (req, res) => {
     try {
       const { roomId } = req.params;
-      const { password, userId } = req.body;
       
-      if (!userId) {
-        return res.status(400).json({ error: "User ID is required" });
+      const validationResult = joinRoomSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationResult.error.flatten().fieldErrors 
+        });
       }
+      
+      const { password, userId } = validationResult.data;
       
       const room = storage.getRoom(roomId);
       
@@ -353,8 +375,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Search timeout in milliseconds (1 minute)
   const SEARCH_TIMEOUT = 60000;
 
+  // Ping clients every 30 seconds to detect dead connections
+  const pingInterval = setInterval(() => {
+    wss.clients.forEach((client: any) => {
+      const wsClient = client as WSClient;
+      
+      if (wsClient.isAlive === false) {
+        console.log(`Terminating dead connection for user ${wsClient.username || 'unknown'}`);
+        handleLeave(wsClient);
+        return wsClient.terminate();
+      }
+      
+      wsClient.isAlive = false;
+      wsClient.ping();
+    });
+  }, 30000);
+  
+  // Cleanup interval on server shutdown
+  wss.on('close', () => {
+    clearInterval(pingInterval);
+  });
+
   wss.on('connection', (ws: WSClient) => {
     console.log('New WebSocket connection');
+    
+    // Set up ping/pong for connection health monitoring
+    ws.isAlive = true;
+    ws.on('pong', () => {
+      ws.isAlive = true;
+    });
 
     ws.on('message', (data: string) => {
       try {
