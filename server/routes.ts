@@ -50,8 +50,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/rooms/public", async (req, res) => {
     try {
-      const allRooms = storage.getAllRooms();
-      res.json(allRooms);
+      const publicRooms = storage.getAllRooms();
+      const roomsWithoutPasswords = publicRooms.map(({ password, ...room }) => room);
+      res.json(roomsWithoutPasswords);
     } catch (error) {
       console.error("Error fetching rooms:", error);
       res.status(500).json({ error: "Failed to fetch rooms" });

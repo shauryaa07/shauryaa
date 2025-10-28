@@ -23,6 +23,8 @@ interface VideoOverlayProps {
   onSettingsChange: (settings: Settings) => void;
   onDisconnect: () => void;
   localStream: MediaStream | null;
+  screenStream?: MediaStream | null;
+  isRoomOwner?: boolean;
   peers: PeerConnection[];
 }
 
@@ -32,6 +34,8 @@ export default function VideoOverlay({
   onSettingsChange,
   onDisconnect,
   localStream,
+  screenStream,
+  isRoomOwner = false,
   peers,
 }: VideoOverlayProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -40,6 +44,7 @@ export default function VideoOverlay({
   const [isVideoOff, setIsVideoOff] = useState(!settings.videoEnabled);
   const [isPiPActive, setIsPiPActive] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const screenVideoRef = useRef<HTMLVideoElement>(null);
   const pipDocumentRef = useRef<Window | null>(null);
   const peerVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const { toast } = useToast();
@@ -51,6 +56,13 @@ export default function VideoOverlay({
       videoRef.current.srcObject = localStream;
     }
   }, [localStream]);
+
+  useEffect(() => {
+    if (screenVideoRef.current && screenStream) {
+      console.log('Setting screen stream:', screenStream);
+      screenVideoRef.current.srcObject = screenStream;
+    }
+  }, [screenStream]);
 
   const toggleAudio = () => {
     if (localStream) {

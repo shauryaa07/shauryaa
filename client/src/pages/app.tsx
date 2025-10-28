@@ -21,6 +21,8 @@ export default function App() {
     autoHideOverlay: false,
   });
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+  const [isRoomOwner, setIsRoomOwner] = useState(false);
   const [matchedPeers, setMatchedPeers] = useState<Array<{ userId: string; username: string }>>([]);
   const [waitingMessage, setWaitingMessage] = useState<{
     message: string;
@@ -140,6 +142,35 @@ export default function App() {
     }
   };
 
+  const startScreenShare = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          displaySurface: "browser",
+        },
+        audio: false,
+      });
+      
+      setScreenStream(stream);
+      console.log("Screen sharing started");
+      
+      stream.getVideoTracks()[0].onended = () => {
+        console.log("Screen sharing stopped");
+        setScreenStream(null);
+      };
+      
+      return stream;
+    } catch (error) {
+      console.error("Error starting screen share:", error);
+      toast({
+        title: "Screen Share Error",
+        description: "Could not start screen sharing. Please try again.",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
   const handleCreateRoom = async (name: string, password: string, type: "public" | "private") => {
     if (!user) return;
 
@@ -153,6 +184,7 @@ export default function App() {
       
       const room = await response.json();
       setSelectedRoomId(room.id);
+      setIsRoomOwner(true);
 
       queryClient.invalidateQueries({ queryKey: ["/api/rooms/public"] });
 
@@ -161,6 +193,7 @@ export default function App() {
         description: `Your ${type} room "${name}" has been created successfully! ${type === "private" ? `Share the room ID: ${room.id}` : ""}`,
       });
 
+      await startScreenShare();
       setAppState("matching");
     } catch (error) {
       console.error("Error creating room:", error);
@@ -177,6 +210,7 @@ export default function App() {
       await apiRequest("POST", `/api/rooms/${roomId}/join`, { password });
       
       setSelectedRoomId(roomId);
+      setIsRoomOwner(false);
       setAppState("matching");
     } catch (error: any) {
       console.error("Error joining room:", error);
@@ -195,8 +229,13 @@ export default function App() {
       localStream.getTracks().forEach((track) => track.stop());
       setLocalStream(null);
     }
+    if (screenStream) {
+      screenStream.getTracks().forEach((track) => track.stop());
+      setScreenStream(null);
+    }
     setAppState("lobby");
     setMatchedPeers([]);
+    setIsRoomOwner(false);
   };
 
   // Auto-connect to WebSocket only after localStream is ready
@@ -264,6 +303,8 @@ export default function App() {
           onSettingsChange={setSettings}
           onDisconnect={handleDisconnect}
           localStream={localStream}
+          screenStream={screenStream}
+          isRoomOwner={isRoomOwner}
           peers={webRTC.peers}
         />
       )}
