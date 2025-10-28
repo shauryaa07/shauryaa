@@ -3,14 +3,13 @@ import { User, Settings } from "@shared/schema";
 import UsernameEntry from "@/components/username-entry";
 import VideoOverlay from "@/components/video-overlay";
 import MatchingState from "@/components/matching-state";
-import RoomLobby from "@/components/room-lobby";
-import PublicRoomsList from "@/components/public-rooms-list";
+import UnifiedLobby from "@/components/unified-lobby";
 import { useWebSocket } from "@/lib/useWebSocket";
 import { useWebRTC } from "@/lib/useWebRTC-native";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-type AppState = "username" | "room-lobby" | "public-rooms" | "matching" | "connected";
+type AppState = "username" | "lobby" | "matching" | "connected";
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>("username");
@@ -114,24 +113,22 @@ export default function App() {
       displayName: username,
     };
     setUser(newUser);
-    setAppState("room-lobby");
+    setAppState("lobby");
   };
 
-  const handleJoinRandom = () => {
-    setAppState("public-rooms");
+  const handleJoinRandom = async () => {
+    if (!user) return;
+    
+    setSelectedRoomId(null);
+    setAppState("matching");
   };
 
-  const handleJoinPrivate = async (password: string) => {
-    setAppState("public-rooms");
-  };
-
-  const handleCreateRoom = async (name: string, type: "public" | "private", password?: string) => {
+  const handleCreateRoom = async (name: string, password: string) => {
     if (!user) return;
 
     try {
       const response = await apiRequest("POST", "/api/rooms", {
         name,
-        type,
         password,
         createdBy: user.id,
       });
@@ -143,7 +140,7 @@ export default function App() {
 
       toast({
         title: "Room Created",
-        description: `Your ${type} room "${name}" has been created successfully!`,
+        description: `Your private room "${name}" has been created successfully! Share the room ID: ${room.id}`,
       });
 
       setAppState("matching");
@@ -157,7 +154,7 @@ export default function App() {
     }
   };
 
-  const handleJoinRoom = async (roomId: string, password?: string) => {
+  const handleJoinRoom = async (roomId: string, password: string) => {
     try {
       await apiRequest("POST", `/api/rooms/${roomId}/join`, { password });
       
@@ -180,7 +177,7 @@ export default function App() {
       localStream.getTracks().forEach((track) => track.stop());
       setLocalStream(null);
     }
-    setAppState("room-lobby");
+    setAppState("lobby");
     setMatchedPeers([]);
   };
 
@@ -220,19 +217,12 @@ export default function App() {
         <UsernameEntry onSubmit={handleUsernameSubmit} />
       )}
 
-      {appState === "room-lobby" && user && (
-        <RoomLobby
+      {appState === "lobby" && user && (
+        <UnifiedLobby
           user={user}
           onJoinRandom={handleJoinRandom}
-          onJoinPrivate={handleJoinPrivate}
-          onCreateRoom={handleCreateRoom}
-        />
-      )}
-
-      {appState === "public-rooms" && (
-        <PublicRoomsList
           onJoinRoom={handleJoinRoom}
-          onBack={() => setAppState("room-lobby")}
+          onCreateRoom={handleCreateRoom}
         />
       )}
       
@@ -243,7 +233,7 @@ export default function App() {
           onCancel={() => {
             disconnect();
             setWaitingMessage(null);
-            setAppState("room-lobby");
+            setAppState("lobby");
           }}
           waitingMessage={waitingMessage || undefined}
         />

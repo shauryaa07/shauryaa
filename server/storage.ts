@@ -90,7 +90,7 @@ export class MemStorage implements IStorage {
   }
   
   getPublicRooms(): Room[] {
-    return Array.from(this.rooms.values()).filter(room => room.type === "public");
+    return Array.from(this.rooms.values());
   }
   
   updateRoomOccupancy(roomId: string, occupancy: number): void {

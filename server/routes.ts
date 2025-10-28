@@ -17,20 +17,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Room API Routes
   app.post("/api/rooms", async (req, res) => {
     try {
-      const { name, type, password, createdBy } = req.body;
+      const { name, password, createdBy } = req.body;
       
-      if (!name || !type || !createdBy) {
+      if (!name || !createdBy) {
         return res.status(400).json({ error: "Missing required fields" });
       }
       
-      if (type === "private" && !password) {
-        return res.status(400).json({ error: "Private rooms require a password" });
+      if (!password) {
+        return res.status(400).json({ error: "All rooms require a password" });
       }
       
       const room = storage.createRoom({
         name,
-        type,
-        password: password || undefined,
+        type: "private",
+        password,
         createdBy,
         currentOccupancy: 0,
         maxOccupancy: 5,
@@ -46,10 +46,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/rooms/public", async (req, res) => {
     try {
-      const publicRooms = storage.getPublicRooms();
-      res.json(publicRooms);
+      const allRooms = storage.getAllRooms();
+      res.json(allRooms);
     } catch (error) {
-      console.error("Error fetching public rooms:", error);
+      console.error("Error fetching rooms:", error);
       res.status(500).json({ error: "Failed to fetch rooms" });
     }
   });
@@ -69,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Room is full" });
       }
       
-      if (room.type === "private" && room.password !== password) {
+      if (room.password !== password) {
         return res.status(401).json({ error: "Incorrect password" });
       }
       
