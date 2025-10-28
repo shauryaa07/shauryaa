@@ -12,6 +12,7 @@ export interface IStorage {
   getRoom(roomId: string): Room | undefined;
   getAllRooms(): Room[];
   getPublicRooms(): Room[];
+  getJoinableRooms(): Room[];
   updateRoomOccupancy(roomId: string, occupancy: number): void;
   deleteRoom(roomId: string): void;
   
@@ -91,6 +92,10 @@ export class MemStorage implements IStorage {
   
   getPublicRooms(): Room[] {
     return Array.from(this.rooms.values());
+  }
+  
+  getJoinableRooms(): Room[] {
+    return Array.from(this.rooms.values()).filter(room => room.currentOccupancy < room.maxOccupancy);
   }
   
   updateRoomOccupancy(roomId: string, occupancy: number): void {

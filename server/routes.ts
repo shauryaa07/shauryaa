@@ -54,6 +54,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.post("/api/rooms/random/join", async (req, res) => {
+    try {
+      const joinableRooms = storage.getJoinableRooms();
+      
+      if (joinableRooms.length === 0) {
+        return res.status(404).json({ error: "No available rooms to join" });
+      }
+      
+      const randomIndex = Math.floor(Math.random() * joinableRooms.length);
+      const randomRoom = joinableRooms[randomIndex];
+      
+      // Return room info without password for security
+      // Occupancy will be tracked when user actually connects via WebSocket
+      const { password, ...roomInfo } = randomRoom;
+      res.json({ success: true, room: roomInfo });
+    } catch (error) {
+      console.error("Error finding random room:", error);
+      res.status(500).json({ error: "Failed to find random room" });
+    }
+  });
+  
   app.post("/api/rooms/:roomId/join", async (req, res) => {
     try {
       const { roomId } = req.params;
@@ -73,8 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Incorrect password" });
       }
       
-      storage.updateRoomOccupancy(roomId, room.currentOccupancy + 1);
-      
+      // Occupancy will be tracked when user actually connects via WebSocket
       res.json({ success: true, room });
     } catch (error) {
       console.error("Error joining room:", error);
@@ -323,8 +343,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.userId = userId;
     ws.username = username;
     if (roomId) {
-      ws.lobbyRoomId = roomId; // Store as lobby room ID
-      ws.roomId = roomId; // Also set as current room ID for matching
+      // Check if room has capacity before joining
+      const storedRoom = storage.getRoom(roomId);
+      if (storedRoom) {
+        if (storedRoom.currentOccupancy >= storedRoom.maxOccupancy) {
+          console.log(`Room ${roomId} is full (${storedRoom.currentOccupancy}/${storedRoom.maxOccupancy})`);
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Room is full',
+            }));
+          }
+          return; // Don't allow join
+        }
+        
+        ws.lobbyRoomId = roomId; // Store as lobby room ID
+        ws.roomId = roomId; // Also set as current room ID for matching
+        
+        // Increment occupancy when user joins via WebSocket
+        storage.updateRoomOccupancy(roomId, storedRoom.currentOccupancy + 1);
+        console.log(`Incremented occupancy for lobby room ${roomId} to ${storedRoom.currentOccupancy + 1}`);
+      } else {
+        ws.lobbyRoomId = roomId;
+        ws.roomId = roomId;
+      }
     }
 
     console.log(`User ${username} (${userId}) joining${roomId ? ` lobby room ${roomId}` : ''}`);

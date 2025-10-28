@@ -119,8 +119,25 @@ export default function App() {
   const handleJoinRandom = async () => {
     if (!user) return;
     
-    setSelectedRoomId(null);
-    setAppState("matching");
+    try {
+      const response = await apiRequest("POST", "/api/rooms/random/join");
+      const data = await response.json();
+      
+      setSelectedRoomId(data.room.id);
+      setAppState("matching");
+      
+      toast({
+        title: "Room Found",
+        description: `Joining room: ${data.room.name}`,
+      });
+    } catch (error: any) {
+      console.error("Error finding random room:", error);
+      toast({
+        title: "No Rooms Available",
+        description: "No available rooms to join. Try creating one!",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCreateRoom = async (name: string, password: string) => {
