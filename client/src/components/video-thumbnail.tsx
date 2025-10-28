@@ -32,18 +32,24 @@ export default function VideoThumbnail({
       console.log(`Stream ID: ${stream.id}, Video tracks:`, stream.getVideoTracks(), `Audio tracks:`, stream.getAudioTracks());
       peerVideoRef.current.srcObject = stream;
       
+      // Set volume to maximum for clear audio
+      peerVideoRef.current.volume = 1.0;
+      
       // Ensure audio plays - handle autoplay policy
       peerVideoRef.current.play().then(() => {
-        console.log(`Started playing audio/video for ${username}`);
+        console.log(`Started playing audio/video for ${username} with volume: 1.0`);
       }).catch((error) => {
         console.warn(`Autoplay blocked for ${username}, attempting to play after user gesture:`, error);
         // Try to play on user interaction
         const playOnInteraction = () => {
-          peerVideoRef.current?.play().then(() => {
-            console.log(`Audio/video started after user interaction for ${username}`);
-            document.removeEventListener('click', playOnInteraction);
-            document.removeEventListener('touchstart', playOnInteraction);
-          }).catch(console.error);
+          if (peerVideoRef.current) {
+            peerVideoRef.current.volume = 1.0;
+            peerVideoRef.current.play().then(() => {
+              console.log(`Audio/video started after user interaction for ${username}`);
+              document.removeEventListener('click', playOnInteraction);
+              document.removeEventListener('touchstart', playOnInteraction);
+            }).catch(console.error);
+          }
         };
         document.addEventListener('click', playOnInteraction, { once: true });
         document.addEventListener('touchstart', playOnInteraction, { once: true });
@@ -120,6 +126,7 @@ export default function VideoThumbnail({
             muted={false}
             playsInline
             className="w-full h-full object-cover"
+            data-testid={`video-remote-${username}`}
           />
         )
       ) : (

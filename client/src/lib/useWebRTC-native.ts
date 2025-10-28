@@ -4,6 +4,9 @@ import { PeerConnection } from "@shared/schema";
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:stun2.l.google.com:19302" },
+  { urls: "stun:stun3.l.google.com:19302" },
+  { urls: "stun:stun4.l.google.com:19302" },
 ];
 
 interface UseWebRTCProps {
@@ -23,6 +26,9 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
 
       const peerConnection = new RTCPeerConnection({
         iceServers: ICE_SERVERS,
+        iceCandidatePoolSize: 10,
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require',
       });
 
       // Add local stream tracks to the peer connection
@@ -47,6 +53,18 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
         console.log(`Received REMOTE stream from peer ${peerId} (${username})`);
         const [remoteStream] = event.streams;
         console.log(`Remote stream ID: ${remoteStream.id}, tracks:`, remoteStream.getTracks());
+        
+        // Ensure audio tracks are enabled and have proper settings
+        const audioTracks = remoteStream.getAudioTracks();
+        audioTracks.forEach((track) => {
+          track.enabled = true;
+          console.log(`Audio track enabled for ${username}:`, track.label, 'State:', track.readyState);
+        });
+        
+        const videoTracks = remoteStream.getVideoTracks();
+        videoTracks.forEach((track) => {
+          console.log(`Video track for ${username}:`, track.label, 'State:', track.readyState);
+        });
         
         streamRef.current.set(peerId, remoteStream);
         
@@ -108,7 +126,10 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
       // If initiator, create offer
       if (initiator) {
         try {
-          const offer = await peerConnection.createOffer();
+          const offer = await peerConnection.createOffer({
+            offerToReceiveAudio: true,
+            offerToReceiveVideo: true,
+          });
           await peerConnection.setLocalDescription(offer);
           console.log(`Sending offer to ${username} (${peerId})`);
           onSignal(peerId, "offer", {

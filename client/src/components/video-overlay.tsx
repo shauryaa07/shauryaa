@@ -63,56 +63,78 @@ export default function VideoOverlay({
   };
 
   const toggleVideo = async () => {
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        const wasEnabled = videoTrack.enabled;
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoOff(!videoTrack.enabled);
-        
-        // If re-enabling video and track is ended, get new stream
-        if (videoTrack.enabled && videoTrack.readyState === 'ended') {
-          try {
-            const newStream = await navigator.mediaDevices.getUserMedia({
-              video: true,
-              audio: false
-            });
-            
-            const newVideoTrack = newStream.getVideoTracks()[0];
-            
-            // Replace the old video track
-            localStream.removeTrack(videoTrack);
-            localStream.addTrack(newVideoTrack);
-            
-            // Update peers with new track
-            peers.forEach((peer) => {
-              if (peer.peer) {
-                const sender = (peer.peer as any)._pc?.getSenders().find((s: RTCRtpSender) => 
-                  s.track?.kind === 'video'
-                );
-                if (sender) {
-                  sender.replaceTrack(newVideoTrack).catch(console.error);
-                }
+    if (!localStream) return;
+    
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (!videoTrack) return;
+    
+    const wasEnabled = videoTrack.enabled;
+    
+    try {
+      if (wasEnabled) {
+        // Turning video OFF - just disable the track
+        videoTrack.enabled = false;
+        setIsVideoOff(true);
+        console.log('Video disabled');
+      } else {
+        // Turning video ON
+        if (videoTrack.readyState === 'ended') {
+          // Track is ended, need to get a new one
+          console.log('Video track ended, requesting new track');
+          const newStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 30 }
+            },
+            audio: false
+          });
+          
+          const newVideoTrack = newStream.getVideoTracks()[0];
+          
+          // Replace the old video track in the stream
+          localStream.removeTrack(videoTrack);
+          localStream.addTrack(newVideoTrack);
+          
+          // Update all peer connections with the new track
+          peers.forEach((peer) => {
+            if (peer.peer) {
+              const peerConnection = peer.peer as RTCPeerConnection;
+              const senders = peerConnection.getSenders();
+              const videoSender = senders.find((s) => s.track?.kind === 'video');
+              
+              if (videoSender) {
+                videoSender.replaceTrack(newVideoTrack).catch((error) => {
+                  console.error('Error replacing video track for peer:', error);
+                });
               }
-            });
-            
-            // Update video element
-            if (videoRef.current) {
-              videoRef.current.srcObject = localStream;
             }
-          } catch (error) {
-            console.error('Error restarting video:', error);
-            // Revert state to match reality
-            videoTrack.enabled = wasEnabled;
-            setIsVideoOff(!wasEnabled);
-            toast({
-              title: "Camera Error",
-              description: "Could not restart camera. Please check permissions and try again.",
-              variant: "destructive",
-            });
+          });
+          
+          // Update the video element
+          if (videoRef.current) {
+            videoRef.current.srcObject = localStream;
           }
+          
+          console.log('Video track replaced successfully');
+        } else {
+          // Track is still live, just enable it
+          videoTrack.enabled = true;
+          console.log('Video enabled');
         }
+        
+        setIsVideoOff(false);
       }
+    } catch (error) {
+      console.error('Error toggling video:', error);
+      // Revert state to match reality
+      videoTrack.enabled = wasEnabled;
+      setIsVideoOff(!wasEnabled);
+      toast({
+        title: "Camera Error",
+        description: "Could not toggle camera. Please check permissions and try again.",
+        variant: "destructive",
+      });
     }
   };
 

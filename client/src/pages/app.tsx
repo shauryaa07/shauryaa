@@ -70,11 +70,21 @@ export default function App() {
     const initMedia = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: settings.videoEnabled,
-          audio: settings.audioEnabled,
+          video: settings.videoEnabled ? {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 }
+          } : false,
+          audio: settings.audioEnabled ? {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 48000,
+            channelCount: 1
+          } : false,
         });
         setLocalStream(stream);
-        console.log("Local media stream initialized");
+        console.log("Local media stream initialized with enhanced audio settings");
       } catch (error) {
         console.error("Error accessing media devices:", error);
       }
