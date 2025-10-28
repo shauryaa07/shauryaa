@@ -487,13 +487,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (user.readyState === WebSocket.OPEN) {
           user.send(JSON.stringify({
             type: 'matched',
-            roomId,
+            roomId: webrtcRoomId,
             peers,
           }));
         }
       });
 
-      console.log(`Room ${roomId} created with ${roomUsers.size} users`);
+      console.log(`WebRTC room ${webrtcRoomId} created with ${roomUsers.size} users (lobby room: ${roomId})`);
     } else {
       // Allow user to enter room alone (even if no match found)
       const webrtcRoomId = `webrtc-${Date.now()}`;
@@ -506,12 +506,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
           type: 'matched',
-          roomId,
+          roomId: webrtcRoomId,
           peers: [], // No peers yet
         }));
       }
       
-      console.log(`User ${username} entered room ${roomId} alone, waiting for others...`);
+      console.log(`User ${username} entered WebRTC room ${webrtcRoomId} alone (lobby room: ${roomId}), waiting for others...`);
       
       // Add to waiting list so others can find them
       waitingUsers.set(userId, ws);
@@ -604,21 +604,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   function findMatch(newUser: WSClient): WSClient[] | null {
     const maxRoomSize = 5; // Up to 5 users per room
 
-    console.log(`Finding match for ${newUser.username}${newUser.roomId ? ` in room ${newUser.roomId}` : ''}`);
+    console.log(`Finding match for ${newUser.username}${newUser.lobbyRoomId ? ` in lobby room ${newUser.lobbyRoomId}` : ''}`);
 
-    // If user specified a room, only match with users in the same room
+    // If user specified a room, only match with users in the same lobby room
     const compatibleUsers: WSClient[] = [];
     
     for (const [userId, waitingUser] of Array.from(waitingUsers.entries())) {
       if (userId === newUser.userId) continue;
       
-      // If user specified a room, only match with users in the same room
-      if (newUser.roomId && waitingUser.roomId !== newUser.roomId) {
+      // If user specified a lobby room, only match with users in the same lobby room
+      if (newUser.lobbyRoomId && waitingUser.lobbyRoomId !== newUser.lobbyRoomId) {
         continue;
       }
       
-      // If user didn't specify a room, only match with others who didn't specify a room
-      if (!newUser.roomId && waitingUser.roomId) {
+      // If user didn't specify a lobby room, only match with others who didn't specify a lobby room
+      if (!newUser.lobbyRoomId && waitingUser.lobbyRoomId) {
         continue;
       }
       

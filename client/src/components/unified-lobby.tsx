@@ -234,7 +234,7 @@ export default function UnifiedLobby({
               className="flex-1 text-left text-gray-400 hover:text-gray-300 transition-colors py-1"
               data-testid="button-search-room"
             >
-              CLICK TO ENTER ROOM ID
+              Search for rooms by name
             </button>
           </div>
           
@@ -386,7 +386,11 @@ export default function UnifiedLobby({
                     onClick={() => {
                       setSelectedRoomForJoin(room);
                       setShowSearchRoom(false);
-                      setShowJoinRoomDialog(true);
+                      if (room.type === "public") {
+                        onJoinRoom(room.id, "");
+                      } else {
+                        setShowJoinRoomDialog(true);
+                      }
                     }}
                     className="w-full p-3 bg-slate-700/50 hover:bg-slate-700 rounded border border-slate-600 text-left transition-colors"
                     data-testid={`search-result-${room.id}`}
@@ -418,7 +422,13 @@ export default function UnifiedLobby({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showJoinRoomDialog} onOpenChange={setShowJoinRoomDialog}>
+      <Dialog open={showJoinRoomDialog} onOpenChange={(open) => {
+        setShowJoinRoomDialog(open);
+        if (!open) {
+          setJoinPassword("");
+          setSelectedRoomForJoin(null);
+        }
+      }}>
         <DialogContent data-testid="dialog-join-room" className="bg-slate-800 border-slate-700">
           <DialogHeader>
             <DialogTitle className="text-white">Join Room: {selectedRoomForJoin?.name}</DialogTitle>
