@@ -36,8 +36,8 @@ export default function UnifiedLobby({
   const [roomName, setRoomName] = useState("");
   const [roomPassword, setRoomPassword] = useState("");
   const [roomType, setRoomType] = useState<"public" | "private">("public");
-  const [searchRoomId, setSearchRoomId] = useState("");
-  const [searchPassword, setSearchPassword] = useState("");
+  const [searchRoomName, setSearchRoomName] = useState("");
+  const [searchResults, setSearchResults] = useState<Room[]>([]);
   const [joinPassword, setJoinPassword] = useState("");
   const { toast } = useToast();
 
@@ -54,14 +54,17 @@ export default function UnifiedLobby({
       });
       return;
     }
-    if (!roomPassword.trim()) {
+    
+    // Only require password for private rooms
+    if (roomType === "private" && !roomPassword.trim()) {
       toast({
         title: "Password Required",
-        description: "All rooms require a password",
+        description: "Private rooms require a password",
         variant: "destructive",
       });
       return;
     }
+    
     onCreateRoom(roomName, roomPassword, roomType);
     setShowCreateRoom(false);
     setRoomName("");
@@ -69,38 +72,57 @@ export default function UnifiedLobby({
     setRoomType("public");
   };
 
-  const handleSearchRoom = () => {
-    if (!searchRoomId.trim()) {
+  const handleSearchRoom = async () => {
+    if (!searchRoomName.trim()) {
       toast({
-        title: "Room ID Required",
-        description: "Please enter the room ID",
+        title: "Room Name Required",
+        description: "Please enter a room name to search",
         variant: "destructive",
       });
       return;
     }
-    if (!searchPassword.trim()) {
+    
+    try {
+      const response = await fetch(`/api/rooms/search?name=${encodeURIComponent(searchRoomName)}`);
+      if (!response.ok) {
+        throw new Error("Search failed");
+      }
+      const rooms = await response.json();
+      setSearchResults(rooms);
+      
+      if (rooms.length === 0) {
+        toast({
+          title: "No Rooms Found",
+          description: `No rooms found matching "${searchRoomName}"`,
+        });
+      }
+    } catch (error) {
+      console.error("Error searching rooms:", error);
       toast({
-        title: "Password Required",
-        description: "Please enter the room password",
+        title: "Error",
+        description: "Failed to search rooms. Please try again.",
         variant: "destructive",
       });
-      return;
     }
-    onJoinRoom(searchRoomId, searchPassword);
-    setShowSearchRoom(false);
-    setSearchRoomId("");
-    setSearchPassword("");
   };
 
   const handleRoomClick = (room: Room) => {
     setSelectedRoomForJoin(room);
-    setShowJoinRoomDialog(true);
+    
+    // If public room, join directly (capacity will be checked in handleJoinRoom)
+    if (room.type === "public") {
+      onJoinRoom(room.id, "");
+    } else {
+      // For private rooms, show password dialog
+      setShowJoinRoomDialog(true);
+    }
   };
 
   const handleJoinSelectedRoom = () => {
     if (!selectedRoomForJoin) return;
     
-    if (!joinPassword.trim()) {
+    // Only require password for private rooms
+    if (selectedRoomForJoin.type === "private" && !joinPassword.trim()) {
       toast({
         title: "Password Required",
         description: "Please enter the room password",
@@ -179,7 +201,9 @@ export default function UnifiedLobby({
                             </>
                           )}
                         </div>
-                        <div className="text-sm text-gray-500">Password Required</div>
+                        <div className="text-sm text-gray-500">
+                          {room.type === "public" ? "Click to Join" : "Password Required"}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 min-w-[100px] justify-end">
                         <Users className="w-4 h-4 text-gray-400" />
@@ -280,21 +304,23 @@ export default function UnifiedLobby({
               />
             </div>
 
-            <div>
-              <Label htmlFor="room-password" className="text-gray-300">Room Password</Label>
-              <Input
-                id="room-password"
-                type="password"
-                placeholder="Set a password..."
-                value={roomPassword}
-                onChange={(e) => setRoomPassword(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-white"
-                data-testid="input-room-password"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Share this password with people you want to invite
-              </p>
-            </div>
+            {roomType === "private" && (
+              <div>
+                <Label htmlFor="room-password" className="text-gray-300">Room Password</Label>
+                <Input
+                  id="room-password"
+                  type="password"
+                  placeholder="Set a password..."
+                  value={roomPassword}
+                  onChange={(e) => setRoomPassword(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white"
+                  data-testid="input-room-password"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Share this password with people you want to invite
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button 
@@ -316,58 +342,79 @@ export default function UnifiedLobby({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showSearchRoom} onOpenChange={setShowSearchRoom}>
-        <DialogContent data-testid="dialog-search-room" className="bg-slate-800 border-slate-700">
+      <Dialog open={showSearchRoom} onOpenChange={(open) => {
+        setShowSearchRoom(open);
+        if (!open) {
+          setSearchRoomName("");
+          setSearchResults([]);
+        }
+      }}>
+        <DialogContent data-testid="dialog-search-room" className="bg-slate-800 border-slate-700 max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white">Join Private Room</DialogTitle>
+            <DialogTitle className="text-white">Search Rooms</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Enter the room ID and password to join a private study room.
+              Enter a room name to find available study rooms.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="search-room-id" className="text-gray-300">Room ID</Label>
+            <div className="flex gap-2">
               <Input
-                id="search-room-id"
-                placeholder="Enter room ID..."
-                value={searchRoomId}
-                onChange={(e) => setSearchRoomId(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-white"
-                data-testid="input-search-room-id"
+                id="search-room-name"
+                placeholder="Enter room name..."
+                value={searchRoomName}
+                onChange={(e) => setSearchRoomName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearchRoom()}
+                className="bg-slate-700 border-slate-600 text-white flex-1"
+                data-testid="input-search-room-name"
               />
+              <Button 
+                onClick={handleSearchRoom}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                data-testid="button-submit-search"
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Search
+              </Button>
             </div>
 
-            <div>
-              <Label htmlFor="search-password" className="text-gray-300">Password</Label>
-              <Input
-                id="search-password"
-                type="password"
-                placeholder="Enter password..."
-                value={searchPassword}
-                onChange={(e) => setSearchPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearchRoom()}
-                className="bg-slate-700 border-slate-600 text-white"
-                data-testid="input-search-password"
-              />
-            </div>
+            {searchResults.length > 0 && (
+              <div className="max-h-[300px] overflow-y-auto space-y-2">
+                <p className="text-sm text-gray-400">{searchResults.length} room(s) found</p>
+                {searchResults.map((room) => (
+                  <button
+                    key={room.id}
+                    onClick={() => {
+                      setSelectedRoomForJoin(room);
+                      setShowSearchRoom(false);
+                      setShowJoinRoomDialog(true);
+                    }}
+                    className="w-full p-3 bg-slate-700/50 hover:bg-slate-700 rounded border border-slate-600 text-left transition-colors"
+                    data-testid={`search-result-${room.id}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {room.type === "public" ? (
+                          <Globe className="w-5 h-5 text-blue-400" />
+                        ) : (
+                          <Lock className="w-5 h-5 text-purple-400" />
+                        )}
+                        <div>
+                          <h3 className="text-white font-medium">{room.name}</h3>
+                          <p className="text-sm text-gray-400">
+                            {room.type === "public" ? "Public Room" : "Private Room"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-gray-400" />
+                        <span className="text-white">{room.currentOccupancy}/{room.maxOccupancy}</span>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowSearchRoom(false)} 
-              className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-              data-testid="button-cancel-search"
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSearchRoom}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              data-testid="button-submit-search"
-            >
-              Join Room
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

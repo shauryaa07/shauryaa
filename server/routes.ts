@@ -23,25 +23,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
       
-      if (!password) {
-        return res.status(400).json({ error: "All rooms require a password" });
-      }
-      
       if (!type || (type !== "public" && type !== "private")) {
         return res.status(400).json({ error: "Invalid room type. Must be 'public' or 'private'" });
+      }
+      
+      // Only require password for private rooms
+      if (type === "private" && !password) {
+        return res.status(400).json({ error: "Private rooms require a password" });
       }
       
       const room = storage.createRoom({
         name,
         type,
-        password,
+        password: type === "private" ? password : undefined,
         createdBy,
         currentOccupancy: 0,
         maxOccupancy: 5,
         createdAt: new Date(),
       });
       
-      res.json(room);
+      // Strip password from response for security
+      const { password: _, ...roomWithoutPassword } = room;
+      res.json(roomWithoutPassword);
     } catch (error) {
       console.error("Error creating room:", error);
       res.status(500).json({ error: "Failed to create room" });
@@ -71,8 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const randomRoom = joinableRooms[randomIndex];
       
       // Return room info without password for security
-      // Occupancy will be tracked when user actually connects via WebSocket
-      const { password, ...roomInfo } = randomRoom;
+      const { password: _, ...roomInfo } = randomRoom;
       res.json({ success: true, room: roomInfo });
     } catch (error) {
       console.error("Error finding random room:", error);
@@ -80,10 +82,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Search rooms by name
+  app.get("/api/rooms/search", async (req, res) => {
+    try {
+      const { name } = req.query;
+      
+      if (!name) {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+      
+      const allRooms = storage.getAllRooms();
+      const searchQuery = (name as string).toLowerCase();
+      const matchingRooms = allRooms.filter(room => 
+        room.name.toLowerCase().includes(searchQuery)
+      );
+      
+      // Remove passwords from response for security
+      const roomsWithoutPasswords = matchingRooms.map(({ password, ...room }) => room);
+      res.json(roomsWithoutPasswords);
+    } catch (error) {
+      console.error("Error searching rooms:", error);
+      res.status(500).json({ error: "Failed to search rooms" });
+    }
+  });
+  
   app.post("/api/rooms/:roomId/join", async (req, res) => {
     try {
       const { roomId } = req.params;
-      const { password } = req.body;
+      const { password, userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
       
       const room = storage.getRoom(roomId);
       
@@ -91,16 +121,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Room not found" });
       }
       
+      // Check capacity but don't reserve yet (WebSocket will do atomic check-and-increment)
       if (room.currentOccupancy >= room.maxOccupancy) {
         return res.status(400).json({ error: "Room is full" });
       }
       
-      if (room.password !== password) {
+      // Only check password for private rooms
+      if (room.type === "private" && room.password !== password) {
         return res.status(401).json({ error: "Incorrect password" });
       }
       
-      // Occupancy will be tracked when user actually connects via WebSocket
-      res.json({ success: true, room });
+      // Validation passed, create pending join reservation
+      pendingJoins.set(userId, roomId);
+      console.log(`Created pending join for user ${userId} to room ${roomId}`);
+      
+      // Auto-expire reservation after 30 seconds if WebSocket doesn't connect
+      setTimeout(() => {
+        if (pendingJoins.get(userId) === roomId) {
+          pendingJoins.delete(userId);
+          console.log(`Expired pending join for user ${userId} to room ${roomId}`);
+        }
+      }, 30000);
+      
+      // Return room info without password
+      const { password: _, ...roomWithoutPassword } = room;
+      res.json({ success: true, room: roomWithoutPassword });
     } catch (error) {
       console.error("Error joining room:", error);
       res.status(500).json({ error: "Failed to join room" });
@@ -301,6 +346,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Active rooms (each room has 2-3 users)
   const rooms: Map<string, Set<WSClient>> = new Map();
   
+  // Pending join reservations: userId → roomId
+  // Created by REST API validation, consumed by WebSocket join
+  const pendingJoins: Map<string, string> = new Map();
+  
   // Search timeout in milliseconds (1 minute)
   const SEARCH_TIMEOUT = 60000;
 
@@ -348,30 +397,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.userId = userId;
     ws.username = username;
     if (roomId) {
-      // Check if room has capacity before joining
-      const storedRoom = storage.getRoom(roomId);
-      if (storedRoom) {
-        if (storedRoom.currentOccupancy >= storedRoom.maxOccupancy) {
-          console.log(`Room ${roomId} is full (${storedRoom.currentOccupancy}/${storedRoom.maxOccupancy})`);
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              type: 'error',
-              message: 'Room is full',
-            }));
-          }
-          return; // Don't allow join
+      // Validate pending join reservation
+      const reservedRoomId = pendingJoins.get(userId);
+      if (reservedRoomId !== roomId) {
+        console.log(`No valid reservation for user ${userId} to join room ${roomId}`);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Unauthorized join - please use the join room API first',
+          }));
         }
-        
-        ws.lobbyRoomId = roomId; // Store as lobby room ID
-        ws.roomId = roomId; // Also set as current room ID for matching
-        
-        // Increment occupancy when user joins via WebSocket
-        storage.updateRoomOccupancy(roomId, storedRoom.currentOccupancy + 1);
-        console.log(`Incremented occupancy for lobby room ${roomId} to ${storedRoom.currentOccupancy + 1}`);
-      } else {
-        ws.lobbyRoomId = roomId;
-        ws.roomId = roomId;
+        return;
       }
+      
+      // Remove pending join after validation
+      pendingJoins.delete(userId);
+      console.log(`Consumed pending join reservation for user ${userId} to room ${roomId}`);
+      
+      const storedRoom = storage.getRoom(roomId);
+      if (!storedRoom) {
+        console.log(`Room ${roomId} not found`);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Room not found',
+          }));
+        }
+        return;
+      }
+      
+      // Atomically check capacity and increment (synchronous operations are atomic in Node.js)
+      if (storedRoom.currentOccupancy >= storedRoom.maxOccupancy) {
+        console.log(`Room ${roomId} is full (${storedRoom.currentOccupancy}/${storedRoom.maxOccupancy})`);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'error',
+            message: 'Room is full',
+          }));
+        }
+        return;
+      }
+      
+      // Increment occupancy atomically
+      storage.updateRoomOccupancy(roomId, storedRoom.currentOccupancy + 1);
+      console.log(`User joined room ${roomId}, occupancy now ${storedRoom.currentOccupancy + 1}/${storedRoom.maxOccupancy}`);
+      
+      ws.lobbyRoomId = roomId;
+      ws.roomId = roomId;
     }
 
     console.log(`User ${username} (${userId}) joining${roomId ? ` lobby room ${roomId}` : ''}`);
@@ -386,7 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Try to find a match
     const match = findMatch(ws);
 
-    if (match) {
+    if (match && match.length > 0) {
       // Create a WebRTC room with matched users (keep lobbyRoomId intact)
       const webrtcRoomId = `webrtc-${Date.now()}`;
       ws.roomId = webrtcRoomId;
@@ -423,22 +495,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Room ${roomId} created with ${roomUsers.size} users`);
     } else {
-      // No match found - add to waiting list and start searching
+      // Allow user to enter room alone (even if no match found)
+      const webrtcRoomId = `webrtc-${Date.now()}`;
+      ws.roomId = webrtcRoomId;
+      
+      const roomUsers = new Set<WSClient>([ws]);
+      rooms.set(webrtcRoomId, roomUsers);
+      
+      // Immediately send matched event with empty peers list
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'matched',
+          roomId,
+          peers: [], // No peers yet
+        }));
+      }
+      
+      console.log(`User ${username} entered room ${roomId} alone, waiting for others...`);
+      
+      // Add to waiting list so others can find them
       waitingUsers.set(userId, ws);
       const startTime = Date.now();
       waitingStartTimes.set(userId, startTime);
       
-      console.log(`User ${username} added to waiting list. Total waiting: ${waitingUsers.size}`);
-      
-      // Always show "searching" message initially
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'waiting',
-          message: 'Looking for study partners...',
-        }));
-      }
-      
-      // Start periodic retry with 1-minute timeout
+      // Start periodic retry to find more users
       startPeriodicRetry(ws, userId, username);
     }
   }
@@ -476,48 +556,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to find a match again
       const match = findMatch(ws);
       
-      if (match) {
+      if (match && match.length > 0) {
         clearInterval(retryInterval);
         
-        // Create a WebRTC room with matched users (keep lobbyRoomId intact)
-        const webrtcRoomId = `webrtc-${Date.now()}`;
-        ws.roomId = webrtcRoomId;
+        // Find the existing WebRTC room for this user
+        const existingWebrtcRoomId = ws.roomId;
+        const existingRoom = existingWebrtcRoomId ? rooms.get(existingWebrtcRoomId) : null;
         
-        const roomUsers = new Set<WSClient>([ws]);
-        
-        // Add all matched users to the WebRTC room
-        match.forEach(matchedUser => {
-          matchedUser.roomId = webrtcRoomId;
-          roomUsers.add(matchedUser);
-          waitingUsers.delete(matchedUser.userId!);
-          waitingStartTimes.delete(matchedUser.userId!);
-        });
-        
-        // Remove current user from waiting
-        waitingUsers.delete(userId);
-        waitingStartTimes.delete(userId);
-        
-        rooms.set(webrtcRoomId, roomUsers);
+        if (existingRoom) {
+          // User is already in a room, add new users to their room
+          match.forEach(matchedUser => {
+            matchedUser.roomId = existingWebrtcRoomId;
+            existingRoom.add(matchedUser);
+            waitingUsers.delete(matchedUser.userId!);
+            waitingStartTimes.delete(matchedUser.userId!);
+          });
+          
+          // Remove current user from waiting
+          waitingUsers.delete(userId);
+          waitingStartTimes.delete(userId);
+          
+          // Notify all users in the room about the new peers
+          existingRoom.forEach(user => {
+            const peers = Array.from(existingRoom)
+              .filter(u => u.userId !== user.userId)
+              .map(u => ({
+                userId: u.userId,
+                username: u.username,
+              }));
 
-        // Notify all users in the room about each other
-        roomUsers.forEach(user => {
-          const peers = Array.from(roomUsers)
-            .filter(u => u.userId !== user.userId)
-            .map(u => ({
-              userId: u.userId,
-              username: u.username,
-            }));
+            if (user.readyState === WebSocket.OPEN) {
+              user.send(JSON.stringify({
+                type: 'user-joined',
+                peers,
+              }));
+            }
+          });
 
-          if (user.readyState === WebSocket.OPEN) {
-            user.send(JSON.stringify({
-              type: 'matched',
-              roomId: webrtcRoomId,
-              peers,
-            }));
-          }
-        });
-
-        console.log(`WebRTC room ${webrtcRoomId} created with ${roomUsers.size} users (from periodic retry)`);
+          console.log(`Added ${match.length} user(s) to existing room. Room now has ${existingRoom.size} users (from periodic retry)`);
+        }
       } else {
         console.log(`Still searching for match for ${username}... (${Math.floor(elapsed / 1000)}s elapsed)`);
       }
@@ -596,8 +673,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (ws.lobbyRoomId) {
       const storedRoom = storage.getRoom(ws.lobbyRoomId);
       if (storedRoom) {
-        storage.updateRoomOccupancy(ws.lobbyRoomId, Math.max(0, storedRoom.currentOccupancy - 1));
-        console.log(`Decremented occupancy for lobby room ${ws.lobbyRoomId} to ${Math.max(0, storedRoom.currentOccupancy - 1)}`);
+        const newOccupancy = Math.max(0, storedRoom.currentOccupancy - 1);
+        storage.updateRoomOccupancy(ws.lobbyRoomId, newOccupancy);
+        console.log(`Decremented occupancy for lobby room ${ws.lobbyRoomId} to ${newOccupancy}`);
+        
+        // Delete room if empty
+        if (newOccupancy === 0) {
+          storage.deleteRoom(ws.lobbyRoomId);
+          console.log(`Deleted empty room ${ws.lobbyRoomId}`);
+        }
       }
     }
 

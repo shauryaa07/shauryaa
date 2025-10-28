@@ -29,6 +29,8 @@ export default function App() {
   } | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
 
+  const { toast } = useToast();
+
   const {
     isConnected,
     roomId,
@@ -44,6 +46,10 @@ export default function App() {
       setMatchedPeers(peers);
       setAppState("connected");
       setWaitingMessage(null);
+    },
+    onUserJoined: (peers) => {
+      console.log("New users joined:", peers);
+      setMatchedPeers(peers);
     },
     onUserLeft: (userId) => {
       console.log("User left:", userId);
@@ -63,6 +69,27 @@ export default function App() {
     onWaiting: (data) => {
       console.log("Waiting message:", data);
       setWaitingMessage(data);
+    },
+    onError: (message) => {
+      console.error("WebSocket error:", message);
+      
+      if (message.toLowerCase().includes("room is full")) {
+        toast({
+          title: "Room Full",
+          description: "This room has reached its maximum capacity of 5 users.",
+          variant: "destructive",
+        });
+        
+        // Go back to lobby
+        setAppState("lobby");
+        setSelectedRoomId(null);
+      } else {
+        toast({
+          title: "Error",
+          description: message,
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -106,8 +133,6 @@ export default function App() {
     };
   }, [appState, localStream, settings.videoEnabled, settings.audioEnabled]);
 
-  const { toast } = useToast();
-
   const handleUsernameSubmit = (username: string) => {
     const newUser: User = {
       id: Math.random().toString(36).substring(7),
@@ -122,21 +147,25 @@ export default function App() {
     if (!user) return;
     
     try {
-      const response = await apiRequest("POST", "/api/rooms/random/join");
-      const data = await response.json();
+      // First, get a random joinable room
+      const randomResponse = await apiRequest("POST", "/api/rooms/random/join");
+      const randomData = await randomResponse.json();
       
-      setSelectedRoomId(data.room.id);
+      // Then, reserve a spot by calling the join endpoint
+      await apiRequest("POST", `/api/rooms/${randomData.room.id}/join`, { password: "", userId: user.id });
+      
+      setSelectedRoomId(randomData.room.id);
       setAppState("matching");
       
       toast({
         title: "Room Found",
-        description: `Joining room: ${data.room.name}`,
+        description: `Joining room: ${randomData.room.name}`,
       });
     } catch (error: any) {
       console.error("Error finding random room:", error);
       toast({
         title: "No Rooms Available",
-        description: "No available rooms to join. Try creating one!",
+        description: error.message || "No available rooms to join. Try creating one!",
         variant: "destructive",
       });
     }
@@ -183,6 +212,13 @@ export default function App() {
       });
       
       const room = await response.json();
+      
+      // Reserve a spot for the creator by calling join endpoint
+      await apiRequest("POST", `/api/rooms/${room.id}/join`, { 
+        password, 
+        userId: user.id 
+      });
+      
       setSelectedRoomId(room.id);
       setIsRoomOwner(true);
 
@@ -206,8 +242,10 @@ export default function App() {
   };
 
   const handleJoinRoom = async (roomId: string, password: string) => {
+    if (!user) return;
+    
     try {
-      await apiRequest("POST", `/api/rooms/${roomId}/join`, { password });
+      await apiRequest("POST", `/api/rooms/${roomId}/join`, { password, userId: user.id });
       
       setSelectedRoomId(roomId);
       setIsRoomOwner(false);

@@ -54,7 +54,7 @@ export const roomSchema = z.object({
   id: z.string(),
   name: z.string().min(1).max(50),
   type: z.enum(["public", "private"]),
-  password: z.string(),
+  password: z.string().optional(),
   createdBy: z.string(),
   currentOccupancy: z.number().min(0).max(5).default(0),
   maxOccupancy: z.number().default(5),

@@ -5,18 +5,22 @@ interface UseWebSocketProps {
   user: User | null;
   roomId?: string | null;
   onMatched?: (peers: Array<{ userId: string; username: string }>) => void;
+  onUserJoined?: (peers: Array<{ userId: string; username: string }>) => void;
   onUserLeft?: (userId: string) => void;
   onSignal?: (message: SignalingMessage) => void;
   onWaiting?: (data: { message: string }) => void;
+  onError?: (message: string) => void;
 }
 
 export function useWebSocket({
   user,
   roomId: selectedRoomId,
   onMatched,
+  onUserJoined,
   onUserLeft,
   onSignal,
   onWaiting,
+  onError,
 }: UseWebSocketProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
@@ -58,12 +62,18 @@ export function useWebSocket({
             setRoomId(message.roomId);
             onMatched?.(message.peers);
             break;
+          case "user-joined":
+            onUserJoined?.(message.peers);
+            break;
           case "waiting":
             console.log("Waiting for peers...", message);
             onWaiting?.(message);
             break;
           case "user-left":
             onUserLeft?.(message.userId);
+            break;
+          case "error":
+            onError?.(message.message);
             break;
           case "offer":
           case "answer":
@@ -87,7 +97,7 @@ export function useWebSocket({
       setIsConnected(false);
       setRoomId(null);
     };
-  }, [user, onMatched, onUserLeft, onSignal]);
+  }, [user, selectedRoomId, onMatched, onUserJoined, onUserLeft, onSignal, onWaiting, onError]);
 
   const disconnect = useCallback(() => {
     if (wsRef.current) {
