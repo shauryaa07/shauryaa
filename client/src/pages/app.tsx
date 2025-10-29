@@ -107,20 +107,61 @@ export default function App() {
           video: settings.videoEnabled ? {
             width: { ideal: 1280 },
             height: { ideal: 720 },
-            frameRate: { ideal: 30 }
+            frameRate: { ideal: 30, max: 30 },
+            facingMode: "user"
           } : false,
           audio: settings.audioEnabled ? {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
-            sampleRate: 48000,
-            channelCount: 1
+            sampleRate: { ideal: 48000 },
+            sampleSize: { ideal: 16 },
+            channelCount: { ideal: 1 }
           } : false,
         });
         setLocalStream(stream);
         console.log("Local media stream initialized with enhanced audio settings");
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error accessing media devices:", error);
+        
+        // Provide helpful error message based on error type
+        if (error.name === 'OverconstrainedError') {
+          console.warn('Audio/video constraints not supported on this device:', error.constraint);
+          toast({
+            title: "Media Constraints Not Supported",
+            description: `Your device doesn't support the requested ${error.constraint} setting. Trying with default settings...`,
+            variant: "default",
+          });
+          
+          // Fallback to simpler constraints
+          try {
+            const fallbackStream = await navigator.mediaDevices.getUserMedia({
+              video: settings.videoEnabled,
+              audio: settings.audioEnabled,
+            });
+            setLocalStream(fallbackStream);
+            console.log("Fallback media stream initialized successfully");
+          } catch (fallbackError) {
+            console.error("Fallback media init also failed:", fallbackError);
+            toast({
+              title: "Camera/Microphone Access Failed",
+              description: "Please check your device permissions and try again.",
+              variant: "destructive",
+            });
+          }
+        } else if (error.name === 'NotAllowedError') {
+          toast({
+            title: "Permission Denied",
+            description: "Please allow camera and microphone access to join the call.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Media Error",
+            description: "Failed to access camera/microphone. Please check your device and try again.",
+            variant: "destructive",
+          });
+        }
       }
     };
 

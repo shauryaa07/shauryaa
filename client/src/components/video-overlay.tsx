@@ -16,6 +16,7 @@ import {
 import VideoThumbnail from "./video-thumbnail";
 import SettingsModal from "./settings-modal";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface VideoOverlayProps {
   user: User;
@@ -43,6 +44,7 @@ export default function VideoOverlay({
   const [isAudioMuted, setIsAudioMuted] = useState(!settings.audioEnabled);
   const [isVideoOff, setIsVideoOff] = useState(!settings.videoEnabled);
   const [isPiPActive, setIsPiPActive] = useState(false);
+  const [friendRequests, setFriendRequests] = useState<Set<string>>(new Set());
   const videoRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const pipDocumentRef = useRef<Window | null>(null);
@@ -117,13 +119,12 @@ export default function VideoOverlay({
       });
 
       const participantCount = allParticipants.length;
-      const videoWidth = 120;
-      const gap = 8;
-      const padding = 12;
-      const controlsWidth = 140;
-      const dragHandleHeight = 20;
-      const windowWidth = (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth;
-      const windowHeight = 110 + dragHandleHeight;
+      const videoWidth = 140; // Increased for better visibility
+      const gap = 10; // Increased gap
+      const padding = 16; // Increased padding
+      const controlsWidth = 160; // Increased to ensure buttons are always visible
+      const windowWidth = Math.max(450, (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth);
+      const windowHeight = Math.max(135, 110 + 16); // Ensure minimum height for controls
 
       try {
         pipWindow.resizeTo(windowWidth, windowHeight);
@@ -244,6 +245,39 @@ export default function VideoOverlay({
     }
   };
 
+  const handleFriendRequest = async (receiverId: string) => {
+    if (friendRequests.has(receiverId)) {
+      toast({
+        title: "Already Sent",
+        description: "You've already sent a friend request to this user.",
+        variant: "default",
+      });
+      return;
+    }
+
+    try {
+      const response = await apiRequest("POST", "/api/friends/request", {
+        requesterId: user.id,
+        receiverId: receiverId,
+      });
+
+      if (response.ok) {
+        setFriendRequests(prev => new Set(prev).add(receiverId));
+        toast({
+          title: "Friend Request Sent!",
+          description: "Your friend request has been sent successfully.",
+        });
+      }
+    } catch (error) {
+      console.error("Error sending friend request:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send friend request. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDisconnect = () => {
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
@@ -303,13 +337,12 @@ export default function VideoOverlay({
       ].slice(0, 5); // Support up to 5 participants
 
       const participantCount = allParticipants.length;
-      const videoWidth = 120;
-      const gap = 8;
-      const padding = 12;
-      const controlsWidth = 140;
-      const dragHandleHeight = 20;
-      const windowWidth = (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth;
-      const windowHeight = 110 + dragHandleHeight;
+      const videoWidth = 140; // Increased for better visibility
+      const gap = 10; // Increased gap
+      const padding = 16; // Increased padding
+      const controlsWidth = 160; // Increased to ensure buttons are always visible
+      const windowWidth = Math.max(450, (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth);
+      const windowHeight = Math.max(135, 110 + 16); // Ensure minimum height for controls
 
       // Create the PiP window
       const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
@@ -362,13 +395,14 @@ export default function VideoOverlay({
               }
               .video-item {
                 position: relative;
-                width: 120px;
-                height: 90px;
-                border-radius: 6px;
+                width: 140px;
+                height: 105px;
+                border-radius: 8px;
                 overflow: hidden;
                 background: #000;
                 border: 2px solid rgba(59, 130, 246, 0.3);
                 transition: border-color 0.2s;
+                flex-shrink: 0;
               }
               .video-item:hover {
                 border-color: rgba(59, 130, 246, 0.6);
@@ -639,28 +673,80 @@ export default function VideoOverlay({
             {/* Content */}
             {!isCollapsed && (
               <div className="p-3">
-                {/* Video Grid */}
-                <div className="space-y-2 mb-3">
-                  {/* User's own video */}
-                  <VideoThumbnail
-                    username={`${user.username} (You)`}
-                    isLocal={true}
-                    isMuted={isAudioMuted}
-                    isVideoOff={isVideoOff}
-                    videoRef={videoRef}
-                    stream={localStream || undefined}
-                  />
-                  {/* Peer Videos */}
-                  {peers.map((peer) => (
-                    <VideoThumbnail
-                      key={peer.id}
-                      username={peer.username}
-                      isLocal={false}
-                      isMuted={peer.isMuted}
-                      isVideoOff={peer.isVideoOff}
-                      stream={peer.stream}
-                    />
-                  ))}
+                {/* Video Grid - Pyramid Layout: 3 bottom, 2 top */}
+                <div className="mb-3">
+                  {(() => {
+                    const allParticipants = [
+                      { 
+                        username: `${user.username} (You)`, 
+                        isLocal: true, 
+                        isMuted: isAudioMuted, 
+                        isVideoOff: isVideoOff,
+                        videoRef: videoRef,
+                        stream: localStream,
+                        peer: null,
+                        userId: user.id
+                      },
+                      ...peers.map(p => ({ 
+                        username: p.username, 
+                        isLocal: false, 
+                        isMuted: p.isMuted, 
+                        isVideoOff: p.isVideoOff,
+                        videoRef: undefined,
+                        stream: p.stream,
+                        peer: p,
+                        userId: p.id
+                      }))
+                    ];
+
+                    // Calculate layout: First 2 on top row, remaining 3 on bottom
+                    const topRow = allParticipants.slice(0, 2);
+                    const bottomRow = allParticipants.slice(2, 5);
+                    
+                    return (
+                      <div className="space-y-2">
+                        {/* Top Row - 2 participants */}
+                        {topRow.length > 0 && (
+                          <div className={`grid gap-2 ${topRow.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                            {topRow.map((participant, idx) => (
+                              <div key={`top-${idx}`} className="w-full">
+                                <VideoThumbnail
+                                  username={participant.username}
+                                  isLocal={participant.isLocal}
+                                  isMuted={participant.isMuted}
+                                  isVideoOff={participant.isVideoOff}
+                                  videoRef={participant.videoRef}
+                                  stream={participant.stream || undefined}
+                                  userId={participant.userId}
+                                  onFriendRequest={handleFriendRequest}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Bottom Row - Up to 3 participants */}
+                        {bottomRow.length > 0 && (
+                          <div className={`grid gap-2 ${bottomRow.length === 1 ? 'grid-cols-1' : bottomRow.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                            {bottomRow.map((participant, idx) => (
+                              <div key={`bottom-${idx}`} className="w-full">
+                                <VideoThumbnail
+                                  username={participant.username}
+                                  isLocal={participant.isLocal}
+                                  isMuted={participant.isMuted}
+                                  isVideoOff={participant.isVideoOff}
+                                  videoRef={participant.videoRef}
+                                  stream={participant.stream || undefined}
+                                  userId={participant.userId}
+                                  onFriendRequest={handleFriendRequest}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Control Bar */}

@@ -1,5 +1,6 @@
-import { User as UserIcon, MicOff, Maximize2 } from "lucide-react";
+import { User as UserIcon, MicOff, Maximize2, UserPlus } from "lucide-react";
 import { RefObject, useEffect, useRef, useState, useCallback } from "react";
+import { Button } from "@/components/ui/button";
 
 interface VideoThumbnailProps {
   username: string;
@@ -9,6 +10,8 @@ interface VideoThumbnailProps {
   videoRef?: RefObject<HTMLVideoElement>;
   stream?: MediaStream;
   onResize?: (width: number, height: number) => void;
+  userId?: string;
+  onFriendRequest?: (userId: string) => void;
 }
 
 export default function VideoThumbnail({
@@ -19,6 +22,8 @@ export default function VideoThumbnail({
   videoRef,
   stream,
   onResize,
+  userId,
+  onFriendRequest,
 }: VideoThumbnailProps) {
   const peerVideoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -159,15 +164,29 @@ export default function VideoThumbnail({
         </div>
       </div>
 
-      {/* Speaking Indicator */}
-      {!isMuted && !isLocal && (
-        <div className="absolute top-2 right-2">
+      {/* Speaking Indicator & Friend Request Button */}
+      <div className="absolute top-2 right-2 flex items-center gap-2">
+        {/* Friend Request Button (only for remote users) */}
+        {!isLocal && userId && onFriendRequest && (
+          <Button
+            size="icon"
+            variant="secondary"
+            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 hover:bg-black/80 backdrop-blur-sm"
+            onClick={() => onFriendRequest(userId)}
+            data-testid={`button-friend-request-${userId}`}
+          >
+            <UserPlus className="w-4 h-4 text-white" />
+          </Button>
+        )}
+        
+        {/* Speaking Indicator */}
+        {!isMuted && !isLocal && (
           <div className="relative">
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             <div className="absolute inset-0 w-2 h-2 bg-green-500 rounded-full animate-pulse-ring"></div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Resize Handle */}
       <div
