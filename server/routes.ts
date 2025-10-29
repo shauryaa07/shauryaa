@@ -727,7 +727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
-  function handleLeave(ws: WSClient) {
+  async function handleLeave(ws: WSClient) {
     console.log(`User ${ws.username} (${ws.userId}) leaving`);
 
     // Remove from waiting list
@@ -739,7 +739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Decrement occupancy for the lobby room if user was in one
     if (ws.lobbyRoomId) {
-      const storedRoom = storage.getRoom(ws.lobbyRoomId);
+      const storedRoom = await storage.getRoom(ws.lobbyRoomId);
       if (storedRoom) {
         const newOccupancy = Math.max(0, storedRoom.currentOccupancy - 1);
         storage.updateRoomOccupancy(ws.lobbyRoomId, newOccupancy);
@@ -803,13 +803,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Find the receiver's WebSocket connection
-    let receiverClient: WSClient | undefined = undefined;
-    wss.clients.forEach((client: any) => {
+    const receiverClient = Array.from(wss.clients).find((client) => {
       const wsClient = client as WSClient;
-      if (wsClient.userId === receiverId && wsClient.isMessagingClient) {
-        receiverClient = wsClient;
-      }
-    });
+      return wsClient.userId === receiverId && wsClient.isMessagingClient;
+    }) as WSClient | undefined;
 
     if (receiverClient && receiverClient.readyState === WebSocket.OPEN) {
       receiverClient.send(JSON.stringify({
