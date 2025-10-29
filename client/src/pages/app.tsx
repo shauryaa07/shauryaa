@@ -159,7 +159,7 @@ export default function App() {
       
       toast({
         title: "Room Found",
-        description: `Joining room: ${randomData.room.name}`,
+        description: `Joining Room ID: ${randomData.room.name}`,
       });
     } catch (error: any) {
       console.error("Error finding random room:", error);
@@ -226,10 +226,9 @@ export default function App() {
 
       toast({
         title: "Room Created",
-        description: `Your ${type} room "${name}" has been created successfully! ${type === "private" ? `Share the room ID: ${room.id}` : ""}`,
+        description: `Your ${type} room has been created successfully! Room ID: ${room.name}`,
       });
 
-      await startScreenShare();
       setAppState("matching");
     } catch (error) {
       console.error("Error creating room:", error);

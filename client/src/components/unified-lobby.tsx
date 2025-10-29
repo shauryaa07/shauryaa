@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { User, Room } from "@shared/schema";
-import { Search, Users, Video, Shuffle, Lock, Globe } from "lucide-react";
+import { Search, Users, Video, Shuffle, Lock, Globe, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface UnifiedLobbyProps {
@@ -33,29 +33,62 @@ export default function UnifiedLobby({
   const [showSearchRoom, setShowSearchRoom] = useState(false);
   const [showJoinRoomDialog, setShowJoinRoomDialog] = useState(false);
   const [selectedRoomForJoin, setSelectedRoomForJoin] = useState<Room | null>(null);
-  const [roomName, setRoomName] = useState("");
+  const [generatedRoomId, setGeneratedRoomId] = useState("");
+  const [roomIdCopied, setRoomIdCopied] = useState(false);
   const [roomPassword, setRoomPassword] = useState("");
   const [roomType, setRoomType] = useState<"public" | "private">("public");
-  const [searchRoomName, setSearchRoomName] = useState("");
+  const [searchRoomId, setSearchRoomId] = useState("");
   const [searchResults, setSearchResults] = useState<Room[]>([]);
   const [joinPassword, setJoinPassword] = useState("");
   const { toast } = useToast();
+
+  const generateRoomId = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  useEffect(() => {
+    if (showCreateRoom && !generatedRoomId) {
+      setGeneratedRoomId(generateRoomId());
+    }
+  }, [showCreateRoom, generatedRoomId]);
 
   const { data: allRooms } = useQuery<Room[]>({
     queryKey: ["/api/rooms/public"],
   });
 
-  const handleCreateRoom = () => {
-    if (!roomName.trim()) {
+  const handleCopyRoomId = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedRoomId);
+      setRoomIdCopied(true);
       toast({
-        title: "Room Name Required",
-        description: "Please enter a name for your room",
+        title: "Copied!",
+        description: "Room ID copied to clipboard",
+      });
+      setTimeout(() => setRoomIdCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy room ID",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCreateRoom = () => {
+    if (!generatedRoomId) {
+      toast({
+        title: "Error",
+        description: "Room ID not generated. Please try again.",
         variant: "destructive",
       });
       return;
     }
     
-    // Only require password for private rooms
     if (roomType === "private" && !roomPassword.trim()) {
       toast({
         title: "Password Required",
@@ -65,25 +98,26 @@ export default function UnifiedLobby({
       return;
     }
     
-    onCreateRoom(roomName, roomPassword, roomType);
+    onCreateRoom(generatedRoomId, roomPassword, roomType);
     setShowCreateRoom(false);
-    setRoomName("");
+    setGeneratedRoomId("");
     setRoomPassword("");
     setRoomType("public");
+    setRoomIdCopied(false);
   };
 
   const handleSearchRoom = async () => {
-    if (!searchRoomName.trim()) {
+    if (!searchRoomId.trim()) {
       toast({
-        title: "Room Name Required",
-        description: "Please enter a room name to search",
+        title: "Room ID Required",
+        description: "Please enter a room ID to search",
         variant: "destructive",
       });
       return;
     }
     
     try {
-      const response = await fetch(`/api/rooms/search?name=${encodeURIComponent(searchRoomName)}`);
+      const response = await fetch(`/api/rooms/search?id=${encodeURIComponent(searchRoomId)}`);
       if (!response.ok) {
         throw new Error("Search failed");
       }
@@ -93,7 +127,7 @@ export default function UnifiedLobby({
       if (rooms.length === 0) {
         toast({
           title: "No Rooms Found",
-          description: `No rooms found matching "${searchRoomName}"`,
+          description: `No rooms found with ID "${searchRoomId}"`,
         });
       }
     } catch (error) {
@@ -179,10 +213,10 @@ export default function UnifiedLobby({
                         </div>
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-white font-medium" data-testid={`text-room-name-${room.id}`}>
+                        <h3 className="text-white font-medium font-mono text-lg" data-testid={`text-room-name-${room.id}`}>
                           {room.name}
                         </h3>
-                        <p className="text-sm text-gray-400">ID: {room.id}</p>
+                        <p className="text-sm text-gray-400">{room.type === "public" ? "Public Room" : "Private Room"}</p>
                       </div>
                     </div>
 
@@ -234,7 +268,7 @@ export default function UnifiedLobby({
               className="flex-1 text-left text-gray-400 hover:text-gray-300 transition-colors py-1"
               data-testid="button-search-room"
             >
-              Search for rooms by name
+              Search for rooms by ID
             </button>
           </div>
           
@@ -293,15 +327,29 @@ export default function UnifiedLobby({
             </div>
 
             <div>
-              <Label htmlFor="room-name" className="text-gray-300">Room Name</Label>
-              <Input
-                id="room-name"
-                placeholder="e.g., Physics Study Group"
-                value={roomName}
-                onChange={(e) => setRoomName(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-white"
-                data-testid="input-room-name"
-              />
+              <Label htmlFor="room-id" className="text-gray-300">Room ID</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="room-id"
+                  value={generatedRoomId}
+                  readOnly
+                  className="bg-slate-700 border-slate-600 text-white font-mono text-lg"
+                  data-testid="input-room-id"
+                />
+                <Button
+                  type="button"
+                  onClick={handleCopyRoomId}
+                  variant="outline"
+                  size="icon"
+                  className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                  data-testid="button-copy-room-id"
+                >
+                  {roomIdCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Share this Room ID with others to let them join
+              </p>
             </div>
 
             {roomType === "private" && (
@@ -345,7 +393,7 @@ export default function UnifiedLobby({
       <Dialog open={showSearchRoom} onOpenChange={(open) => {
         setShowSearchRoom(open);
         if (!open) {
-          setSearchRoomName("");
+          setSearchRoomId("");
           setSearchResults([]);
         }
       }}>
@@ -353,19 +401,19 @@ export default function UnifiedLobby({
           <DialogHeader>
             <DialogTitle className="text-white">Search Rooms</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Enter a room name to find available study rooms.
+              Enter a room ID to find and join a specific room.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex gap-2">
               <Input
-                id="search-room-name"
-                placeholder="Enter room name..."
-                value={searchRoomName}
-                onChange={(e) => setSearchRoomName(e.target.value)}
+                id="search-room-id"
+                placeholder="Enter room ID (e.g., ABC12345)..."
+                value={searchRoomId}
+                onChange={(e) => setSearchRoomId(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === "Enter" && handleSearchRoom()}
-                className="bg-slate-700 border-slate-600 text-white flex-1"
-                data-testid="input-search-room-name"
+                className="bg-slate-700 border-slate-600 text-white flex-1 font-mono"
+                data-testid="input-search-room-id"
               />
               <Button 
                 onClick={handleSearchRoom}
@@ -403,9 +451,9 @@ export default function UnifiedLobby({
                           <Lock className="w-5 h-5 text-purple-400" />
                         )}
                         <div>
-                          <h3 className="text-white font-medium">{room.name}</h3>
+                          <h3 className="text-white font-medium font-mono text-lg">{room.name}</h3>
                           <p className="text-sm text-gray-400">
-                            {room.type === "public" ? "Public Room" : "Private Room"}
+                            Room ID: {room.name}
                           </p>
                         </div>
                       </div>

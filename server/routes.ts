@@ -97,20 +97,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Search rooms by name (public rooms only for privacy)
+  // Search rooms by ID (both public and private can be found by ID)
   app.get("/api/rooms/search", async (req, res) => {
     try {
-      const { name } = req.query;
+      const { id } = req.query;
       
-      if (!name) {
-        return res.status(400).json({ error: "Search query is required" });
+      if (!id) {
+        return res.status(400).json({ error: "Room ID is required" });
       }
       
-      // Only search public rooms to prevent private room discovery
-      const publicRooms = storage.getPublicRooms();
-      const searchQuery = (name as string).toLowerCase();
-      const matchingRooms = publicRooms.filter(room => 
-        room.name.toLowerCase().includes(searchQuery)
+      // Search all rooms by room.name (which contains the user-friendly room ID)
+      // The "name" field is set to the generated 8-character room ID from the frontend
+      const allRooms = storage.getAllRooms();
+      const searchQuery = (id as string).toUpperCase();
+      const matchingRooms = allRooms.filter(room => 
+        room.name.toUpperCase() === searchQuery
       );
       
       // Remove passwords from response for security
@@ -492,7 +493,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`User joined room ${roomId}, occupancy now ${storedRoom.currentOccupancy + 1}/${storedRoom.maxOccupancy}`);
       
       ws.lobbyRoomId = roomId;
-      ws.roomId = roomId;
     }
 
     console.log(`User ${username} (${userId}) joining${roomId ? ` lobby room ${roomId}` : ''}`);
@@ -504,29 +504,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       createdAt: new Date(),
     });
 
-    // Try to find a match
-    const match = findMatch(ws);
+    // Check if there's an existing WebRTC room for this lobby room
+    let existingWebrtcRoom: Set<WSClient> | null = null;
+    let existingWebrtcRoomId: string | null = null;
+    
+    if (roomId) {
+      // Find existing WebRTC room for this lobby room
+      for (const [webrtcId, webrtcRoom] of Array.from(rooms.entries())) {
+        const firstUser = Array.from(webrtcRoom)[0] as WSClient;
+        if (firstUser && firstUser.lobbyRoomId === roomId) {
+          existingWebrtcRoom = webrtcRoom;
+          existingWebrtcRoomId = webrtcId;
+          break;
+        }
+      }
+    }
 
-    if (match && match.length > 0) {
-      // Create a WebRTC room with matched users (keep lobbyRoomId intact)
-      const webrtcRoomId = `webrtc-${Date.now()}`;
-      ws.roomId = webrtcRoomId;
+    if (existingWebrtcRoom && existingWebrtcRoomId) {
+      // Join the existing WebRTC room
+      ws.roomId = existingWebrtcRoomId;
+      existingWebrtcRoom.add(ws);
       
-      const roomUsers = new Set<WSClient>([ws]);
+      // Remove from waiting list if present
+      waitingUsers.delete(userId);
+      waitingStartTimes.delete(userId);
       
-      // Add all matched users to the WebRTC room
-      match.forEach(matchedUser => {
-        matchedUser.roomId = webrtcRoomId;
-        roomUsers.add(matchedUser);
-        waitingUsers.delete(matchedUser.userId!);
-        waitingStartTimes.delete(matchedUser.userId!);
-      });
+      console.log(`User ${username} joined existing WebRTC room ${existingWebrtcRoomId} (lobby room: ${roomId})`);
       
-      rooms.set(webrtcRoomId, roomUsers);
-
-      // Notify all users in the room about each other
-      roomUsers.forEach(user => {
-        const peers = Array.from(roomUsers)
+      // Notify all users in the room about the updated peer list
+      existingWebrtcRoom.forEach(user => {
+        const peers = Array.from(existingWebrtcRoom)
           .filter(u => u.userId !== user.userId)
           .map(u => ({
             userId: u.userId,
@@ -535,16 +542,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (user.readyState === WebSocket.OPEN) {
           user.send(JSON.stringify({
-            type: 'matched',
-            roomId: webrtcRoomId,
+            type: user.userId === userId ? 'matched' : 'user-joined',
+            roomId: existingWebrtcRoomId,
             peers,
           }));
         }
       });
 
-      console.log(`WebRTC room ${webrtcRoomId} created with ${roomUsers.size} users (lobby room: ${roomId})`);
+      console.log(`WebRTC room ${existingWebrtcRoomId} now has ${existingWebrtcRoom.size} users`);
     } else {
-      // Allow user to enter room alone (even if no match found)
+      // Create a new WebRTC room for this user
       const webrtcRoomId = `webrtc-${Date.now()}`;
       ws.roomId = webrtcRoomId;
       
@@ -560,15 +567,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }));
       }
       
-      console.log(`User ${username} entered WebRTC room ${webrtcRoomId} alone (lobby room: ${roomId}), waiting for others...`);
+      console.log(`User ${username} created new WebRTC room ${webrtcRoomId} (lobby room: ${roomId || 'none'}), waiting for others...`);
       
-      // Add to waiting list so others can find them
-      waitingUsers.set(userId, ws);
-      const startTime = Date.now();
-      waitingStartTimes.set(userId, startTime);
-      
-      // Start periodic retry to find more users
-      startPeriodicRetry(ws, userId, username);
+      // Add to waiting list so others can find them (only for random matching, not lobby rooms)
+      if (!roomId) {
+        waitingUsers.set(userId, ws);
+        const startTime = Date.now();
+        waitingStartTimes.set(userId, startTime);
+        
+        // Start periodic retry to find more users
+        startPeriodicRetry(ws, userId, username);
+      }
     }
   }
 
