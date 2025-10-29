@@ -11,6 +11,7 @@ import { Message, Friend, Profile } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import AppNav from "@/components/app-nav";
 
 export default function MessagesPage() {
   const { toast } = useToast();
@@ -205,16 +206,9 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 dark:from-background dark:to-muted/5 py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <Link href="/app">
-            <Button variant="ghost" size="sm" data-testid="button-back">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to App
-            </Button>
-          </Link>
-        </div>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 dark:from-background dark:to-muted/5">
+      <AppNav currentUser={currentUser} />
+      <div className="max-w-6xl mx-auto py-8 px-4 mt-16">
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-200px)]">
           {/* Friends List */}

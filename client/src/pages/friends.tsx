@@ -10,6 +10,7 @@ import { Link } from "wouter";
 import { Friend, Profile } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import AppNav from "@/components/app-nav";
 
 export default function FriendsPage() {
   const { toast } = useToast();
@@ -82,16 +83,9 @@ export default function FriendsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 dark:from-background dark:to-muted/5 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <Link href="/app">
-            <Button variant="ghost" size="sm" data-testid="button-back">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to App
-            </Button>
-          </Link>
-        </div>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 dark:from-background dark:to-muted/5">
+      <AppNav currentUser={currentUser} />
+      <div className="max-w-4xl mx-auto py-8 px-4 mt-16">
 
         <Card className="bg-card dark:bg-card border border-border dark:border-border">
           <CardHeader>

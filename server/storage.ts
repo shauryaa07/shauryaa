@@ -2,37 +2,37 @@ import { Session, Room, Profile, Friend, Message } from "@shared/schema";
 
 export interface IStorage {
   // Session methods
-  createSession(session: Omit<Session, "id">): Session;
-  getSession(userId: string): Session | undefined;
-  removeSession(userId: string): void;
-  getAllSessions(): Session[];
+  createSession(session: Omit<Session, "id">): Session | Promise<Session>;
+  getSession(userId: string): Session | undefined | Promise<Session | undefined>;
+  removeSession(userId: string): void | Promise<void>;
+  getAllSessions(): Session[] | Promise<Session[]>;
   
   // Room methods
-  createRoom(room: Omit<Room, "id">): Room;
-  getRoom(roomId: string): Room | undefined;
-  getAllRooms(): Room[];
-  getPublicRooms(): Room[];
-  getJoinableRooms(): Room[];
-  updateRoomOccupancy(roomId: string, occupancy: number): void;
-  deleteRoom(roomId: string): void;
+  createRoom(room: Omit<Room, "id">): Room | Promise<Room>;
+  getRoom(roomId: string): Room | undefined | Promise<Room | undefined>;
+  getAllRooms(): Room[] | Promise<Room[]>;
+  getPublicRooms(): Room[] | Promise<Room[]>;
+  getJoinableRooms(): Room[] | Promise<Room[]>;
+  updateRoomOccupancy(roomId: string, occupancy: number): void | Promise<void>;
+  deleteRoom(roomId: string): void | Promise<void>;
   
   // Profile methods
-  createProfile(profile: Profile): Profile;
-  getProfile(userId: string): Profile | undefined;
-  updateProfile(userId: string, updates: Partial<Omit<Profile, "userId" | "createdAt">>): Profile | undefined;
+  createProfile(profile: Profile): Profile | Promise<Profile>;
+  getProfile(userId: string): Profile | undefined | Promise<Profile | undefined>;
+  updateProfile(userId: string, updates: Partial<Omit<Profile, "userId" | "createdAt">>): Profile | undefined | Promise<Profile | undefined>;
   
   // Friend methods
-  createFriendRequest(friend: Omit<Friend, "id">): Friend;
-  getFriendRequest(requestId: string): Friend | undefined;
-  getFriendRequestsByUser(userId: string): Friend[];
-  updateFriendRequestStatus(requestId: string, status: "accepted" | "declined"): Friend | undefined;
-  getFriends(userId: string): Friend[];
+  createFriendRequest(friend: Omit<Friend, "id">): Friend | Promise<Friend>;
+  getFriendRequest(requestId: string): Friend | undefined | Promise<Friend | undefined>;
+  getFriendRequestsByUser(userId: string): Friend[] | Promise<Friend[]>;
+  updateFriendRequestStatus(requestId: string, status: "accepted" | "declined"): Friend | undefined | Promise<Friend | undefined>;
+  getFriends(userId: string): Friend[] | Promise<Friend[]>;
   
   // Message methods
-  createMessage(message: Omit<Message, "id">): Message;
-  getMessages(userId1: string, userId2: string): Message[];
-  markMessageAsRead(messageId: string): void;
-  getUnreadMessageCount(userId: string): number;
+  createMessage(message: Omit<Message, "id">): Message | Promise<Message>;
+  getMessages(userId1: string, userId2: string): Message[] | Promise<Message[]>;
+  markMessageAsRead(messageId: string): void | Promise<void>;
+  getUnreadMessageCount(userId: string): number | Promise<number>;
 }
 
 export class MemStorage implements IStorage {

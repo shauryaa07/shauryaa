@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { User, Room } from "@shared/schema";
 import { Search, Users, Video, Shuffle, Lock, Globe, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import AppNav from "@/components/app-nav";
 
 interface UnifiedLobbyProps {
   user: User;
@@ -172,20 +173,10 @@ export default function UnifiedLobby({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
-            <Video className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">StudyConnect</h1>
-            <p className="text-sm text-gray-400">Welcome, {user.username}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
+      <AppNav currentUser={{ id: user.id, username: user.username }} />
+      <div className="flex flex-col p-6 mt-16">
+        <div className="flex-1 flex flex-col">
         <div className="bg-slate-800/50 rounded-lg border border-slate-700 flex-1 mb-4 overflow-hidden flex flex-col">
           <div className="p-4 border-b border-slate-700">
             <h2 className="text-lg font-semibold text-white">Available Rooms</h2>
@@ -289,6 +280,7 @@ export default function UnifiedLobby({
           >
             CREATE
           </Button>
+        </div>
         </div>
       </div>
 
