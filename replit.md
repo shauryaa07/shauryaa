@@ -195,6 +195,11 @@ server/
 ```
 
 ## Recent Changes
+- 2025-10-29: **Fixed Error Handling** - Changed "no rooms available" response from 404 to 200 with clear error message
+- 2025-10-29: **Dynamic PiP Updates** - PiP window now automatically updates when new users join or leave
+  - Added useEffect that watches peers array and rebuilds PiP content every second
+  - PiP window resizes automatically based on participant count
+  - Proper cleanup of interval timers on component unmount and PiP close
 - 2025-10-27: **Enhanced PiP Feature** - Each participant now has a separate popup window
   - Popups created synchronously in click handler to avoid browser blocking
   - Automatic popup blocker detection with user-friendly toast notifications
