@@ -21,20 +21,32 @@ StudyConnect is a peer-to-peer video chat application designed for students to c
 
 ### Frontend (React + TypeScript)
 - **Landing Page**: Hero section, features, how it works, testimonials, CTA
-- **Authentication**: Simple username entry screen
+- **Profile Page**: Instagram-style profile with photo upload (URL-based), bio editing
+- **Messages Page**: Real-time direct messaging with WebSocket support
+- **Friends Page**: Friend request management and friend list
+- **Navigation**: AppNav component for seamless navigation between features
+- **Authentication**: Simple username-based entry screen (stored in localStorage)
 - **Preference Selection**: Subject, mood, partner type selection
 - **Matching State**: Loading state while finding study partners
 - **Video Overlay**: Draggable floating window with video thumbnails and controls
 - **Settings Modal**: Configure video/audio preferences
 
 ### Backend (Node.js + Express)
+- **Database**: PostgreSQL (Neon-backed) via Drizzle ORM
+  - Tables: users, profiles, friends, messages, rooms, sessions
+  - Database-generated UUIDs for all primary keys
+  - Foreign key constraints with cascading deletes
+  - Unique constraint on sessions.user_id
 - **WebSocket Signaling Server**: Handles WebRTC peer connection setup and SDP/ICE exchange
+- **WebSocket Messaging**: Real-time direct message delivery
 - **Matching Algorithm**: Connects students based on preferences (subject, mood, partner type)
 - **Session Management**: Tracks active users, rooms, and matching queue
+- **REST API**: CRUD operations for profiles, friends, messages, rooms
 
 ### Tech Stack
-- **Frontend**: React, TypeScript, TailwindCSS, Wouter (routing), shadcn/ui
-- **Backend**: Express, WebSocket (ws package), Socket.io (planned)
+- **Frontend**: React, TypeScript, TailwindCSS, Wouter (routing), shadcn/ui, TanStack Query
+- **Backend**: Express, WebSocket (ws package), PostgreSQL, Drizzle ORM
+- **Database**: PostgreSQL with Neon serverless driver
 - **WebRTC**: simple-peer library for P2P connections
 - **Styling**: TailwindCSS with custom design system
 - **UI Components**: shadcn/ui components with custom theming
@@ -165,7 +177,10 @@ StudyConnect is a peer-to-peer video chat application designed for students to c
 - Draggable API for overlay positioning
 
 ## Environment Variables
-None required for current phase (frontend only)
+- **DATABASE_URL**: PostgreSQL connection string (automatically set by Replit database)
+  - Format: postgresql://user:password@host/database
+  - Required for persistent storage
+  - Database uses Neon serverless PostgreSQL
 
 ## File Structure
 ```
@@ -195,6 +210,14 @@ server/
 ```
 
 ## Recent Changes
+- 2025-10-29: **PostgreSQL Database Migration** - Migrated from in-memory storage to PostgreSQL with Drizzle ORM
+  - Created database schema with database-generated UUIDs for all tables
+  - Implemented PostgreSQL storage adapter (PgStorage) with full async/await support
+  - Added foreign key constraints for relational integrity (cascading deletes)
+  - Added unique constraint on sessions.user_id to ensure single session per user
+  - Updated all route handlers to use async storage operations
+  - Database connection configured via DATABASE_URL environment variable
+  - All data now persists across server restarts
 - 2025-10-29: **Fixed Error Handling** - Changed "no rooms available" response from 404 to 200 with clear error message
 - 2025-10-29: **Dynamic PiP Updates** - PiP window now automatically updates when new users join or leave
   - Added useEffect that watches peers array and rebuilds PiP content every second
