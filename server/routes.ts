@@ -48,7 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Private rooms require a password" });
       }
       
-      const room = storage.createRoom({
+      const room = await storage.createRoom({
         name,
         type,
         password: type === "private" ? password : undefined,
@@ -69,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get("/api/rooms/public", async (req, res) => {
     try {
-      const publicRooms = storage.getPublicRooms();
+      const publicRooms = await storage.getPublicRooms();
       const roomsWithoutPasswords = publicRooms.map(({ password, ...room }) => room);
       res.json(roomsWithoutPasswords);
     } catch (error) {
@@ -80,7 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/rooms/random/join", async (req, res) => {
     try {
-      const joinableRooms = storage.getJoinableRooms();
+      const joinableRooms = await storage.getJoinableRooms();
       
       if (joinableRooms.length === 0) {
         return res.status(200).json({ 
@@ -112,7 +112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Search all rooms by room.name (which contains the user-friendly room ID)
       // The "name" field is set to the generated 8-character room ID from the frontend
-      const allRooms = storage.getAllRooms();
+      const allRooms = await storage.getAllRooms();
       const searchQuery = (id as string).toUpperCase();
       const matchingRooms = allRooms.filter(room => 
         room.name.toUpperCase() === searchQuery
@@ -142,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { password, userId } = validationResult.data;
       
-      const room = storage.getRoom(roomId);
+      const room = await storage.getRoom(roomId);
       
       if (!room) {
         return res.status(404).json({ error: "Room not found" });
@@ -188,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "userId is required" });
       }
       
-      const profile = storage.createProfile({
+      const profile = await storage.createProfile({
         userId,
         bio,
         photoUrl,
@@ -206,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/profiles/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
-      const profile = storage.getProfile(userId);
+      const profile = await storage.getProfile(userId);
       
       if (!profile) {
         return res.status(404).json({ error: "Profile not found" });
@@ -224,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userId } = req.params;
       const { bio, photoUrl } = req.body;
       
-      const profile = storage.updateProfile(userId, { bio, photoUrl });
+      const profile = await storage.updateProfile(userId, { bio, photoUrl });
       
       if (!profile) {
         return res.status(404).json({ error: "Profile not found" });
@@ -246,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
       
-      const friendRequest = storage.createFriendRequest({
+      const friendRequest = await storage.createFriendRequest({
         requesterId,
         receiverId,
         status: "pending",
@@ -269,7 +269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid status" });
       }
       
-      const friendRequest = storage.updateFriendRequestStatus(requestId, status);
+      const friendRequest = await storage.updateFriendRequestStatus(requestId, status);
       
       if (!friendRequest) {
         return res.status(404).json({ error: "Friend request not found" });
@@ -285,7 +285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/friends/:userId", async (req, res) => {
     try {
       const { userId } = req.params;
-      const friends = storage.getFriends(userId);
+      const friends = await storage.getFriends(userId);
       res.json(friends);
     } catch (error) {
       console.error("Error fetching friends:", error);
@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/friends/:userId/requests", async (req, res) => {
     try {
       const { userId } = req.params;
-      const requests = storage.getFriendRequestsByUser(userId);
+      const requests = await storage.getFriendRequestsByUser(userId);
       res.json(requests);
     } catch (error) {
       console.error("Error fetching friend requests:", error);
@@ -313,7 +313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
       
-      const message = storage.createMessage({
+      const message = await storage.createMessage({
         senderId,
         receiverId,
         content,
@@ -331,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/messages/:userId1/:userId2", async (req, res) => {
     try {
       const { userId1, userId2 } = req.params;
-      const messages = storage.getMessages(userId1, userId2);
+      const messages = await storage.getMessages(userId1, userId2);
       res.json(messages);
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -342,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/messages/:messageId/read", async (req, res) => {
     try {
       const { messageId } = req.params;
-      storage.markMessageAsRead(messageId);
+      await storage.markMessageAsRead(messageId);
       res.json({ success: true });
     } catch (error) {
       console.error("Error marking message as read:", error);
@@ -353,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/messages/:userId/unread-count", async (req, res) => {
     try {
       const { userId } = req.params;
-      const count = storage.getUnreadMessageCount(userId);
+      const count = await storage.getUnreadMessageCount(userId);
       res.json({ count });
     } catch (error) {
       console.error("Error fetching unread count:", error);
@@ -451,7 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  function handleJoin(ws: WSClient, message: any) {
+  async function handleJoin(ws: WSClient, message: any) {
     const { userId, username, roomId } = message;
     
     ws.userId = userId;
@@ -474,7 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       pendingJoins.delete(userId);
       console.log(`Consumed pending join reservation for user ${userId} to room ${roomId}`);
       
-      const storedRoom = storage.getRoom(roomId);
+      const storedRoom = await storage.getRoom(roomId);
       if (!storedRoom) {
         console.log(`Room ${roomId} not found`);
         if (ws.readyState === WebSocket.OPEN) {
@@ -499,7 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Increment occupancy atomically
-      storage.updateRoomOccupancy(roomId, storedRoom.currentOccupancy + 1);
+      await storage.updateRoomOccupancy(roomId, storedRoom.currentOccupancy + 1);
       console.log(`User joined room ${roomId}, occupancy now ${storedRoom.currentOccupancy + 1}/${storedRoom.maxOccupancy}`);
       
       ws.lobbyRoomId = roomId;
@@ -508,7 +508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`User ${username} (${userId}) joining${roomId ? ` lobby room ${roomId}` : ''}`);
 
     // Store session
-    storage.createSession({
+    await storage.createSession({
       userId,
       username,
       createdAt: new Date(),

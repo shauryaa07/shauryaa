@@ -47,12 +47,6 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Display storage warning
-  console.warn('\n⚠️  WARNING: Using in-memory storage (MemStorage)');
-  console.warn('   • All data (rooms, sessions, messages) will be lost on server restart');
-  console.warn('   • Not suitable for production use');
-  console.warn('   • Consider implementing persistent storage for production\n');
-  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

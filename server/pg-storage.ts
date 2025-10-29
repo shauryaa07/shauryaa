@@ -7,9 +7,7 @@ import type { Session, Room, Profile, Friend, Message } from "@shared/schema";
 export class PgStorage implements IStorage {
   // Session methods
   async createSession(sessionData: Omit<Session, "id">): Promise<Session> {
-    const id = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const [session] = await db.insert(schema.sessions).values({
-      id,
       userId: sessionData.userId,
       username: sessionData.username,
     }).returning();
@@ -48,13 +46,12 @@ export class PgStorage implements IStorage {
 
   // Room methods
   async createRoom(roomData: Omit<Room, "id">): Promise<Room> {
-    const id = `room-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const [room] = await db.insert(schema.rooms).values({
-      id,
       ...roomData,
     }).returning();
     return {
       ...room,
+      password: room.password ?? undefined,
       createdAt: new Date(room.createdAt),
     };
   }
@@ -127,9 +124,7 @@ export class PgStorage implements IStorage {
 
   // Profile methods
   async createProfile(profile: Profile): Promise<Profile> {
-    const id = `profile-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const [created] = await db.insert(schema.profiles).values({
-      id,
       userId: profile.userId,
       bio: profile.bio,
       photoUrl: profile.photoUrl,
@@ -187,9 +182,7 @@ export class PgStorage implements IStorage {
 
   // Friend methods
   async createFriendRequest(friendData: Omit<Friend, "id">): Promise<Friend> {
-    const id = `friend-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const [friend] = await db.insert(schema.friends).values({
-      id,
       ...friendData,
     }).returning();
     return {
@@ -268,9 +261,7 @@ export class PgStorage implements IStorage {
 
   // Message methods
   async createMessage(messageData: Omit<Message, "id">): Promise<Message> {
-    const id = `msg-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const [message] = await db.insert(schema.messages).values({
-      id,
       ...messageData,
     }).returning();
     return {

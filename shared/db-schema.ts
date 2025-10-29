@@ -1,10 +1,11 @@
 import { pgTable, varchar, timestamp, integer, boolean, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { sql } from "drizzle-orm";
 
 // Users table - for user authentication and basic info
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey(),
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()::text`),
   username: varchar("username", { length: 20 }).notNull().unique(),
   displayName: varchar("display_name", { length: 100 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -16,7 +17,7 @@ export type User = typeof users.$inferSelect;
 
 // Profiles table - for user profile data
 export const profiles = pgTable("profiles", {
-  id: varchar("id").primaryKey(),
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()::text`),
   userId: varchar("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
   bio: text("bio"),
   photoUrl: text("photo_url"),
@@ -30,7 +31,7 @@ export type Profile = typeof profiles.$inferSelect;
 
 // Friends table - for friend relationships
 export const friends = pgTable("friends", {
-  id: varchar("id").primaryKey(),
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()::text`),
   requesterId: varchar("requester_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   receiverId: varchar("receiver_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   status: varchar("status", { enum: ["pending", "accepted", "declined"] }).notNull().default("pending"),
@@ -43,7 +44,7 @@ export type Friend = typeof friends.$inferSelect;
 
 // Messages table - for direct messaging
 export const messages = pgTable("messages", {
-  id: varchar("id").primaryKey(),
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()::text`),
   senderId: varchar("sender_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   receiverId: varchar("receiver_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
@@ -57,11 +58,11 @@ export type Message = typeof messages.$inferSelect;
 
 // Rooms table - for study rooms
 export const rooms = pgTable("rooms", {
-  id: varchar("id").primaryKey(),
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()::text`),
   name: varchar("name", { length: 50 }).notNull(),
   type: varchar("type", { enum: ["public", "private"] }).notNull(),
   password: varchar("password", { length: 100 }),
-  createdBy: varchar("created_by").notNull(),
+  createdBy: varchar("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
   currentOccupancy: integer("current_occupancy").notNull().default(0),
   maxOccupancy: integer("max_occupancy").notNull().default(5),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -73,8 +74,8 @@ export type Room = typeof rooms.$inferSelect;
 
 // Sessions table - for active user sessions
 export const sessions = pgTable("sessions", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()::text`),
+  userId: varchar("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
   username: varchar("username", { length: 20 }).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
