@@ -181,6 +181,7 @@ export default function App() {
       displayName: username,
     };
     setUser(newUser);
+    localStorage.setItem("studyconnect_user", JSON.stringify(newUser));
     setAppState("lobby");
   };
 

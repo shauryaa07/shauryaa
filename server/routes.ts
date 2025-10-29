@@ -23,6 +23,7 @@ interface WSClient extends WebSocket {
   roomId?: string;
   lobbyRoomId?: string; // Track the original lobby/storage room ID separately
   isAlive?: boolean;
+  isMessagingClient?: boolean; // Track if client is connected for messaging
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -426,6 +427,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'leave':
             handleLeave(ws);
             break;
+          case 'dm-message':
+            handleDirectMessage(ws, message);
+            break;
+          case 'register-messaging':
+            handleMessagingRegistration(ws, message);
+            break;
           default:
             console.log('Unknown message type:', message.type);
         }
@@ -769,6 +776,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`WebRTC room ${ws.roomId} deleted`);
         }
       }
+    }
+  }
+
+  function handleMessagingRegistration(ws: WSClient, message: any) {
+    const { userId, username } = message;
+    ws.userId = userId;
+    ws.username = username;
+    ws.isMessagingClient = true;
+    console.log(`User ${username} (${userId}) registered for messaging`);
+    
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'messaging-registered',
+        success: true,
+      }));
+    }
+  }
+
+  function handleDirectMessage(ws: WSClient, message: any) {
+    const { receiverId, content } = message;
+    
+    if (!ws.userId) {
+      console.error('Direct message from unregistered client');
+      return;
+    }
+
+    // Find the receiver's WebSocket connection
+    let receiverClient: WSClient | undefined = undefined;
+    wss.clients.forEach((client: any) => {
+      const wsClient = client as WSClient;
+      if (wsClient.userId === receiverId && wsClient.isMessagingClient) {
+        receiverClient = wsClient;
+      }
+    });
+
+    if (receiverClient && receiverClient.readyState === WebSocket.OPEN) {
+      receiverClient.send(JSON.stringify({
+        type: 'dm-message',
+        senderId: ws.userId,
+        content,
+        timestamp: new Date().toISOString(),
+      }));
+      console.log(`Direct message sent from ${ws.userId} to ${receiverId}`);
+    } else {
+      console.log(`Receiver ${receiverId} not connected or not available for messaging`);
     }
   }
 
