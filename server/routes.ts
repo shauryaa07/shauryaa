@@ -82,7 +82,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const joinableRooms = storage.getJoinableRooms();
       
       if (joinableRooms.length === 0) {
-        return res.status(404).json({ error: "No available rooms to join" });
+        return res.status(200).json({ 
+          success: false, 
+          error: "No rooms available right now. Please create a new room or try again later." 
+        });
       }
       
       const randomIndex = Math.floor(Math.random() * joinableRooms.length);

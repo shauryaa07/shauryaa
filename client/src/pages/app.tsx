@@ -151,6 +151,16 @@ export default function App() {
       const randomResponse = await apiRequest("POST", "/api/rooms/random/join");
       const randomData = await randomResponse.json();
       
+      // Check if the response indicates no rooms are available
+      if (!randomData.success) {
+        toast({
+          title: "No Rooms Available",
+          description: randomData.error || "No available rooms right now. Try creating one!",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Then, reserve a spot by calling the join endpoint
       await apiRequest("POST", `/api/rooms/${randomData.room.id}/join`, { password: "", userId: user.id });
       
@@ -164,8 +174,8 @@ export default function App() {
     } catch (error: any) {
       console.error("Error finding random room:", error);
       toast({
-        title: "No Rooms Available",
-        description: error.message || "No available rooms to join. Try creating one!",
+        title: "Error",
+        description: error.message || "Failed to find room. Please try again.",
         variant: "destructive",
       });
     }

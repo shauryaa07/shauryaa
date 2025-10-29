@@ -47,6 +47,7 @@ export default function VideoOverlay({
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const pipDocumentRef = useRef<Window | null>(null);
   const peerVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const pipUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -56,6 +57,92 @@ export default function VideoOverlay({
       videoRef.current.srcObject = localStream;
     }
   }, [localStream]);
+
+  useEffect(() => {
+    if (!isPiPActive || !pipDocumentRef.current || pipDocumentRef.current.closed) {
+      return;
+    }
+
+    const updatePiPContent = () => {
+      const pipWindow = pipDocumentRef.current;
+      if (!pipWindow || pipWindow.closed) return;
+
+      const allParticipants = [
+        ...(localStream ? [{
+          id: "local",
+          username: `${user.username} (You)`,
+          stream: localStream,
+          isLocal: true,
+          isMuted: isAudioMuted,
+          isVideoOff: isVideoOff,
+        }] : []),
+        ...peers.filter(p => p.stream).map(p => ({
+          id: p.id,
+          username: p.username,
+          stream: p.stream!,
+          isLocal: false,
+          isMuted: p.isMuted,
+          isVideoOff: p.isVideoOff,
+        })),
+      ].slice(0, 5);
+
+      const videosContainer = pipWindow.document.getElementById('videos');
+      if (!videosContainer) return;
+
+      videosContainer.innerHTML = '';
+
+      allParticipants.forEach((participant) => {
+        const videoItem = pipWindow.document.createElement('div');
+        videoItem.className = 'video-item';
+        videoItem.innerHTML = `
+          <div class="name-badge">${participant.username}</div>
+          ${participant.isMuted ? '<div class="mute-badge">🔇</div>' : ''}
+        `;
+
+        if (participant.isVideoOff) {
+          const placeholder = pipWindow.document.createElement('div');
+          placeholder.className = 'placeholder';
+          placeholder.innerHTML = `<div class="avatar">${participant.username.charAt(0).toUpperCase()}</div>`;
+          videoItem.insertBefore(placeholder, videoItem.firstChild);
+        } else {
+          const video = pipWindow.document.createElement('video');
+          video.autoplay = true;
+          video.playsInline = true;
+          video.muted = participant.isLocal;
+          video.srcObject = participant.stream;
+          videoItem.insertBefore(video, videoItem.firstChild);
+        }
+
+        videosContainer.appendChild(videoItem);
+      });
+
+      const participantCount = allParticipants.length;
+      const videoWidth = 120;
+      const gap = 8;
+      const padding = 12;
+      const controlsWidth = 140;
+      const dragHandleHeight = 20;
+      const windowWidth = (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth;
+      const windowHeight = 110 + dragHandleHeight;
+
+      try {
+        pipWindow.resizeTo(windowWidth, windowHeight);
+      } catch (e) {
+        console.log('Could not resize PiP window:', e);
+      }
+    };
+
+    updatePiPContent();
+
+    pipUpdateIntervalRef.current = setInterval(updatePiPContent, 1000);
+
+    return () => {
+      if (pipUpdateIntervalRef.current) {
+        clearInterval(pipUpdateIntervalRef.current);
+        pipUpdateIntervalRef.current = null;
+      }
+    };
+  }, [isPiPActive, peers, localStream, isAudioMuted, isVideoOff, user.username]);
 
   useEffect(() => {
     if (screenVideoRef.current && screenStream) {
@@ -161,6 +248,10 @@ export default function VideoOverlay({
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
     }
+    if (pipUpdateIntervalRef.current) {
+      clearInterval(pipUpdateIntervalRef.current);
+      pipUpdateIntervalRef.current = null;
+    }
     if (pipDocumentRef.current && !pipDocumentRef.current.closed) {
       pipDocumentRef.current.close();
     }
@@ -170,6 +261,10 @@ export default function VideoOverlay({
 
   const togglePictureInPicture = async () => {
     if (isPiPActive) {
+      if (pipUpdateIntervalRef.current) {
+        clearInterval(pipUpdateIntervalRef.current);
+        pipUpdateIntervalRef.current = null;
+      }
       if (pipDocumentRef.current && !pipDocumentRef.current.closed) {
         pipDocumentRef.current.close();
       }
