@@ -1,0 +1,219 @@
+    ==> ///////////////////////////////////////////////////////////
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:138:20)
+    at async file:///opt/render/project/src/dist/index.js:389:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+2:17:45 AM [express] POST /api/users/upsert 500 in 344ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:138:20)
+    at async file:///opt/render/project/src/dist/index.js:389:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+2:17:47 AM [express] POST /api/users/upsert 500 in 206ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:138:20)
+    at async file:///opt/render/project/src/dist/index.js:389:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+2:17:47 AM [express] POST /api/users/upsert 500 in 176ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:138:20)
+    at async file:///opt/render/project/src/dist/index.js:389:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+2:17:47 AM [express] POST /api/users/upsert 500 in 59ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:138:20)
+    at async file:///opt/render/project/src/dist/index.js:389:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+2:17:47 AM [express] POST /api/users/upsert 500 in 141ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:138:20)
+    at async file:///opt/render/project/src/dist/index.js:389:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+2:17:47 AM [express] POST /api/users/upsert 500 in 25ms :: {"error":"Failed to create or get user"}
+     ==> Detected service running on port 10000
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+     ==> Deploying...
+==> Running 'npm run db:migrate && npm run start'
+npm error Missing script: "db:migrate"
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: /opt/render/.cache/_logs/2025-10-30T02_25_35_054Z-debug-0.log
+     ==> Exited with status 1
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm run db:migrate && npm run start'
+npm error Missing script: "db:migrate"
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: /opt/render/.cache/_logs/2025-10-30T02_25_47_104Z-debug-0.log
+     ==> Deploying...
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 489 packages in 16s
+66 packages are looking for funding
+  run `npm fund` for details
+3 low severity vulnerabilities
+To address all issues, run:
+  npm audit fix
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+sh: 1: drizzle-kit: not found
+     ==> Exited with status 127
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 489 packages in 17s
+66 packages are looking for funding
+  run `npm fund` for details
+3 low severity vulnerabilities
+To address all issues, run:
+  npm audit fix
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+sh: 1: drizzle-kit: not found
+     ==> Deploying...
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 489 packages in 17s
+66 packages are looking for funding
+  run `npm fund` for details
+3 low severity vulnerabilities
+To address all issues, run:
+  npm audit fix
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+sh: 1: drizzle-kit: not found
+     ==> Exited with status 127
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 489 packages in 16s
+66 packages are looking for funding
+  run `npm fund` for details
+3 low severity vulnerabilities
+To address all issues, run:
+  npm audit fix
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+sh: 1: drizzle-kit: not found
+Need better ways to work with logs? Try theRender CLI, Render MCP Server, or set up a log stream integ
