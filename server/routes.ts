@@ -29,6 +29,35 @@ interface WSClient extends WebSocket {
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
+  // User API Routes
+  app.post("/api/users/upsert", async (req, res) => {
+    try {
+      const { username, displayName } = req.body;
+      
+      if (!username || username.trim().length < 2 || username.trim().length > 20) {
+        return res.status(400).json({ error: "Username must be between 2 and 20 characters" });
+      }
+      
+      const trimmedUsername = username.trim();
+      
+      // Check if user already exists
+      let user = await storage.getUserByUsername(trimmedUsername);
+      
+      if (!user) {
+        // Create new user
+        user = await storage.createUser({
+          username: trimmedUsername,
+          displayName: displayName || trimmedUsername,
+        });
+      }
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error upserting user:", error);
+      res.status(500).json({ error: "Failed to create or get user" });
+    }
+  });
+
   // Room API Routes
   app.post("/api/rooms", async (req, res) => {
     try {

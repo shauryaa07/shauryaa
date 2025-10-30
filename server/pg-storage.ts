@@ -1,10 +1,55 @@
 import { db } from "./db";
 import { eq, and, or } from "drizzle-orm";
 import * as schema from "@shared/db-schema";
-import { IStorage } from "./storage";
+import { IStorage, User } from "./storage";
 import type { Session, Room, Profile, Friend, Message } from "@shared/schema";
 
 export class PgStorage implements IStorage {
+  // User methods
+  async createUser(userData: { username: string; displayName?: string }): Promise<User> {
+    const [user] = await db.insert(schema.users).values({
+      username: userData.username,
+      displayName: userData.displayName,
+    }).returning();
+    return {
+      ...user,
+      displayName: user.displayName ?? undefined,
+      createdAt: new Date(user.createdAt),
+    };
+  }
+
+  async getUser(userId: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1);
+    
+    if (!user) return undefined;
+    
+    return {
+      ...user,
+      displayName: user.displayName ?? undefined,
+      createdAt: new Date(user.createdAt),
+    };
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.username, username))
+      .limit(1);
+    
+    if (!user) return undefined;
+    
+    return {
+      ...user,
+      displayName: user.displayName ?? undefined,
+      createdAt: new Date(user.createdAt),
+    };
+  }
+
   // Session methods
   async createSession(sessionData: Omit<Session, "id">): Promise<Session> {
     const [session] = await db.insert(schema.sessions).values({

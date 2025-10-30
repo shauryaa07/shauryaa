@@ -1,6 +1,18 @@
 import { Session, Room, Profile, Friend, Message } from "@shared/schema";
 
+export interface User {
+  id: string;
+  username: string;
+  displayName?: string;
+  createdAt: Date;
+}
+
 export interface IStorage {
+  // User methods
+  createUser(user: { username: string; displayName?: string }): User | Promise<User>;
+  getUser(userId: string): User | undefined | Promise<User | undefined>;
+  getUserByUsername(username: string): User | undefined | Promise<User | undefined>;
+  
   // Session methods
   createSession(session: Omit<Session, "id">): Session | Promise<Session>;
   getSession(userId: string): Session | undefined | Promise<Session | undefined>;
@@ -36,6 +48,7 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  private users: Map<string, User>;
   private sessions: Map<string, Session>;
   private rooms: Map<string, Room>;
   private profiles: Map<string, Profile>;
@@ -43,11 +56,32 @@ export class MemStorage implements IStorage {
   private messages: Map<string, Message>;
 
   constructor() {
+    this.users = new Map();
     this.sessions = new Map();
     this.rooms = new Map();
     this.profiles = new Map();
     this.friends = new Map();
     this.messages = new Map();
+  }
+
+  // User methods
+  createUser(userData: { username: string; displayName?: string }): User {
+    const user: User = {
+      id: `user-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      username: userData.username,
+      displayName: userData.displayName,
+      createdAt: new Date(),
+    };
+    this.users.set(user.id, user);
+    return user;
+  }
+
+  getUser(userId: string): User | undefined {
+    return this.users.get(userId);
+  }
+
+  getUserByUsername(username: string): User | undefined {
+    return Array.from(this.users.values()).find(u => u.username === username);
   }
 
   // Session methods

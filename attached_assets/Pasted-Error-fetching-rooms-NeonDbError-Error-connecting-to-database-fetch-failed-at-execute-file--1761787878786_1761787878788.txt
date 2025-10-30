@@ -1,0 +1,573 @@
+Error fetching rooms: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at async PgStorage.getPublicRooms (file:///opt/render/project/src/dist/index.js:159:20)
+    at async file:///opt/render/project/src/dist/index.js:365:27 {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.getPublicRooms (file:///opt/render/project/src/dist/index.js:159:20)
+      at async file:///opt/render/project/src/dist/index.js:365:27 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+3:34:04 PM [express] GET /api/rooms/public 500 in 273ms :: {"error":"Failed to fetch rooms"}
+Error fetching friends: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at async PgStorage.getFriends (file:///opt/render/project/src/dist/index.js:263:22)
+    at async file:///opt/render/project/src/dist/index.js:529:24 {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.getFriends (file:///opt/render/project/src/dist/index.js:263:22)
+      at async file:///opt/render/project/src/dist/index.js:529:24 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+3:34:22 PM [express] GET /api/friends/g98wef 500 in 6ms :: {"error":"Failed to fetch friends"}
+Error fetching friend requests: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at async PgStorage.getFriendRequestsByUser (file:///opt/render/project/src/dist/index.js:243:22)
+    at async file:///opt/render/project/src/dist/index.js:539:24 {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.getFriendRequestsByUser (file:///opt/render/project/src/dist/index.js:243:22)
+      at async file:///opt/render/project/src/dist/index.js:539:24 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+3:34:22 PM [express] GET /api/friends/g98wef/requests 500 in 6ms :: {"error":"Failed to fetch friend…
+Error fetching friends: NeonDbError: Error connecting to database: fetch failed
+3:34:26 PM [express] GET /api/friends/g98wef 500 in 5ms :: {"error":"Failed to fetch friends"}
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at async PgStorage.getFriends (file:///opt/render/project/src/dist/index.js:263:22)
+    at async file:///opt/render/project/src/dist/index.js:529:24 {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.getFriends (file:///opt/render/project/src/dist/index.js:263:22)
+      at async file:///opt/render/project/src/dist/index.js:529:24 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+New WebSocket connection
+Received message: { type: 'register-messaging', userId: 'g98wef', username: 'cv' }
+User cv (g98wef) registered for messaging
+WebSocket connection closed
+User cv (g98wef) leaving
+file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549
+...ee})}catch(W){let H=new pe(`Error connecting to database: ${W.message}`);throw H.
+                       ^
+NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async PgStorage.removeSession (file:///opt/render/project/src/dist/index.js:121:5) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async PgStorage.removeSession (file:///opt/render/project/src/dist/index.js:121:5) {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+Node.js v22.16.0
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+3:34:46 PM [express] serving on port 10000
+Error creating room: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+    at async file:///opt/render/project/src/dist/index.js:347:20 {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+      at async file:///opt/render/project/src/dist/index.js:347:20 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+3:34:57 PM [express] POST /api/rooms 500 in 391ms :: {"error":"Failed to create room"}
+==> Detected service running on port 10000
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+Error creating room: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+    at async file:///opt/render/project/src/dist/index.js:347:20 {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+      at async file:///opt/render/project/src/dist/index.js:347:20 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+3:39:35 PM [express] POST /api/rooms 500 in 7ms :: {"error":"Failed to create room"}
+Error creating room: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+    at async file:///opt/render/project/src/dist/index.js:347:20 {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+      at async file:///opt/render/project/src/dist/index.js:347:20 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+3:39:38 PM [express] POST /api/rooms 500 in 6ms :: {"error":"Failed to create room"}
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+      at async file:///opt/render/project/src/dist/index.js:347:20 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+3:34:57 PM [express] POST /api/rooms 500 in 391ms :: {"error":"Failed to create room"}
+==> Detected service running on port 10000
+==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+Error creating room: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+    at async file:///opt/render/project/src/dist/index.js:347:20 {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+      at async file:///opt/render/project/src/dist/index.js:347:20 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+3:39:35 PM [express] POST /api/rooms 500 in 7ms :: {"error":"Failed to create room"}
+Error creating room: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+    at async file:///opt/render/project/src/dist/index.js:347:20 {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+      at async file:///opt/render/project/src/dist/index.js:347:20 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+3:39:38 PM [express] POST /api/rooms 500 in 6ms :: {"error":"Failed to create room"}
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+1:04:05 AM [express] serving on port 10000
+Error fetching rooms: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at async PgStorage.getPublicRooms (file:///opt/render/project/src/dist/index.js:159:20)
+    at async file:///opt/render/project/src/dist/index.js:365:27 {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.getPublicRooms (file:///opt/render/project/src/dist/index.js:159:20)
+      at async file:///opt/render/project/src/dist/index.js:365:27 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+1:04:13 AM [express] GET /api/rooms/public 500 in 227ms :: {"error":"Failed to fetch rooms"}
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+      at async file:///opt/render/project/src/dist/index.js:347:20 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+3:39:35 PM [express] POST /api/rooms 500 in 7ms :: {"error":"Failed to create room"}
+Error creating room: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+    at async file:///opt/render/project/src/dist/index.js:347:20 {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.createRoom (file:///opt/render/project/src/dist/index.js:132:20)
+      at async file:///opt/render/project/src/dist/index.js:347:20 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+3:39:38 PM [express] POST /api/rooms 500 in 6ms :: {"error":"Failed to create room"}
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+1:04:05 AM [express] serving on port 10000
+Error fetching rooms: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at async PgStorage.getPublicRooms (file:///opt/render/project/src/dist/index.js:159:20)
+    at async file:///opt/render/project/src/dist/index.js:365:27 {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+      at async PgStorage.getPublicRooms (file:///opt/render/project/src/dist/index.js:159:20)
+      at async file:///opt/render/project/src/dist/index.js:365:27 {
+    [cause]: Error: connect ECONNREFUSED 10.230.74.51:443
+        at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1636:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.74.51',
+      port: 443
+    }
+  }
+}
+1:04:13 AM [express] GET /api/rooms/public 500 in 227ms :: {"error":"Failed to fetch rooms"}
+Need better ways to wor

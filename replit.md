@@ -210,6 +210,14 @@ server/
 ```
 
 ## Recent Changes
+- 2025-10-30: **Fixed Database Connection Issues** - Resolved all database foreign key constraint violations
+  - Created PostgreSQL database in Replit development environment
+  - Added user management system (createUser, getUser, getUserByUsername methods)
+  - Implemented `/api/users/upsert` endpoint for user creation/retrieval
+  - Updated frontend to create users in database before accessing other features
+  - Fixed foreign key constraint violations when creating rooms, profiles, and friend requests
+  - All database operations now work correctly with proper user references
+  - Created PRODUCTION_FIX_GUIDE.md for resolving production deployment issues on Render
 - 2025-10-29: **PostgreSQL Database Migration** - Migrated from in-memory storage to PostgreSQL with Drizzle ORM
   - Created database schema with database-generated UUIDs for all tables
   - Implemented PostgreSQL storage adapter (PgStorage) with full async/await support

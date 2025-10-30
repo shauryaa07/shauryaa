@@ -174,15 +174,32 @@ export default function App() {
     };
   }, [appState, localStream, settings.videoEnabled, settings.audioEnabled]);
 
-  const handleUsernameSubmit = (username: string) => {
-    const newUser: User = {
-      id: Math.random().toString(36).substring(7),
-      username,
-      displayName: username,
-    };
-    setUser(newUser);
-    localStorage.setItem("studyconnect_user", JSON.stringify(newUser));
-    setAppState("lobby");
+  const handleUsernameSubmit = async (username: string) => {
+    try {
+      const response = await apiRequest("POST", "/api/users/upsert", {
+        username,
+        displayName: username,
+      });
+      
+      const userData = await response.json();
+      
+      const newUser: User = {
+        id: userData.id,
+        username: userData.username,
+        displayName: userData.displayName || userData.username,
+      };
+      
+      setUser(newUser);
+      localStorage.setItem("studyconnect_user", JSON.stringify(newUser));
+      setAppState("lobby");
+    } catch (error) {
+      console.error("Error creating user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create user account. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleJoinRandom = async () => {
