@@ -1,0 +1,752 @@
+}
+2:17:47 AM [express] POST /api/users/upsert 500 in 141ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:138:20)
+    at async file:///opt/render/project/src/dist/index.js:389:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+2:17:47 AM [express] POST /api/users/upsert 500 in 25ms :: {"error":"Failed to create or get user"}
+     ==> Detected service running on port 10000
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+     ==> Deploying...
+==> Running 'npm run db:migrate && npm run start'
+npm error Missing script: "db:migrate"
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: /opt/render/.cache/_logs/2025-10-30T02_25_35_054Z-debug-0.log
+     ==> Exited with status 1
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm run db:migrate && npm run start'
+npm error Missing script: "db:migrate"
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: /opt/render/.cache/_logs/2025-10-30T02_25_47_104Z-debug-0.log
+     ==> Deploying...
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 489 packages in 16s
+66 packages are looking for funding
+  run `npm fund` for details
+3 low severity vulnerabilities
+To address all issues, run:
+  npm audit fix
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+sh: 1: drizzle-kit: not found
+     ==> Exited with status 127
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 489 packages in 17s
+66 packages are looking for funding
+  run `npm fund` for details
+3 low severity vulnerabilities
+To address all issues, run:
+  npm audit fix
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+sh: 1: drizzle-kit: not found
+     ==> Deploying...
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 489 packages in 17s
+66 packages are looking for funding
+  run `npm fund` for details
+3 low severity vulnerabilities
+To address all issues, run:
+  npm audit fix
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+sh: 1: drizzle-kit: not found
+     ==> Exited with status 127
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 489 packages in 16s
+66 packages are looking for funding
+  run `npm fund` for details
+3 low severity vulnerabilities
+To address all issues, run:
+  npm audit fix
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+sh: 1: drizzle-kit: not found
+     ==> Deploying...
+up to date, audited 489 packages in 16s
+66 packages are looking for funding
+  run `npm fund` for details
+3 low severity vulnerabilities
+To address all issues, run:
+  npm audit fix
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+sh: 1: drizzle-kit: not found
+     ==> Exited with status 127
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 489 packages in 15s
+66 packages are looking for funding
+  run `npm fund` for details
+3 low severity vulnerabilities
+To address all issues, run:
+  npm audit fix
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+sh: 1: drizzle-kit: not found
+     ==> Deploying...
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 489 packages in 18s
+66 packages are looking for funding
+  run `npm fund` for details
+3 low severity vulnerabilities
+To address all issues, run:
+  npm audit fix
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+sh: 1: drizzle-kit: not found
+     ==> Exited with status 127
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 489 packages in 16s
+66 packages are looking for funding
+  run `npm fund` for details
+3 low severity vulnerabilities
+To address all issues, run:
+  npm audit fix
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+sh: 1: drizzle-kit: not found
+     ==> Deploying...
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 503 packages in 19s
+68 packages are looking for funding
+  run `npm fund` for details
+7 vulnerabilities (3 low, 4 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+sh: 1: vite: not found
+     ==> Exited with status 127
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 503 packages in 19s
+68 packages are looking for funding
+  run `npm fund` for details
+7 vulnerabilities (3 low, 4 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+sh: 1: vite: not found
+     ==> Deploying...
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 568 packages in 17s
+78 packages are looking for funding
+  run `npm fund` for details
+8 vulnerabilities (3 low, 5 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+failed to load config from /opt/render/project/src/vite.config.ts
+error during build:
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@replit/vite-plugin-runtime-error-modal' imported from /opt/render/project/src/vite.config.ts.timestamp-1761793079520-cdb7c5b8b5fb8.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:256:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:854:18)
+    at defaultResolve (node:internal/modules/esm/resolve:984:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:780:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:704:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:687:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:305:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:137:49)
+     ==> Exited with status 1
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 568 packages in 17s
+78 packages are looking for funding
+  run `npm fund` for details
+8 vulnerabilities (3 low, 5 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+failed to load config from /opt/render/project/src/vite.config.ts
+error during build:
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@replit/vite-plugin-runtime-error-modal' imported from /opt/render/project/src/vite.config.ts.timestamp-1761793118489-bd6002af60c0b.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:256:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:854:18)
+    at defaultResolve (node:internal/modules/esm/resolve:984:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:780:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:704:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:687:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:305:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:137:49)
+     ==> Deploying...
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 568 packages in 19s
+78 packages are looking for funding
+  run `npm fund` for details
+8 vulnerabilities (3 low, 5 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.20 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 3 modules transformed.
+x Build failed in 3.90s
+error during build:
+[vite:css] [postcss] Cannot find module '@tailwindcss/typography'
+Require stack:
+- /opt/render/project/src/tailwind.config.ts
+file: /opt/render/project/src/client/src/index.css:undefined:NaN
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)
+    at Function.resolve (node:internal/modules/helpers:145:19)
+    at _resolve (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:241814)
+    at jiti (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:244531)
+    at /opt/render/project/src/tailwind.config.ts:116:45
+    at evalModule (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:247313)
+    at jiti (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:245241)
+    at /opt/render/project/src/node_modules/tailwindcss/lib/lib/load-config.js:52:26
+    at loadConfig (/opt/render/project/src/node_modules/tailwindcss/lib/lib/load-config.js:62:6)
+    at getTailwindConfig (/opt/render/project/src/node_modules/tailwindcss/lib/lib/setupTrackingContext.js:71:116)
+     ==> No open ports detected, continuing to scan...
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+     ==> Exited with status 1
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 568 packages in 18s
+78 packages are looking for funding
+  run `npm fund` for details
+8 vulnerabilities (3 low, 5 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.20 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 3 modules transformed.
+x Build failed in 4.00s
+error during build:
+[vite:css] [postcss] Cannot find module '@tailwindcss/typography'
+Require stack:
+- /opt/render/project/src/tailwind.config.ts
+file: /opt/render/project/src/client/src/index.css:undefined:NaN
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)
+    at Function.resolve (node:internal/modules/helpers:145:19)
+    at _resolve (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:241814)
+    at jiti (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:244531)
+    at /opt/render/project/src/tailwind.config.ts:116:45
+    at evalModule (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:247313)
+    at jiti (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:245241)
+    at /opt/render/project/src/node_modules/tailwindcss/lib/lib/load-config.js:52:26
+    at loadConfig (/opt/render/project/src/node_modules/tailwindcss/lib/lib/load-config.js:62:6)
+    at getTailwindConfig (/opt/render/project/src/node_modules/tailwindcss/lib/lib/setupTrackingContext.js:71:116)
+     ==> Deploying...
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 573 packages in 19s
+78 packages are looking for funding
+  run `npm fund` for details
+8 vulnerabilities (3 low, 5 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.20 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+     ==> No open ports detected, continuing to scan...
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+     ==> No open ports detected, continuing to scan...
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+✓ 2071 modules transformed.
+rendering chunks...
+computing gzip size...
+../dist/public/index.html                   3.58 kB │ gzip:   1.23 kB
+../dist/public/assets/index-CAhEBomd.css   78.58 kB │ gzip:  13.30 kB
+../dist/public/assets/index-BuWsRzxD.js   487.99 kB │ gzip: 147.98 kB
+✓ built in 1m 13s
+  dist/index.js  39.1kb
+⚡ Done in 9ms
+     ==> Application exited early
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 573 packages in 18s
+78 packages are looking for funding
+  run `npm fund` for details
+8 vulnerabilities (3 low, 5 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.20 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+     ==> Deploying...
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.20 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+     ==> No open ports detected, continuing to scan...
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+     ==> No open ports detected, continuing to scan...
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+✓ 2071 modules transformed.
+rendering chunks...
+computing gzip size...
+../dist/public/index.html                   3.58 kB │ gzip:   1.23 kB
+../dist/public/assets/index-CAhEBomd.css   78.58 kB │ gzip:  13.30 kB
+../dist/public/assets/index-BuWsRzxD.js   487.99 kB │ gzip: 147.98 kB
+✓ built in 1m 18s
+  dist/index.js  39.4kb
+⚡ Done in 81ms
+     ==> Application exited early
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 573 packages in 18s
+78 packages are looking for funding
+  run `npm fund` for details
+8 vulnerabilities (3 low, 5 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.20 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+[DB] Using node-postgres driver (traditional mode)
+4:34:21 AM [express] serving on port 10000
+     ==> Deploying...
+  run `npm fund` for details
+8 vulnerabilities (3 low, 5 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.20 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+     ==> No open ports detected, continuing to scan...
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+✓ 2071 modules transformed.
+     ==> No open ports detected, continuing to scan...
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+rendering chunks...
+computing gzip size...
+../dist/public/index.html                   3.58 kB │ gzip:   1.23 kB
+../dist/public/assets/index-CAhEBomd.css   78.58 kB │ gzip:  13.30 kB
+../dist/public/assets/index-BuWsRzxD.js   487.99 kB │ gzip: 147.98 kB
+✓ built in 1m 11s
+  dist/index.js  39.5kb
+⚡ Done in 84ms
+     ==> Application exited early
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 573 packages in 17s
+78 packages are looking for funding
+  run `npm fund` for details
+8 vulnerabilities (3 low, 5 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+==> Running 'npm run start'
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+Using 'pg' driver for database querying
+[DB] Using node-postgres driver (traditional mode)
+5:29:36 AM [express] serving on port 10000
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.20 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+     ==> Deploying...
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 573 packages in 18s
+78 packages are looking for funding
+  run `npm fund` for details
+8 vulnerabilities (3 low, 5 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.20 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+     ==> No open ports detected, continuing to scan...
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+✓ 2071 modules transformed.
+     ==> No open ports detected, continuing to scan...
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+rendering chunks...
+computing gzip size...
+../dist/public/index.html                   3.58 kB │ gzip:   1.23 kB
+../dist/public/assets/index-CAhEBomd.css   78.58 kB │ gzip:  13.30 kB
+../dist/public/assets/index-BuWsRzxD.js   487.99 kB │ gzip: 147.98 kB
+✓ built in 1m 12s
+  dist/index.js  39.5kb
+⚡ Done in 97ms
+     ==> Application exited early
+     ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Running 'npm install && npm run db:push && npm run build'
+up to date, audited 573 packages in 17s
+78 packages are looking for funding
+  run `npm fund` for details
+8 vulnerabilities (3 low, 5 moderate)
+To address issues that do not require attention, run:
+  npm audit fix
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+Run `npm audit` for details.
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/opt/render/project/src/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[⣽] Pulling schema from database...
+[⣷] Pulling schema from database...
+[⣯] Pulling schema from database...
+[⣟] Pulling schema from database...
+[⡿] Pulling schema from database...
+[⢿] Pulling schema from database...
+[⣻] Pulling schema from database...
+[✓] Pulling schema from database...
+[✓] Changes applied
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+vite v5.4.20 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Need better ways to work with logs? Try theRe
