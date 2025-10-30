@@ -12,6 +12,7 @@ export interface IStorage {
   createUser(user: { username: string; displayName?: string }): User | Promise<User>;
   getUser(userId: string): User | undefined | Promise<User | undefined>;
   getUserByUsername(username: string): User | undefined | Promise<User | undefined>;
+  deleteUser(userId: string): void | Promise<void>;
   
   // Session methods
   createSession(session: Omit<Session, "id">): Session | Promise<Session>;
@@ -82,6 +83,10 @@ export class MemStorage implements IStorage {
 
   getUserByUsername(username: string): User | undefined {
     return Array.from(this.users.values()).find(u => u.username === username);
+  }
+
+  deleteUser(userId: string): void {
+    this.users.delete(userId);
   }
 
   // Session methods

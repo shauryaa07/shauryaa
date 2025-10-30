@@ -50,6 +50,10 @@ export class PgStorage implements IStorage {
     };
   }
 
+  async deleteUser(userId: string): Promise<void> {
+    await db.delete(schema.users).where(eq(schema.users.id, userId));
+  }
+
   // Session methods
   async createSession(sessionData: Omit<Session, "id">): Promise<Session> {
     const [session] = await db.insert(schema.sessions).values({
