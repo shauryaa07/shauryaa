@@ -210,6 +210,18 @@ server/
 ```
 
 ## Recent Changes
+- 2025-10-30: **External Deployment Support** - Added support for deploying to external platforms like Render, Railway, Heroku
+  - Installed `pg` (node-postgres) package for traditional PostgreSQL connections
+  - Updated `server/db.ts` with automatic driver detection:
+    - Uses Neon HTTP driver on Replit (serverless/edge optimized)
+    - Uses node-postgres driver on external platforms (Render, Railway, etc.)
+    - Environment auto-detection via REPL_ID and REPLIT env vars
+    - Optional override via USE_NEON_HTTP environment variable
+  - Added SSL configuration for external databases (configurable via DATABASE_SSL env var)
+  - Created `.env.example` with documented environment variables
+  - Created `DEPLOYMENT.md` with comprehensive deployment guide for external platforms
+  - Fixed TypeScript type annotations to use proper union type for dual-driver support
+  - Successfully tested in Replit environment with Neon HTTP driver
 - 2025-10-30: **Fixed Database Connection Issues** - Resolved all database foreign key constraint violations
   - Created PostgreSQL database in Replit development environment
   - Added user management system (createUser, getUser, getUserByUsername methods)
@@ -217,7 +229,6 @@ server/
   - Updated frontend to create users in database before accessing other features
   - Fixed foreign key constraint violations when creating rooms, profiles, and friend requests
   - All database operations now work correctly with proper user references
-  - Created PRODUCTION_FIX_GUIDE.md for resolving production deployment issues on Render
 - 2025-10-29: **PostgreSQL Database Migration** - Migrated from in-memory storage to PostgreSQL with Drizzle ORM
   - Created database schema with database-generated UUIDs for all tables
   - Implemented PostgreSQL storage adapter (PgStorage) with full async/await support
