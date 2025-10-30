@@ -67,11 +67,17 @@ This is detected automatically - you don't need to configure anything!
    - **Environment**: Node
 
 4. **Add Environment Variables:**
-   - `DATABASE_URL`: Your PostgreSQL connection string
+   - `DATABASE_URL`: Your PostgreSQL connection string (required!)
    - `SESSION_SECRET`: A random secret string
    - Any Firebase variables (if using Firebase)
 
-5. **Deploy** and Render will build and start your app
+5. **Deploy** - Your app will deploy successfully
+
+6. **Run Database Migrations** (one-time, after first deploy):
+   - Go to Render Shell or run command
+   - Execute: `npm run db:push`
+   - This creates all database tables
+   - Only needed once (or when schema changes)
 
 ## Deployment to Railway
 
@@ -88,8 +94,11 @@ This is detected automatically - you don't need to configure anything!
    - `SESSION_SECRET`: A random secret string
    - Any Firebase variables (if using Firebase)
 
-5. **Configure Start Command** (if needed):
-   - Usually Railway detects this automatically from package.json
+5. **Run Database Migrations** (one-time, after deploy):
+   - Open Railway's dashboard
+   - Go to your service → Variables
+   - Run: `npm run db:push` in the Railway CLI or via dashboard
+   - This creates all database tables
 
 ## Deployment to Heroku
 
@@ -111,18 +120,65 @@ This is detected automatically - you don't need to configure anything!
    git push heroku main
    ```
 
+5. **Run Database Migrations** (one-time):
+   ```bash
+   heroku run npm run db:push
+   ```
+
 ## Database Migrations
 
-After deploying, you may need to run migrations to create the database tables:
+**Important:** After deploying for the first time (or after schema changes), you must run migrations to create/update database tables.
 
+### When to Run Migrations
+
+Run migrations:
+- ✅ After your first deployment
+- ✅ After changing database schema in `shared/db-schema.ts`
+- ✅ If you see "relation does not exist" errors
+
+### How to Run Migrations
+
+**On Render:**
+```bash
+# Option 1: Use Render Shell (Dashboard → Shell tab)
+npm run db:push
+
+# Option 2: SSH into your service
+render ssh
+npm run db:push
+```
+
+**On Railway:**
+```bash
+# Use Railway CLI
+railway run npm run db:push
+```
+
+**On Heroku:**
+```bash
+# Use heroku run command
+heroku run npm run db:push
+```
+
+**Locally or via SSH:**
 ```bash
 npm run db:push
 ```
 
-Or on your deployment platform, run:
-```bash
-npx drizzle-kit push
-```
+### Migration Notes
+
+- **Safe & Idempotent**: `db:push` won't break existing data
+- **One-time**: You don't need to run this on every deploy
+- **Schema Changes**: Only run again when you modify `shared/db-schema.ts`
+- **Error "tables already exist"**: This is normal on re-runs, migrations are idempotent
+
+### Why Not Automatic?
+
+We don't run migrations automatically during app startup because:
+- ❌ Blocks app start if migrations are slow
+- ❌ Can cause issues on health check restarts
+- ❌ Requires database access during build/startup
+- ✅ Running manually gives you control
 
 ## Troubleshooting
 

@@ -210,13 +210,15 @@ server/
 ```
 
 ## Recent Changes
-- 2025-10-30: **Database Fully Operational in Replit** - PostgreSQL database successfully set up and verified
-  - Created PostgreSQL database using Replit's built-in database service
-  - All 6 tables created: users, profiles, friends, messages, rooms, sessions
-  - Ran database migrations using `npm run db:push`
-  - Verified app is using PgStorage (was already configured)
-  - Database connection working - all data now persists permanently
-  - No more temporary in-memory storage - production-ready database
+- 2025-10-30: **Complete Database Setup for Replit & External Deployment** - PostgreSQL fully configured
+  - ✅ Created PostgreSQL database using Replit's built-in database service
+  - ✅ All 6 tables created: users, profiles, friends, messages, rooms, sessions
+  - ✅ Ran database migrations using `npm run db:push`
+  - ✅ Verified app uses PgStorage (permanent storage, not temporary memory)
+  - ✅ Database connection working - all data persists permanently
+  - ✅ Updated DEPLOYMENT.md with clear external deployment instructions
+  - ✅ Fixed deployment issues: migrations now run manually on external platforms
+  - ✅ Build/start scripts clean (no automatic migrations that could block startup)
 - 2025-10-30: **External Deployment Support** - Added support for deploying to external platforms like Render, Railway, Heroku
   - Installed `pg` (node-postgres) package for traditional PostgreSQL connections
   - Updated `server/db.ts` with automatic driver detection:
