@@ -1,0 +1,351 @@
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+7:22:27 AM [express] POST /api/users/upsert 500 in 249ms :: {"error":"Failed to create or get user"}
+7:22:29 AM [express] POST /api/users/upsert 500 in 20ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+7:22:29 AM [express] POST /api/users/upsert 500 in 20ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+7:22:29 AM [express] POST /api/users/upsert 500 in 52ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+7:22:29 AM [express] POST /api/users/upsert 500 in 21ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+7:22:30 AM [express] POST /api/users/upsert 500 in 23ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+7:22:30 AM [express] POST /api/users/upsert 500 in 37ms :: {"error":"Failed to create or get user"}
+7:22:30 AM [express] POST /api/users/upsert 500 in 22ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+7:22:30 AM [express] POST /api/users/upsert 500 in 21ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+7:22:30 AM [express] POST /api/users/upsert 500 in 30ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+7:22:30 AM [express] POST /api/users/upsert 500 in 20ms :: {"error":"Failed to create or get user"}
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+7:22:31 AM [express] POST /api/users/upsert 500 in 29ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+7:22:31 AM [express] POST /api/users/upsert 500 in 22ms :: {"error":"Failed to create or get user"}
+Error upserting user: error: relation "users" does not exist
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.getUserByUsername (file:///opt/render/project/src/dist/index.js:126:20)
+    at async file:///opt/render/project/src/dist/index.js:377:18 {
+  length: 104,
+  severity: 'ERROR',
+  code: '42P01',
+  detail: undefined,
+  hint: undefined,
+  position: '60',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'parse_relation.c',
+  line: '1449',
+  routine: 'parserOpenTable'
+}
+7:22:31 AM [express] POST /api/users/upsert 500 in 19ms :: {"error":"Failed to create or get user"}
+Need better 
