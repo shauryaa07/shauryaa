@@ -6,10 +6,7 @@ if (!process.env.DATABASE_URL) {
 
 // Drizzle Kit config for database migrations
 // This works with any PostgreSQL database connection string
-// Note: The runtime db connection (server/db.ts) may use either:
-//   - Neon HTTP driver (serverless/Replit)
-//   - node-postgres driver (traditional hosting like Render)
-// But migrations always use the standard PostgreSQL protocol
+// Uses standard PostgreSQL protocol for maximum compatibility
 export default defineConfig({
   out: "./migrations",
   schema: "./shared/db-schema.ts",
