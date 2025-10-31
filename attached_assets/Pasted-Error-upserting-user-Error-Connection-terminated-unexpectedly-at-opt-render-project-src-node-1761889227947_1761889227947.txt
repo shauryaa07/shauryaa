@@ -1,0 +1,42 @@
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async file:///opt/render/project/src/dist/index.js:174:22
+    at async withRetry (file:///opt/render/project/src/dist/index.js:145:14)
+    at async file:///opt/render/project/src/dist/index.js:464:20
+5:12:31 AM [express] POST /api/users/upsert 500 in 3217ms :: {"error":"Failed to create or get user"}
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async file:///opt/render/project/src/dist/index.js:174:22
+    at async withRetry (file:///opt/render/project/src/dist/index.js:145:14)
+    at async file:///opt/render/project/src/dist/index.js:464:20
+5:12:31 AM [express] POST /api/users/upsert 500 in 3208ms :: {"error":"Failed to create or get user"}
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async file:///opt/render/project/src/dist/index.js:174:22
+    at async withRetry (file:///opt/render/project/src/dist/index.js:145:14)
+    at async file:///opt/render/project/src/dist/index.js:464:20
+5:12:31 AM [express] POST /api/users/upsert 500 in 3212ms :: {"error":"Failed to create or get user"}
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async file:///opt/render/project/src/dist/index.js:174:22
+    at async withRetry (file:///opt/render/project/src/dist/index.js:145:14)
+    at async file:///opt/render/project/src/dist/index.js:464:20
+5:12:32 AM [express] POST /api/users/upsert 500 in 3192ms :: {"error":"Failed to create or get user"}
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async file:///opt/render/project/src/dist/index.js:174:22
+    at async withRetry (file:///opt/render/project/src/dist/index.js:145:14)
+    at async file:///opt/render/project/src/dist/index.js:464:20
+5:12:33 AM [express] POST /api/users/upsert 500 in 3210ms :: {"error":"Failed to create or get user"}
+     ==> Detected service running on port 10000
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
