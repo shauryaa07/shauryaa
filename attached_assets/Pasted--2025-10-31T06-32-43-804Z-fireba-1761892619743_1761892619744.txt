@@ -1,0 +1,45 @@
+==> ///////////////////////////////////////////////////////////
+[2025-10-31T06:32:43.804Z]  @firebase/firestore: Firestore (12.4.0): GrpcConnection RPC 'Listen' stream 0x774f879b error. Code: 3 Message: 3 INVALID_ARGUMENT: Invalid resource field value in the request.
+[2025-10-31T06:32:43.806Z]  @firebase/firestore: Firestore (12.4.0): Could not reach Cloud Firestore backend. Connection failed 1 times. Most recent error: FirebaseError: [code=invalid-argument]: 3 INVALID_ARGUMENT: Invalid resource field value in the request.
+This typically indicates that your device does not have a healthy Internet connection at the moment. The client will operate in offline mode until it is able to successfully connect to the backend.
+6:32:43 AM [express] GET /api/rooms/public 304 in 1046ms :: []
+[2025-10-31T06:32:55.068Z]  @firebase/firestore: Firestore (12.4.0): GrpcConnection RPC 'Listen' stream 0x774f879c error. Code: 3 Message: 3 INVALID_ARGUMENT: Invalid resource field value in the request.
+6:32:55 AM [express] GET /api/friends/1761889722042-yl7fbl98i/requests 200 in 23ms :: []
+[2025-10-31T06:32:55.238Z]  @firebase/firestore: Firestore (12.4.0): GrpcConnection RPC 'Listen' stream 0x774f879d error. Code: 3 Message: 3 INVALID_ARGUMENT: Invalid resource field value in the request.
+6:32:55 AM [express] GET /api/friends/1761889722042-yl7fbl98i 200 in 26ms :: []
+[2025-10-31T06:32:57.519Z]  @firebase/firestore: Firestore (12.4.0): GrpcConnection RPC 'Listen' stream 0x774f879e error. Code: 3 Message: 3 INVALID_ARGUMENT: Invalid resource field value in the request.
+Error fetching profile: [FirebaseError: Failed to get document because the client is offline.] {
+  code: 'unavailable',
+  customData: undefined,
+  toString: [Function (anonymous)]
+}
+6:32:57 AM [express] GET /api/profiles/1761889722042-yl7fbl98i 500 in 20ms :: {"error":"Failed to fe…
+New WebSocket connection
+User dfsdfs (1761889722042-yl7fbl98i) registered for messaging
+New WebSocket connection
+User dfsdfs (1761889722042-yl7fbl98i) registered for messaging
+WebSocket connection closed
+User dfsdfs (1761889722042-yl7fbl98i) leaving
+[2025-10-31T06:33:11.097Z]  @firebase/firestore: Firestore (12.4.0): GrpcConnection RPC 'Listen' stream 0x774f879f error. Code: 3 Message: 3 INVALID_ARGUMENT: Invalid resource field value in the request.
+[2025-10-31T06:33:11.125Z]  @firebase/firestore: Firestore (12.4.0): GrpcConnection RPC 'Listen' stream 0x774f87a0 error. Code: 3 Message: 3 INVALID_ARGUMENT: Invalid resource field value in the request.
+Error fetching profile: [FirebaseError: Failed to get document because the client is offline.] {
+  code: 'unavailable',
+  customData: undefined,
+  toString: [Function (anonymous)]
+}
+6:33:11 AM [express] GET /api/profiles/1761889722042-yl7fbl98i 500 in 20ms :: {"error":"Failed to fe…
+New WebSocket connection
+User dfsdfs (1761889722042-yl7fbl98i) registered for messaging
+Error creating room: [FirebaseError: Function setDoc() called with invalid data. Unsupported field value: undefined (found in field password in document rooms/1761892398282-uwga4owfi)] {
+  code: 'invalid-argument',
+  customData: undefined,
+  toString: [Function (anonymous)]
+}
+6:33:18 AM [express] POST /api/rooms 500 in 4ms :: {"error":"Failed to create room"}
+Error creating room: [FirebaseError: Function setDoc() called with invalid data. Unsupported field value: undefined (found in field password in document rooms/1761892402191-tjpao6tzs)] {
+  code: 'invalid-argument',
+  customData: undefined,
+  toString: [Function (anonymous)]
+}
+6:33:22 AM [express] POST /api/rooms 500 in 2ms :: {"error":"Failed to create room"}
+Need better ways to work with log
