@@ -3,6 +3,7 @@ import { Session, Room, Profile, Friend, Message } from "@shared/schema";
 export interface User {
   id: string;
   username: string;
+  email: string;
   displayName?: string;
   password?: string; // Hashed password
   createdAt: Date;
@@ -10,11 +11,12 @@ export interface User {
 
 export interface IStorage {
   // User methods
-  createUser(user: { username: string; displayName?: string; password?: string }): User | Promise<User>;
-  upsertUser(user: { username: string; displayName?: string }): User | Promise<User>;
+  createUser(user: { username: string; email: string; displayName?: string; password?: string }): User | Promise<User>;
+  upsertUser(user: { username: string; email: string; displayName?: string }): User | Promise<User>;
   getUser(userId: string): User | undefined | Promise<User | undefined>;
   getUserByUsername(username: string): User | undefined | Promise<User | undefined>;
-  getUserWithPassword(username: string): User | undefined | Promise<User | undefined>; // Get user with password for authentication
+  getUserByEmail(email: string): User | undefined | Promise<User | undefined>;
+  getUserWithPassword(email: string): User | undefined | Promise<User | undefined>; // Get user with password for authentication using email
   deleteUser(userId: string): void | Promise<void>;
   
   // Session methods
@@ -69,10 +71,11 @@ export class MemStorage implements IStorage {
   }
 
   // User methods
-  createUser(userData: { username: string; displayName?: string; password?: string }): User {
+  createUser(userData: { username: string; email: string; displayName?: string; password?: string }): User {
     const user: User = {
       id: `user-${Date.now()}-${Math.random().toString(36).substring(7)}`,
       username: userData.username,
+      email: userData.email,
       displayName: userData.displayName,
       password: userData.password, // Store hashed password
       createdAt: new Date(),
@@ -81,8 +84,8 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  upsertUser(userData: { username: string; displayName?: string }): User {
-    const existingUser = this.getUserByUsername(userData.username);
+  upsertUser(userData: { username: string; email: string; displayName?: string }): User {
+    const existingUser = this.getUserByEmail(userData.email);
     if (existingUser) {
       if (userData.displayName) {
         existingUser.displayName = userData.displayName;
@@ -108,9 +111,17 @@ export class MemStorage implements IStorage {
     return userWithoutPassword as User;
   }
 
-  getUserWithPassword(username: string): User | undefined {
-    // This method includes the password for authentication purposes
-    return Array.from(this.users.values()).find(u => u.username === username);
+  getUserByEmail(email: string): User | undefined {
+    const user = Array.from(this.users.values()).find(u => u.email === email);
+    if (!user) return undefined;
+    // Don't return password in regular user queries
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword as User;
+  }
+
+  getUserWithPassword(email: string): User | undefined {
+    // This method includes the password for authentication purposes using email
+    return Array.from(this.users.values()).find(u => u.email === email);
   }
 
   deleteUser(userId: string): void {
