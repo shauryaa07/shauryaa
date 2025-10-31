@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { User, Settings } from "@shared/schema";
+import { AuthForm } from "@/components/auth-form";
 import UsernameEntry from "@/components/username-entry";
 import VideoOverlay from "@/components/video-overlay";
 import MatchingState from "@/components/matching-state";
@@ -9,10 +10,10 @@ import { useWebRTC } from "@/lib/useWebRTC-native";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-type AppState = "username" | "lobby" | "matching" | "connected";
+type AppState = "auth" | "username" | "lobby" | "matching" | "connected";
 
 export default function App() {
-  const [appState, setAppState] = useState<AppState>("username");
+  const [appState, setAppState] = useState<AppState>("auth");
   const [user, setUser] = useState<User | null>(null);
   const [settings, setSettings] = useState<Settings>({
     videoEnabled: true,
@@ -100,19 +101,25 @@ export default function App() {
   });
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("studyconnect_user");
-    if (savedUser) {
+    // Check for authenticated user in localStorage
+    const currentUser = localStorage.getItem("currentUser");
+    if (currentUser) {
       try {
-        const parsedUser = JSON.parse(savedUser);
+        const parsedUser = JSON.parse(currentUser);
         setUser(parsedUser);
         setAppState("lobby");
-        console.log("Loaded saved user from localStorage:", parsedUser);
+        console.log("Loaded authenticated user from localStorage:", parsedUser);
       } catch (error) {
         console.error("Error parsing saved user:", error);
-        localStorage.removeItem("studyconnect_user");
+        localStorage.removeItem("currentUser");
       }
     }
   }, []);
+
+  const handleAuthSuccess = (authenticatedUser: { id: string; username: string; displayName?: string }) => {
+    setUser(authenticatedUser as User);
+    setAppState("lobby");
+  };
 
   useEffect(() => {
     // Initialize media stream before matching
@@ -391,6 +398,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background dark:bg-background">
+      {appState === "auth" && (
+        <AuthForm onAuthSuccess={handleAuthSuccess} />
+      )}
+
       {appState === "username" && (
         <UsernameEntry onSubmit={handleUsernameSubmit} />
       )}
