@@ -55,30 +55,44 @@ I prefer iterative development with clear, concise explanations for each step. P
 - **TanStack Query**: For server state management in the frontend.
 ## Recent Changes (October 31, 2025)
 
-### Secure Authentication System Implemented
-- **Complete registration and login system** with name, username, and password fields
+### Email-Based Authentication System Implemented
+- **Complete registration and login system** with username, email, and password fields
+- **Sign Up Page**: Collects username, email, password, and optional display name
+- **Login Page**: Email and password authentication
 - **Backend authentication routes**:
-  - POST /api/auth/register - User registration with input validation
-  - POST /api/auth/login - User login with password verification
-  - POST /api/auth/logout - Logout functionality with localStorage cleanup
+  - POST /api/auth/register - User registration with email uniqueness validation
+  - POST /api/auth/login - Email-based login with password verification
+  - POST /api/auth/logout - Logout functionality
 - **Password security**: bcrypt hashing with 10 salt rounds
-- **Frontend authentication UI**: Beautiful tabbed login/signup form using shadcn/ui components
-- **Session persistence**: User credentials stored in localStorage after successful authentication
-- **Logout functionality**: Added logout button to navigation bar with proper cleanup
-- **App flow integration**: Authentication now required before accessing any features
+- **Frontend authentication UI**: Clean, modern signup and login pages using shadcn/ui components
+- **Session management**: AuthProvider context manages user sessions throughout the app
+- **Landing page integration**: Updated to direct users to signup/login pages
 
 ### Database Schema Updates
-- Added `password` field to User model (stores bcrypt-hashed passwords)
-- Created `registerSchema` and `loginSchema` for input validation
-- Added `getUserWithPassword` method to storage interface for authentication lookup
+- Added `email` field to User model with email validation
+- Updated storage interface to support email-based operations:
+  - `getUserByEmail()` - Find users by email address
+  - `getUserWithPassword()` - Now uses email for authentication lookup
+- Created `registerSchema` with username, email, and password validation
+- Updated `loginSchema` to use email and password
+- Both username and email must be unique during registration
 - **Security**: Passwords never returned in regular API responses, only used for authentication
+
+### Authentication Context
+- Created `AuthProvider` and `useAuth` hook for global session management
+- User state synchronized between AuthContext and localStorage
+- Immediate session updates after login/signup without page reload
+- Rehydrates user session on app load from localStorage
 
 ### Bug Fixes
 - Fixed Firestore undefined value errors in all storage operations
 - Added `removeUndefinedValues` helper to prevent Firestore rejections
-- Fixed password filtering in createUser, createRoom, createProfile, and updateProfile methods
+- Updated both MemStorage and FirebaseStorage to support email fields
+- Fixed authentication flow to properly update AuthContext
 
 ### Technical Improvements
 - Firebase credentials properly configured for the project
 - All authentication routes properly secured with input validation
 - Consistent error handling with user-friendly toast notifications
+- Type-safe authentication flows with Zod validation
+- Clean separation of concerns between auth pages, context, and backend routes
