@@ -4,15 +4,17 @@ export interface User {
   id: string;
   username: string;
   displayName?: string;
+  password?: string; // Hashed password
   createdAt: Date;
 }
 
 export interface IStorage {
   // User methods
-  createUser(user: { username: string; displayName?: string }): User | Promise<User>;
+  createUser(user: { username: string; displayName?: string; password?: string }): User | Promise<User>;
   upsertUser(user: { username: string; displayName?: string }): User | Promise<User>;
   getUser(userId: string): User | undefined | Promise<User | undefined>;
   getUserByUsername(username: string): User | undefined | Promise<User | undefined>;
+  getUserWithPassword(username: string): User | undefined | Promise<User | undefined>; // Get user with password for authentication
   deleteUser(userId: string): void | Promise<void>;
   
   // Session methods
@@ -67,11 +69,12 @@ export class MemStorage implements IStorage {
   }
 
   // User methods
-  createUser(userData: { username: string; displayName?: string }): User {
+  createUser(userData: { username: string; displayName?: string; password?: string }): User {
     const user: User = {
       id: `user-${Date.now()}-${Math.random().toString(36).substring(7)}`,
       username: userData.username,
       displayName: userData.displayName,
+      password: userData.password, // Store hashed password
       createdAt: new Date(),
     };
     this.users.set(user.id, user);
@@ -90,10 +93,23 @@ export class MemStorage implements IStorage {
   }
 
   getUser(userId: string): User | undefined {
-    return this.users.get(userId);
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    // Don't return password in regular user queries
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword as User;
   }
 
   getUserByUsername(username: string): User | undefined {
+    const user = Array.from(this.users.values()).find(u => u.username === username);
+    if (!user) return undefined;
+    // Don't return password in regular user queries
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword as User;
+  }
+
+  getUserWithPassword(username: string): User | undefined {
+    // This method includes the password for authentication purposes
     return Array.from(this.users.values()).find(u => u.username === username);
   }
 

@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./firebase-storage";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
+import { registerSchema, loginSchema } from "@shared/schema";
 
 // Request validation schemas
 const createRoomSchema = z.object({
@@ -40,6 +42,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
         database: "disconnected",
         error: error instanceof Error ? error.message : "Unknown error"
       });
+    }
+  });
+
+  // Authentication Routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const validationResult = registerSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationResult.error.flatten().fieldErrors 
+        });
+      }
+      
+      const { username, password, displayName } = validationResult.data;
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(409).json({ error: "Username already exists" });
+      }
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Create user with hashed password
+      const user = await storage.createUser({
+        username,
+        displayName,
+        password: hashedPassword,
+      });
+      
+      // Store user session (you can add session management later)
+      res.json({ 
+        user: {
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName,
+        },
+        message: "Registration successful"
+      });
+    } catch (error) {
+      console.error("Error registering user:", error);
+      res.status(500).json({ error: "Failed to register user" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const validationResult = loginSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationResult.error.flatten().fieldErrors 
+        });
+      }
+      
+      const { username, password } = validationResult.data;
+      
+      // Get user with password for authentication
+      const user = await storage.getUserWithPassword(username);
+      
+      if (!user || !user.password) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+      
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+      
+      // Return user without password
+      res.json({ 
+        user: {
+          id: user.id,
+          username: user.username,
+          displayName: user.displayName,
+        },
+        message: "Login successful"
+      });
+    } catch (error) {
+      console.error("Error logging in:", error);
+      res.status(500).json({ error: "Failed to login" });
+    }
+  });
+
+  app.post("/api/auth/logout", async (req, res) => {
+    try {
+      // For now, just send success response
+      // In the future, you can invalidate sessions here
+      res.json({ message: "Logout successful" });
+    } catch (error) {
+      console.error("Error logging out:", error);
+      res.status(500).json({ error: "Failed to logout" });
     }
   });
 

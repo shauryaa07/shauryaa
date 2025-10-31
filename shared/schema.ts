@@ -1,13 +1,32 @@
 import { z } from "zod";
 
-// User schema - simple username-based authentication
+// User schema - with password authentication
 export const userSchema = z.object({
   id: z.string(),
   username: z.string().min(2).max(20),
   displayName: z.string().optional(),
+  password: z.string().optional(), // Optional because we don't return it in API responses
+  createdAt: z.date().optional(),
 });
 
 export type User = z.infer<typeof userSchema>;
+
+// Registration schema - for creating new users
+export const registerSchema = z.object({
+  username: z.string().min(2, "Username must be at least 2 characters").max(20, "Username must be less than 20 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters").max(100),
+  displayName: z.string().min(1, "Name is required").max(50, "Name must be less than 50 characters"),
+});
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+
+// Login schema
+export const loginSchema = z.object({
+  username: z.string().min(2),
+  password: z.string().min(6),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;
 
 // Session/Room information
 export const sessionSchema = z.object({

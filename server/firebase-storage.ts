@@ -41,12 +41,13 @@ function removeUndefinedValues(obj: Record<string, any>): Record<string, any> {
 }
 
 export class FirebaseStorage implements IStorage {
-  async createUser(userData: { username: string; displayName?: string }): Promise<User> {
+  async createUser(userData: { username: string; displayName?: string; password?: string }): Promise<User> {
     const userId = generateId();
     const user: User = {
       id: userId,
       username: userData.username,
       displayName: userData.displayName,
+      password: userData.password, // Hashed password
       createdAt: new Date(),
     };
     
@@ -55,12 +56,15 @@ export class FirebaseStorage implements IStorage {
       id: user.id,
       username: user.username,
       displayName: user.displayName,
+      password: user.password,
       createdAt: serverTimestamp(),
     });
     
     await setDoc(doc(db, "users", userId), userDataToSave);
     
-    return user;
+    // Return user without password
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword as User;
   }
 
   async upsertUser(userData: { username: string; displayName?: string }): Promise<User> {
@@ -106,6 +110,23 @@ export class FirebaseStorage implements IStorage {
       id: doc.id,
       username: data.username,
       displayName: data.displayName,
+      createdAt: timestampToDate(data.createdAt),
+    };
+  }
+
+  async getUserWithPassword(username: string): Promise<User | undefined> {
+    const q = query(collection(db, "users"), where("username", "==", username));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) return undefined;
+    
+    const doc = querySnapshot.docs[0];
+    const data = doc.data();
+    return {
+      id: doc.id,
+      username: data.username,
+      displayName: data.displayName,
+      password: data.password, // Include password for authentication
       createdAt: timestampToDate(data.createdAt),
     };
   }
