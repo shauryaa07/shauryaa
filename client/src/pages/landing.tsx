@@ -29,16 +29,16 @@ export default function LandingPage() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 mt-8">
-                <Link href="/app" data-testid="button-get-started">
+                <Link href="/signup" data-testid="button-get-started">
                   <Button size="lg" className="w-full sm:w-auto h-12 text-lg font-medium">
                     Get Started Free
                   </Button>
                 </Link>
-                <a href="#how-it-works">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto h-12 text-lg font-medium" data-testid="button-learn-more">
-                    How It Works
+                <Link href="/login">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto h-12 text-lg font-medium" data-testid="button-login">
+                    Log In
                   </Button>
-                </a>
+                </Link>
               </div>
               
               <div className="flex items-center gap-6 pt-4 text-sm text-muted-foreground dark:text-muted-foreground">

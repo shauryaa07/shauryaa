@@ -41,11 +41,12 @@ function removeUndefinedValues(obj: Record<string, any>): Record<string, any> {
 }
 
 export class FirebaseStorage implements IStorage {
-  async createUser(userData: { username: string; displayName?: string; password?: string }): Promise<User> {
+  async createUser(userData: { username: string; email: string; displayName?: string; password?: string }): Promise<User> {
     const userId = generateId();
     const user: User = {
       id: userId,
       username: userData.username,
+      email: userData.email,
       displayName: userData.displayName,
       password: userData.password, // Hashed password
       createdAt: new Date(),
@@ -55,6 +56,7 @@ export class FirebaseStorage implements IStorage {
     const userDataToSave = removeUndefinedValues({
       id: user.id,
       username: user.username,
+      email: user.email,
       displayName: user.displayName,
       password: user.password,
       createdAt: serverTimestamp(),
@@ -67,8 +69,8 @@ export class FirebaseStorage implements IStorage {
     return userWithoutPassword as User;
   }
 
-  async upsertUser(userData: { username: string; displayName?: string }): Promise<User> {
-    const existingUser = await this.getUserByUsername(userData.username);
+  async upsertUser(userData: { username: string; email: string; displayName?: string }): Promise<User> {
+    const existingUser = await this.getUserByEmail(userData.email);
     
     if (existingUser) {
       if (userData.displayName && userData.displayName !== existingUser.displayName) {
@@ -93,6 +95,7 @@ export class FirebaseStorage implements IStorage {
     return {
       id: docSnap.id,
       username: data.username,
+      email: data.email,
       displayName: data.displayName,
       createdAt: timestampToDate(data.createdAt),
     };
@@ -109,13 +112,14 @@ export class FirebaseStorage implements IStorage {
     return {
       id: doc.id,
       username: data.username,
+      email: data.email,
       displayName: data.displayName,
       createdAt: timestampToDate(data.createdAt),
     };
   }
 
-  async getUserWithPassword(username: string): Promise<User | undefined> {
-    const q = query(collection(db, "users"), where("username", "==", username));
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const q = query(collection(db, "users"), where("email", "==", email));
     const querySnapshot = await getDocs(q);
     
     if (querySnapshot.empty) return undefined;
@@ -125,6 +129,24 @@ export class FirebaseStorage implements IStorage {
     return {
       id: doc.id,
       username: data.username,
+      email: data.email,
+      displayName: data.displayName,
+      createdAt: timestampToDate(data.createdAt),
+    };
+  }
+
+  async getUserWithPassword(email: string): Promise<User | undefined> {
+    const q = query(collection(db, "users"), where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) return undefined;
+    
+    const doc = querySnapshot.docs[0];
+    const data = doc.data();
+    return {
+      id: doc.id,
+      username: data.username,
+      email: data.email,
       displayName: data.displayName,
       password: data.password, // Include password for authentication
       createdAt: timestampToDate(data.createdAt),

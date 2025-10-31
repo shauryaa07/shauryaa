@@ -57,12 +57,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const { username, password, displayName } = validationResult.data;
+      const { username, email, password, displayName } = validationResult.data;
       
       // Check if username already exists
-      const existingUser = await storage.getUserByUsername(username);
-      if (existingUser) {
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
         return res.status(409).json({ error: "Username already exists" });
+      }
+      
+      // Check if email already exists
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(409).json({ error: "Email already exists" });
       }
       
       // Hash password
@@ -71,6 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create user with hashed password
       const user = await storage.createUser({
         username,
+        email,
         displayName,
         password: hashedPassword,
       });
@@ -80,6 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: {
           id: user.id,
           username: user.username,
+          email: user.email,
           displayName: user.displayName,
         },
         message: "Registration successful"
@@ -101,20 +109,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const { username, password } = validationResult.data;
+      const { email, password } = validationResult.data;
       
-      // Get user with password for authentication
-      const user = await storage.getUserWithPassword(username);
+      // Get user with password for authentication using email
+      const user = await storage.getUserWithPassword(email);
       
       if (!user || !user.password) {
-        return res.status(401).json({ error: "Invalid username or password" });
+        return res.status(401).json({ error: "Invalid email or password" });
       }
       
       // Verify password
       const isPasswordValid = await bcrypt.compare(password, user.password);
       
       if (!isPasswordValid) {
-        return res.status(401).json({ error: "Invalid username or password" });
+        return res.status(401).json({ error: "Invalid email or password" });
       }
       
       // Return user without password
@@ -122,6 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: {
           id: user.id,
           username: user.username,
+          email: user.email,
           displayName: user.displayName,
         },
         message: "Login successful"
@@ -145,16 +154,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/users/upsert", async (req, res) => {
     try {
-      const { username, displayName } = req.body;
+      const { username, email, displayName } = req.body;
       
       if (!username || username.trim().length < 2 || username.trim().length > 20) {
         return res.status(400).json({ error: "Username must be between 2 and 20 characters" });
       }
       
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ error: "Valid email is required" });
+      }
+      
       const trimmedUsername = username.trim();
+      const trimmedEmail = email.trim();
       
       const user = await storage.upsertUser({
         username: trimmedUsername,
+        email: trimmedEmail,
         displayName: displayName || trimmedUsername,
       });
       
