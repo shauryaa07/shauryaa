@@ -29,6 +29,17 @@ function timestampToDate(timestamp: any): Date {
   return new Date(timestamp);
 }
 
+// Helper function to remove undefined values from an object
+function removeUndefinedValues(obj: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 export class FirebaseStorage implements IStorage {
   async createUser(userData: { username: string; displayName?: string }): Promise<User> {
     const userId = generateId();
@@ -39,10 +50,15 @@ export class FirebaseStorage implements IStorage {
       createdAt: new Date(),
     };
     
-    await setDoc(doc(db, "users", userId), {
-      ...user,
+    // Filter out undefined values - Firestore doesn't accept them
+    const userDataToSave = removeUndefinedValues({
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
       createdAt: serverTimestamp(),
     });
+    
+    await setDoc(doc(db, "users", userId), userDataToSave);
     
     return user;
   }
@@ -264,11 +280,16 @@ export class FirebaseStorage implements IStorage {
   }
 
   async createProfile(profileData: Profile): Promise<Profile> {
-    await setDoc(doc(db, "profiles", profileData.userId), {
-      ...profileData,
+    // Filter out undefined values - Firestore doesn't accept them
+    const profileDataToSave = removeUndefinedValues({
+      userId: profileData.userId,
+      bio: profileData.bio,
+      photoUrl: profileData.photoUrl,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    
+    await setDoc(doc(db, "profiles", profileData.userId), profileDataToSave);
     
     return profileData;
   }
@@ -293,10 +314,13 @@ export class FirebaseStorage implements IStorage {
     const profile = await this.getProfile(userId);
     if (!profile) return undefined;
     
-    await updateDoc(doc(db, "profiles", userId), {
+    // Filter out undefined values - Firestore doesn't accept them
+    const updateData = removeUndefinedValues({
       ...updates,
       updatedAt: serverTimestamp(),
     });
+    
+    await updateDoc(doc(db, "profiles", userId), updateData);
     
     return {
       ...profile,
