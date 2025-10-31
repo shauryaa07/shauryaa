@@ -18,6 +18,28 @@ export class PgStorage implements IStorage {
     };
   }
 
+  async upsertUser(userData: { username: string; displayName?: string }): Promise<User> {
+    const [user] = await db
+      .insert(schema.users)
+      .values({
+        username: userData.username,
+        displayName: userData.displayName,
+      })
+      .onConflictDoUpdate({
+        target: schema.users.username,
+        set: {
+          displayName: userData.displayName,
+        },
+      })
+      .returning();
+    
+    return {
+      ...user,
+      displayName: user.displayName ?? undefined,
+      createdAt: new Date(user.createdAt),
+    };
+  }
+
   async getUser(userId: string): Promise<User | undefined> {
     const [user] = await db
       .select()

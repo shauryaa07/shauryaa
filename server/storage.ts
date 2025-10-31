@@ -10,6 +10,7 @@ export interface User {
 export interface IStorage {
   // User methods
   createUser(user: { username: string; displayName?: string }): User | Promise<User>;
+  upsertUser(user: { username: string; displayName?: string }): User | Promise<User>;
   getUser(userId: string): User | undefined | Promise<User | undefined>;
   getUserByUsername(username: string): User | undefined | Promise<User | undefined>;
   deleteUser(userId: string): void | Promise<void>;
@@ -75,6 +76,17 @@ export class MemStorage implements IStorage {
     };
     this.users.set(user.id, user);
     return user;
+  }
+
+  upsertUser(userData: { username: string; displayName?: string }): User {
+    const existingUser = this.getUserByUsername(userData.username);
+    if (existingUser) {
+      if (userData.displayName) {
+        existingUser.displayName = userData.displayName;
+      }
+      return existingUser;
+    }
+    return this.createUser(userData);
   }
 
   getUser(userId: string): User | undefined {

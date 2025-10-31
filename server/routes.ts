@@ -40,16 +40,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const trimmedUsername = username.trim();
       
-      // Check if user already exists
-      let user = await storage.getUserByUsername(trimmedUsername);
-      
-      if (!user) {
-        // Create new user
-        user = await storage.createUser({
-          username: trimmedUsername,
-          displayName: displayName || trimmedUsername,
-        });
-      }
+      const user = await storage.upsertUser({
+        username: trimmedUsername,
+        displayName: displayName || trimmedUsername,
+      });
       
       res.json(user);
     } catch (error) {
