@@ -250,34 +250,24 @@ export class FirebaseStorage implements IStorage {
     await deleteDoc(doc(db, "rooms", roomId));
   }
 
-  async createProfile(profileData: Omit<Profile, "id">): Promise<Profile> {
-    const profileId = generateId();
-    const profile: Profile = {
-      id: profileId,
+  async createProfile(profileData: Profile): Promise<Profile> {
+    await setDoc(doc(db, "profiles", profileData.userId), {
       ...profileData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    await setDoc(doc(db, "profiles", profileId), {
-      ...profile,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
     
-    return profile;
+    return profileData;
   }
 
   async getProfile(userId: string): Promise<Profile | undefined> {
-    const q = query(collection(db, "profiles"), where("userId", "==", userId));
-    const querySnapshot = await getDocs(q);
+    const docRef = doc(db, "profiles", userId);
+    const docSnap = await getDoc(docRef);
     
-    if (querySnapshot.empty) return undefined;
+    if (!docSnap.exists()) return undefined;
     
-    const doc = querySnapshot.docs[0];
-    const data = doc.data();
+    const data = docSnap.data();
     return {
-      id: doc.id,
       userId: data.userId,
       bio: data.bio,
       photoUrl: data.photoUrl,
@@ -286,21 +276,27 @@ export class FirebaseStorage implements IStorage {
     };
   }
 
-  async updateProfile(profileId: string, updates: Partial<Omit<Profile, "id" | "userId" | "createdAt">>): Promise<void> {
-    await updateDoc(doc(db, "profiles", profileId), {
+  async updateProfile(userId: string, updates: Partial<Omit<Profile, "userId" | "createdAt">>): Promise<Profile | undefined> {
+    const profile = await this.getProfile(userId);
+    if (!profile) return undefined;
+    
+    await updateDoc(doc(db, "profiles", userId), {
       ...updates,
       updatedAt: serverTimestamp(),
     });
+    
+    return {
+      ...profile,
+      ...updates,
+      updatedAt: new Date(),
+    };
   }
 
-  async sendFriendRequest(requesterId: string, receiverId: string): Promise<Friend> {
+  async createFriendRequest(friendData: Omit<Friend, "id">): Promise<Friend> {
     const friendId = generateId();
     const friend: Friend = {
       id: friendId,
-      requesterId,
-      receiverId,
-      status: "pending",
-      createdAt: new Date(),
+      ...friendData,
     };
     
     await setDoc(doc(db, "friends", friendId), {
@@ -311,7 +307,23 @@ export class FirebaseStorage implements IStorage {
     return friend;
   }
 
-  async getFriendRequests(userId: string): Promise<Friend[]> {
+  async getFriendRequest(requestId: string): Promise<Friend | undefined> {
+    const docRef = doc(db, "friends", requestId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) return undefined;
+    
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      requesterId: data.requesterId,
+      receiverId: data.receiverId,
+      status: data.status,
+      createdAt: timestampToDate(data.createdAt),
+    };
+  }
+
+  async getFriendRequestsByUser(userId: string): Promise<Friend[]> {
     const q = query(
       collection(db, "friends"),
       where("receiverId", "==", userId),
@@ -330,8 +342,16 @@ export class FirebaseStorage implements IStorage {
     });
   }
 
-  async updateFriendRequestStatus(friendId: string, status: "accepted" | "declined"): Promise<void> {
-    await updateDoc(doc(db, "friends", friendId), { status });
+  async updateFriendRequestStatus(requestId: string, status: "accepted" | "declined"): Promise<Friend | undefined> {
+    const friend = await this.getFriendRequest(requestId);
+    if (!friend) return undefined;
+    
+    await updateDoc(doc(db, "friends", requestId), { status });
+    
+    return {
+      ...friend,
+      status,
+    };
   }
 
   async getFriends(userId: string): Promise<Friend[]> {
@@ -362,15 +382,11 @@ export class FirebaseStorage implements IStorage {
     return friends;
   }
 
-  async sendMessage(senderId: string, receiverId: string, content: string): Promise<Message> {
+  async createMessage(messageData: Omit<Message, "id">): Promise<Message> {
     const messageId = generateId();
     const message: Message = {
       id: messageId,
-      senderId,
-      receiverId,
-      content,
-      read: false,
-      createdAt: new Date(),
+      ...messageData,
     };
     
     await setDoc(doc(db, "messages", messageId), {
@@ -405,28 +421,18 @@ export class FirebaseStorage implements IStorage {
     return messages;
   }
 
-  async getUnreadMessages(userId: string): Promise<Message[]> {
+  async markMessageAsRead(messageId: string): Promise<void> {
+    await updateDoc(doc(db, "messages", messageId), { read: true });
+  }
+
+  async getUnreadMessageCount(userId: string): Promise<number> {
     const q = query(
       collection(db, "messages"),
       where("receiverId", "==", userId),
       where("read", "==", false)
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        senderId: data.senderId,
-        receiverId: data.receiverId,
-        content: data.content,
-        read: data.read,
-        createdAt: timestampToDate(data.createdAt),
-      };
-    });
-  }
-
-  async markMessageAsRead(messageId: string): Promise<void> {
-    await updateDoc(doc(db, "messages", messageId), { read: true });
+    return querySnapshot.size;
   }
 }
 

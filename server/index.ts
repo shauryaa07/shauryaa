@@ -48,20 +48,7 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    log("Starting server...");
-    
-    if (process.env.DATABASE_URL) {
-      log("Testing database connection...");
-      const { pool } = await import("./db");
-      try {
-        const client = await pool.connect();
-        log("Database connection successful");
-        client.release();
-      } catch (dbError) {
-        log(`Warning: Database connection failed: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
-        log("Server will continue, but database operations may fail");
-      }
-    }
+    log("Starting server with Firebase...");
     
     const server = await registerRoutes(app);
 
