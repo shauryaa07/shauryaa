@@ -29,7 +29,20 @@ interface WSClient extends WebSocket {
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
-  // User API Routes
+  app.get("/api/health", async (req, res) => {
+    try {
+      await storage.getAllSessions();
+      res.json({ status: "ok", database: "connected" });
+    } catch (error) {
+      console.error("Health check failed:", error);
+      res.status(503).json({ 
+        status: "error", 
+        database: "disconnected",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   app.post("/api/users/upsert", async (req, res) => {
     try {
       const { username, displayName } = req.body;
@@ -48,7 +61,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(user);
     } catch (error) {
       console.error("Error upserting user:", error);
-      res.status(500).json({ error: "Failed to create or get user" });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ 
+        error: "Failed to create or get user",
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      });
     }
   });
 

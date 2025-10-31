@@ -1,8 +1,40 @@
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, and, or } from "drizzle-orm";
 import * as schema from "@shared/db-schema";
 import { IStorage, User } from "./storage";
 import type { Session, Room, Profile, Friend, Message } from "@shared/schema";
+
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  delayMs = 1000
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
+      const isConnectionError = 
+        error instanceof Error && 
+        (error.message.includes('Connection terminated') ||
+         error.message.includes('ECONNRESET') ||
+         error.message.includes('connection') ||
+         error.message.includes('timeout'));
+      
+      if (!isConnectionError || attempt === maxRetries) {
+        throw error;
+      }
+      
+      console.log(`Database operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delayMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      delayMs *= 2;
+    }
+  }
+  
+  throw lastError || new Error('Operation failed after retries');
+}
 
 export class PgStorage implements IStorage {
   // User methods
@@ -19,25 +51,27 @@ export class PgStorage implements IStorage {
   }
 
   async upsertUser(userData: { username: string; displayName?: string }): Promise<User> {
-    const [user] = await db
-      .insert(schema.users)
-      .values({
-        username: userData.username,
-        displayName: userData.displayName,
-      })
-      .onConflictDoUpdate({
-        target: schema.users.username,
-        set: {
+    return withRetry(async () => {
+      const [user] = await db
+        .insert(schema.users)
+        .values({
+          username: userData.username,
           displayName: userData.displayName,
-        },
-      })
-      .returning();
-    
-    return {
-      ...user,
-      displayName: user.displayName ?? undefined,
-      createdAt: new Date(user.createdAt),
-    };
+        })
+        .onConflictDoUpdate({
+          target: schema.users.username,
+          set: {
+            displayName: userData.displayName,
+          },
+        })
+        .returning();
+      
+      return {
+        ...user,
+        displayName: user.displayName ?? undefined,
+        createdAt: new Date(user.createdAt),
+      };
+    });
   }
 
   async getUser(userId: string): Promise<User | undefined> {
