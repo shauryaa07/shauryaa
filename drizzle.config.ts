@@ -9,7 +9,7 @@ if (!process.env.DATABASE_URL) {
 // Uses standard PostgreSQL protocol for maximum compatibility
 export default defineConfig({
   out: "./migrations",
-  schema: "./shared/db-schema.ts",
+  schema: "./shared/schema.ts",
   dialect: "postgresql",
   dbCredentials: {
     url: process.env.DATABASE_URL,
