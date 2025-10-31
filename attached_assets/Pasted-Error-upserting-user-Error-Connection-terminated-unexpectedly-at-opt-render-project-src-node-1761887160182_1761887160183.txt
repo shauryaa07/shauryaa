@@ -1,0 +1,77 @@
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.upsertUser (file:///opt/render/project/src/dist/index.js:124:20)
+    at async file:///opt/render/project/src/dist/index.js:400:20
+5:05:19 AM [express] POST /api/users/upsert 500 in 331ms :: {"error":"Failed to create or get user"}
+Error upserting user: Error: Connection terminated unexpectedly
+5:05:20 AM [express] POST /api/users/upsert 500 in 67ms :: {"error":"Failed to create or get user"}
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.upsertUser (file:///opt/render/project/src/dist/index.js:124:20)
+    at async file:///opt/render/project/src/dist/index.js:400:20
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.upsertUser (file:///opt/render/project/src/dist/index.js:124:20)
+    at async file:///opt/render/project/src/dist/index.js:400:20
+5:05:21 AM [express] POST /api/users/upsert 500 in 68ms :: {"error":"Failed to create or get user"}
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.upsertUser (file:///opt/render/project/src/dist/index.js:124:20)
+    at async file:///opt/render/project/src/dist/index.js:400:20
+5:05:21 AM [express] POST /api/users/upsert 500 in 68ms :: {"error":"Failed to create or get user"}
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.upsertUser (file:///opt/render/project/src/dist/index.js:124:20)
+    at async file:///opt/render/project/src/dist/index.js:400:20
+5:05:21 AM [express] POST /api/users/upsert 500 in 72ms :: {"error":"Failed to create or get user"}
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.upsertUser (file:///opt/render/project/src/dist/index.js:124:20)
+    at async file:///opt/render/project/src/dist/index.js:400:20
+5:05:22 AM [express] POST /api/users/upsert 500 in 66ms :: {"error":"Failed to create or get user"}
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.upsertUser (file:///opt/render/project/src/dist/index.js:124:20)
+    at async file:///opt/render/project/src/dist/index.js:400:20
+5:05:22 AM [express] POST /api/users/upsert 500 in 62ms :: {"error":"Failed to create or get user"}
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.upsertUser (file:///opt/render/project/src/dist/index.js:124:20)
+    at async file:///opt/render/project/src/dist/index.js:400:20
+5:05:22 AM [express] POST /api/users/upsert 500 in 61ms :: {"error":"Failed to create or get user"}
+Error upserting user: Error: Connection terminated unexpectedly
+5:05:22 AM [express] POST /api/users/upsert 500 in 70ms :: {"error":"Failed to create or get user"}
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.upsertUser (file:///opt/render/project/src/dist/index.js:124:20)
+    at async file:///opt/render/project/src/dist/index.js:400:20
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.upsertUser (file:///opt/render/project/src/dist/index.js:124:20)
+    at async file:///opt/render/project/src/dist/index.js:400:20
+5:05:23 AM [express] POST /api/users/upsert 500 in 72ms :: {"error":"Failed to create or get user"}
+Error upserting user: Error: Connection terminated unexpectedly
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+    at async PgStorage.upsertUser (file:///opt/render/project/src/dist/index.js:124:20)
+    at async file:///opt/render/project/src/dist/index.js:400:20
+5:05:23 AM [express] POST /api/users/upsert 500 in 62ms :: {"error":"Failed to create or get user"}
