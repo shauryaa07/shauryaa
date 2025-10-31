@@ -453,7 +453,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('message', (data: string) => {
       try {
         const message = JSON.parse(data.toString());
-        console.log('Received message:', message);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Received message:', message);
+        }
 
         switch (message.type) {
           case 'join':
