@@ -159,10 +159,23 @@ export class FirebaseStorage implements IStorage {
       ...roomData,
     };
     
-    await setDoc(doc(db, "rooms", roomId), {
-      ...room,
+    // Filter out undefined values - Firestore doesn't accept them
+    const roomDataToSave: Record<string, any> = {
+      id: room.id,
+      name: room.name,
+      type: room.type,
+      createdBy: room.createdBy,
+      currentOccupancy: room.currentOccupancy,
+      maxOccupancy: room.maxOccupancy,
       createdAt: serverTimestamp(),
-    });
+    };
+    
+    // Only add password if it's defined
+    if (room.password !== undefined) {
+      roomDataToSave.password = room.password;
+    }
+    
+    await setDoc(doc(db, "rooms", roomId), roomDataToSave);
     
     return room;
   }
