@@ -100,6 +100,21 @@ export default function App() {
   });
 
   useEffect(() => {
+    const savedUser = localStorage.getItem("studyconnect_user");
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        setAppState("lobby");
+        console.log("Loaded saved user from localStorage:", parsedUser);
+      } catch (error) {
+        console.error("Error parsing saved user:", error);
+        localStorage.removeItem("studyconnect_user");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     // Initialize media stream before matching
     const initMedia = async () => {
       try {
