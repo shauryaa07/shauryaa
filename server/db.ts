@@ -8,10 +8,19 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Use standard node-postgres driver for maximum compatibility
+// Use standard node-postgres driver with proper connection pool settings
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_SSL !== "false" ? { rejectUnauthorized: false } : false,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  allowExitOnIdle: false,
+});
+
+// Handle pool errors to prevent crashes
+pool.on('error', (err) => {
+  console.error('Unexpected database pool error:', err);
 });
 
 export const db = drizzle(pool, { schema });
