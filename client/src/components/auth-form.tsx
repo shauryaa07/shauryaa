@@ -19,7 +19,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Loader2, LogIn, UserPlus } from "lucide-react";
 
 interface AuthFormProps {
-  onAuthSuccess: (user: { id: string; username: string; displayName?: string }) => void;
+  onAuthSuccess: (user: { id: string; username: string; email: string }) => void;
 }
 
 export function AuthForm({ onAuthSuccess }: AuthFormProps) {
@@ -30,7 +30,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
   const loginForm = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -40,8 +40,8 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
+      email: "",
       password: "",
-      displayName: "",
     },
   });
 
@@ -51,7 +51,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
       const response = await apiRequest("POST", "/api/auth/login", data);
       return await response.json();
     },
-    onSuccess: (data: { user: { id: string; username: string; displayName?: string } }) => {
+    onSuccess: (data: { user: { id: string; username: string; email: string } }) => {
       toast({
         title: "Welcome back!",
         description: "You've successfully logged in.",
@@ -74,7 +74,7 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
       const response = await apiRequest("POST", "/api/auth/register", data);
       return await response.json();
     },
-    onSuccess: (data: { user: { id: string; username: string; displayName?: string } }) => {
+    onSuccess: (data: { user: { id: string; username: string; email: string } }) => {
       toast({
         title: "Account created!",
         description: "Your account has been successfully created.",
@@ -124,16 +124,17 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
             <TabsContent value="login" className="space-y-4">
               <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="login-username">Username</Label>
+                  <Label htmlFor="login-email">Email</Label>
                   <Input
-                    id="login-username"
-                    data-testid="input-login-username"
-                    placeholder="Enter your username"
-                    {...loginForm.register("username")}
+                    id="login-email"
+                    data-testid="input-login-email"
+                    type="email"
+                    placeholder="Enter your email"
+                    {...loginForm.register("email")}
                     disabled={loginMutation.isPending}
                   />
-                  {loginForm.formState.errors.username && (
-                    <p className="text-sm text-red-500">{loginForm.formState.errors.username.message}</p>
+                  {loginForm.formState.errors.email && (
+                    <p className="text-sm text-red-500">{loginForm.formState.errors.email.message}</p>
                   )}
                 </div>
 
@@ -177,20 +178,6 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
             <TabsContent value="register" className="space-y-4">
               <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="register-name">Full Name</Label>
-                  <Input
-                    id="register-name"
-                    data-testid="input-register-name"
-                    placeholder="Enter your full name"
-                    {...registerForm.register("displayName")}
-                    disabled={registerMutation.isPending}
-                  />
-                  {registerForm.formState.errors.displayName && (
-                    <p className="text-sm text-red-500">{registerForm.formState.errors.displayName.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="register-username">Username</Label>
                   <Input
                     id="register-username"
@@ -201,6 +188,21 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
                   />
                   {registerForm.formState.errors.username && (
                     <p className="text-sm text-red-500">{registerForm.formState.errors.username.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="register-email">Email</Label>
+                  <Input
+                    id="register-email"
+                    data-testid="input-register-email"
+                    type="email"
+                    placeholder="Enter your email"
+                    {...registerForm.register("email")}
+                    disabled={registerMutation.isPending}
+                  />
+                  {registerForm.formState.errors.email && (
+                    <p className="text-sm text-red-500">{registerForm.formState.errors.email.message}</p>
                   )}
                 </div>
 

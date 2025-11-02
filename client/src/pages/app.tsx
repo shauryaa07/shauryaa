@@ -116,7 +116,7 @@ export default function App() {
     }
   }, []);
 
-  const handleAuthSuccess = (authenticatedUser: { id: string; username: string; displayName?: string }) => {
+  const handleAuthSuccess = (authenticatedUser: { id: string; username: string; email: string }) => {
     setUser(authenticatedUser as User);
     setAppState("lobby");
   };
@@ -200,7 +200,7 @@ export default function App() {
     try {
       const response = await apiRequest("POST", "/api/users/upsert", {
         username,
-        displayName: username,
+        email: `${username}@studyconnect.local`, // Generate a local email for username-only users
       });
       
       const userData = await response.json();
@@ -208,7 +208,7 @@ export default function App() {
       const newUser: User = {
         id: userData.id,
         username: userData.username,
-        displayName: userData.displayName || userData.username,
+        email: userData.email,
       };
       
       setUser(newUser);

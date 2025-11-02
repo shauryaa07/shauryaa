@@ -48,7 +48,7 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    log("Starting server with Firebase...");
+    log("Starting server with in-memory storage...");
     
     const server = await registerRoutes(app);
 
