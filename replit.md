@@ -35,18 +35,16 @@ I prefer iterative development with clear, concise explanations for each step. P
 - Friend request management.
 
 ### System Design Choices
-- **Database**: PostgreSQL (Neon-backed) managed by Drizzle ORM for persistent storage of users, profiles, messages, and rooms.
+- **Storage**: In-memory storage (MemStorage) for user management and session data (data is lost on restart)
 - **P2P Focus**: Emphasizes direct peer connections over central media servers for scalability and privacy.
 - **Initiator Selection**: WebRTC initiator determined by the user with the lower `userId` to prevent deadlocks.
 - **Media Stream Handling**: `getUserMedia` is called and stream is ready before WebSocket connection for robust WebRTC setup.
 - **Separate Popup Windows**: Uses `window.open()` for PiP, created synchronously on user interaction to bypass browser popup blockers.
 
 ## External Dependencies
-- **PostgreSQL**: Primary database for all persistent data, utilizing Drizzle ORM.
-- **Neon**: Serverless PostgreSQL provider used for the database.
 - **simple-peer**: JavaScript library for WebRTC peer-to-peer connections.
 - **ws**: WebSocket library for Node.js backend.
-- **bcrypt**: For password hashing.
+- **bcrypt**: For password hashing (optimized to 8 rounds).
 - **React**: Frontend UI library.
 - **TypeScript**: For type safety across the codebase.
 - **TailwindCSS**: For utility-first styling.
@@ -55,16 +53,24 @@ I prefer iterative development with clear, concise explanations for each step. P
 - **TanStack Query**: For server state management in the frontend.
 ## Recent Changes
 
-### November 2, 2025 - Authentication Optimization & Simplification
+### November 2, 2025 - Storage Switch & DisplayName Cleanup
+- **Switched to in-memory storage**: Replaced Firebase with MemStorage to simplify setup and avoid configuration errors
+  - Updated `server/index.ts` to use MemStorage by default
+  - All user data and sessions are now stored in-memory (data is lost on server restart)
+  - Removed Firebase configuration complexity
 - **Removed displayName field**: Simplified user registration to only require username, email, and password
   - Removed from schema (`shared/schema.ts`)
-  - Removed from signup form UI (`client/src/pages/signup.tsx`)
+  - Removed from auth forms (`client/src/components/auth-form.tsx`)
+  - Removed from app component (`client/src/pages/app.tsx`)
   - Removed from all backend routes (`server/routes.ts`)
-  - Removed from both storage implementations (`server/storage.ts`, `server/firebase-storage.ts`)
+  - Updated storage interface (`server/storage.ts`)
 - **Optimized authentication speed**: Reduced bcrypt hash rounds from 10 to 8 for faster signup and login
   - Maintains strong security while significantly improving performance
   - Registration and login now complete in seconds instead of taking excessive time
-- **User experience improvements**: Streamlined signup form with only essential fields
+- **Authentication form improvements**: 
+  - Login now uses email instead of username for consistency
+  - Registration collects username, email, and password (no displayName)
+  - All TypeScript errors resolved
 
 ### October 31, 2025 - Email-Based Authentication System
 - **Complete registration and login system** with username, email, and password fields
@@ -96,14 +102,14 @@ I prefer iterative development with clear, concise explanations for each step. P
 - Rehydrates user session on app load from localStorage
 
 ### Bug Fixes
-- Fixed Firestore undefined value errors in all storage operations
-- Added `removeUndefinedValues` helper to prevent Firestore rejections
-- Updated both MemStorage and FirebaseStorage to support email fields
-- Fixed authentication flow to properly update AuthContext
+- Fixed all Firebase-related errors by switching to in-memory storage
+- Updated authentication forms to match the email-based login schema
+- Fixed TypeScript errors related to displayName removal
+- Fixed authentication flow to properly update user state
 
 ### Technical Improvements
-- Firebase credentials properly configured for the project
 - All authentication routes properly secured with input validation
 - Consistent error handling with user-friendly toast notifications
 - Type-safe authentication flows with Zod validation
 - Clean separation of concerns between auth pages, context, and backend routes
+- Simplified storage layer without external database dependencies
