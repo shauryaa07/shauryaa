@@ -53,17 +53,28 @@ I prefer iterative development with clear, concise explanations for each step. P
 - **Wouter**: For client-side routing.
 - **shadcn/ui**: UI component library.
 - **TanStack Query**: For server state management in the frontend.
-## Recent Changes (October 31, 2025)
+## Recent Changes
 
-### Email-Based Authentication System Implemented
+### November 2, 2025 - Authentication Optimization & Simplification
+- **Removed displayName field**: Simplified user registration to only require username, email, and password
+  - Removed from schema (`shared/schema.ts`)
+  - Removed from signup form UI (`client/src/pages/signup.tsx`)
+  - Removed from all backend routes (`server/routes.ts`)
+  - Removed from both storage implementations (`server/storage.ts`, `server/firebase-storage.ts`)
+- **Optimized authentication speed**: Reduced bcrypt hash rounds from 10 to 8 for faster signup and login
+  - Maintains strong security while significantly improving performance
+  - Registration and login now complete in seconds instead of taking excessive time
+- **User experience improvements**: Streamlined signup form with only essential fields
+
+### October 31, 2025 - Email-Based Authentication System
 - **Complete registration and login system** with username, email, and password fields
-- **Sign Up Page**: Collects username, email, password, and optional display name
+- **Sign Up Page**: Collects username, email, and password
 - **Login Page**: Email and password authentication
 - **Backend authentication routes**:
   - POST /api/auth/register - User registration with email uniqueness validation
   - POST /api/auth/login - Email-based login with password verification
   - POST /api/auth/logout - Logout functionality
-- **Password security**: bcrypt hashing with 10 salt rounds
+- **Password security**: bcrypt hashing (optimized to 8 salt rounds)
 - **Frontend authentication UI**: Clean, modern signup and login pages using shadcn/ui components
 - **Session management**: AuthProvider context manages user sessions throughout the app
 - **Landing page integration**: Updated to direct users to signup/login pages
