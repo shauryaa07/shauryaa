@@ -24,7 +24,6 @@ export default function SignupPage() {
       username: "",
       email: "",
       password: "",
-      displayName: "",
     },
   });
 
@@ -120,24 +119,6 @@ export default function SignupPage() {
                         type="password"
                         placeholder="••••••••"
                         data-testid="input-password"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="displayName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Display Name (Optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="John Doe"
-                        data-testid="input-display-name"
                         {...field}
                       />
                     </FormControl>

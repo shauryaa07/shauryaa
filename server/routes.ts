@@ -57,7 +57,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const { username, email, password, displayName } = validationResult.data;
+      const { username, email, password } = validationResult.data;
       
       // Check if username already exists
       const existingUserByUsername = await storage.getUserByUsername(username);
@@ -72,13 +72,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(password, 8);
       
       // Create user with hashed password
       const user = await storage.createUser({
         username,
         email,
-        displayName,
         password: hashedPassword,
       });
       
@@ -88,7 +87,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: user.id,
           username: user.username,
           email: user.email,
-          displayName: user.displayName,
         },
         message: "Registration successful"
       });
@@ -131,7 +129,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: user.id,
           username: user.username,
           email: user.email,
-          displayName: user.displayName,
         },
         message: "Login successful"
       });
@@ -154,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/users/upsert", async (req, res) => {
     try {
-      const { username, email, displayName } = req.body;
+      const { username, email } = req.body;
       
       if (!username || username.trim().length < 2 || username.trim().length > 20) {
         return res.status(400).json({ error: "Username must be between 2 and 20 characters" });
@@ -170,7 +167,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.upsertUser({
         username: trimmedUsername,
         email: trimmedEmail,
-        displayName: displayName || trimmedUsername,
       });
       
       res.json(user);

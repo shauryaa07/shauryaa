@@ -41,13 +41,12 @@ function removeUndefinedValues(obj: Record<string, any>): Record<string, any> {
 }
 
 export class FirebaseStorage implements IStorage {
-  async createUser(userData: { username: string; email: string; displayName?: string; password?: string }): Promise<User> {
+  async createUser(userData: { username: string; email: string; password?: string }): Promise<User> {
     const userId = generateId();
     const user: User = {
       id: userId,
       username: userData.username,
       email: userData.email,
-      displayName: userData.displayName,
       password: userData.password, // Hashed password
       createdAt: new Date(),
     };
@@ -57,7 +56,6 @@ export class FirebaseStorage implements IStorage {
       id: user.id,
       username: user.username,
       email: user.email,
-      displayName: user.displayName,
       password: user.password,
       createdAt: serverTimestamp(),
     });
@@ -69,16 +67,10 @@ export class FirebaseStorage implements IStorage {
     return userWithoutPassword as User;
   }
 
-  async upsertUser(userData: { username: string; email: string; displayName?: string }): Promise<User> {
+  async upsertUser(userData: { username: string; email: string }): Promise<User> {
     const existingUser = await this.getUserByEmail(userData.email);
     
     if (existingUser) {
-      if (userData.displayName && userData.displayName !== existingUser.displayName) {
-        await updateDoc(doc(db, "users", existingUser.id), {
-          displayName: userData.displayName,
-        });
-        existingUser.displayName = userData.displayName;
-      }
       return existingUser;
     }
     
@@ -96,7 +88,6 @@ export class FirebaseStorage implements IStorage {
       id: docSnap.id,
       username: data.username,
       email: data.email,
-      displayName: data.displayName,
       createdAt: timestampToDate(data.createdAt),
     };
   }
@@ -113,7 +104,6 @@ export class FirebaseStorage implements IStorage {
       id: doc.id,
       username: data.username,
       email: data.email,
-      displayName: data.displayName,
       createdAt: timestampToDate(data.createdAt),
     };
   }
@@ -130,7 +120,6 @@ export class FirebaseStorage implements IStorage {
       id: doc.id,
       username: data.username,
       email: data.email,
-      displayName: data.displayName,
       createdAt: timestampToDate(data.createdAt),
     };
   }
@@ -147,7 +136,6 @@ export class FirebaseStorage implements IStorage {
       id: doc.id,
       username: data.username,
       email: data.email,
-      displayName: data.displayName,
       password: data.password, // Include password for authentication
       createdAt: timestampToDate(data.createdAt),
     };

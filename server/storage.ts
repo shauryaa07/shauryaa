@@ -4,15 +4,14 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  displayName?: string;
   password?: string; // Hashed password
   createdAt: Date;
 }
 
 export interface IStorage {
   // User methods
-  createUser(user: { username: string; email: string; displayName?: string; password?: string }): User | Promise<User>;
-  upsertUser(user: { username: string; email: string; displayName?: string }): User | Promise<User>;
+  createUser(user: { username: string; email: string; password?: string }): User | Promise<User>;
+  upsertUser(user: { username: string; email: string }): User | Promise<User>;
   getUser(userId: string): User | undefined | Promise<User | undefined>;
   getUserByUsername(username: string): User | undefined | Promise<User | undefined>;
   getUserByEmail(email: string): User | undefined | Promise<User | undefined>;
@@ -71,12 +70,11 @@ export class MemStorage implements IStorage {
   }
 
   // User methods
-  createUser(userData: { username: string; email: string; displayName?: string; password?: string }): User {
+  createUser(userData: { username: string; email: string; password?: string }): User {
     const user: User = {
       id: `user-${Date.now()}-${Math.random().toString(36).substring(7)}`,
       username: userData.username,
       email: userData.email,
-      displayName: userData.displayName,
       password: userData.password, // Store hashed password
       createdAt: new Date(),
     };
@@ -84,12 +82,9 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  upsertUser(userData: { username: string; email: string; displayName?: string }): User {
+  upsertUser(userData: { username: string; email: string }): User {
     const existingUser = this.getUserByEmail(userData.email);
     if (existingUser) {
-      if (userData.displayName) {
-        existingUser.displayName = userData.displayName;
-      }
       return existingUser;
     }
     return this.createUser(userData);
