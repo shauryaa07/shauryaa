@@ -119,12 +119,12 @@ export default function VideoOverlay({
       });
 
       const participantCount = allParticipants.length;
-      const videoWidth = 140; // Increased for better visibility
-      const gap = 10; // Increased gap
-      const padding = 16; // Increased padding
-      const controlsWidth = 160; // Increased to ensure buttons are always visible
-      const windowWidth = Math.max(450, (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth);
-      const windowHeight = Math.max(135, 110 + 16); // Ensure minimum height for controls
+      const videoWidth = 120;
+      const gap = 8;
+      const padding = 12;
+      const controlsWidth = 140;
+      const windowWidth = Math.min(600, Math.max(400, (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth));
+      const windowHeight = 120;
 
       try {
         pipWindow.resizeTo(windowWidth, windowHeight);
@@ -211,9 +211,12 @@ export default function VideoOverlay({
             }
           });
           
-          // Update the video element
-          if (videoRef.current) {
+          // Synchronously update the video element if it exists and stream is valid
+          if (videoRef.current && localStream) {
             videoRef.current.srcObject = localStream;
+            await videoRef.current.play().catch((error) => {
+              console.warn('Could not play video element:', error);
+            });
           }
           
           console.log('Video track replaced successfully');
@@ -226,7 +229,7 @@ export default function VideoOverlay({
         setIsVideoOff(false);
         
         // Ensure the video element is playing to show the preview
-        if (videoRef.current) {
+        if (videoRef.current && localStream) {
           videoRef.current.play().catch((error) => {
             console.warn('Could not play video element:', error);
           });
@@ -235,7 +238,9 @@ export default function VideoOverlay({
     } catch (error) {
       console.error('Error toggling video:', error);
       // Revert state to match reality
-      videoTrack.enabled = wasEnabled;
+      if (videoTrack) {
+        videoTrack.enabled = wasEnabled;
+      }
       setIsVideoOff(!wasEnabled);
       toast({
         title: "Camera Error",
@@ -295,12 +300,16 @@ export default function VideoOverlay({
 
   const togglePictureInPicture = async () => {
     if (isPiPActive) {
-      if (pipUpdateIntervalRef.current) {
-        clearInterval(pipUpdateIntervalRef.current);
-        pipUpdateIntervalRef.current = null;
-      }
-      if (pipDocumentRef.current && !pipDocumentRef.current.closed) {
-        pipDocumentRef.current.close();
+      try {
+        if (pipUpdateIntervalRef.current) {
+          clearInterval(pipUpdateIntervalRef.current);
+          pipUpdateIntervalRef.current = null;
+        }
+        if (pipDocumentRef.current && !pipDocumentRef.current.closed) {
+          pipDocumentRef.current.close();
+        }
+      } catch (error) {
+        console.warn('Error closing PiP window:', error);
       }
       setIsPiPActive(false);
       return;
@@ -337,18 +346,29 @@ export default function VideoOverlay({
       ].slice(0, 5); // Support up to 5 participants
 
       const participantCount = allParticipants.length;
-      const videoWidth = 140; // Increased for better visibility
-      const gap = 10; // Increased gap
-      const padding = 16; // Increased padding
-      const controlsWidth = 160; // Increased to ensure buttons are always visible
-      const windowWidth = Math.max(450, (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth);
-      const windowHeight = Math.max(135, 110 + 16); // Ensure minimum height for controls
+      const videoWidth = 120; // Compact size for better space efficiency
+      const gap = 8;
+      const padding = 12;
+      const controlsWidth = 140;
+      const windowWidth = Math.min(600, Math.max(400, (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth));
+      const windowHeight = 120; // Fixed compact height
 
-      // Create the PiP window
-      const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
-        width: windowWidth,
-        height: windowHeight,
-      });
+      // Create the PiP window with error handling
+      let pipWindow: Window;
+      try {
+        pipWindow = await (window as any).documentPictureInPicture.requestWindow({
+          width: windowWidth,
+          height: windowHeight,
+        });
+      } catch (error: any) {
+        console.error('Failed to create PiP window:', error);
+        toast({
+          title: "PiP Error",
+          description: error.message || "Could not open Picture-in-Picture window. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       pipDocumentRef.current = pipWindow;
       
@@ -395,9 +415,9 @@ export default function VideoOverlay({
               }
               .video-item {
                 position: relative;
-                width: 140px;
-                height: 105px;
-                border-radius: 8px;
+                width: 120px;
+                height: 90px;
+                border-radius: 6px;
                 overflow: hidden;
                 background: #000;
                 border: 2px solid rgba(59, 130, 246, 0.3);
@@ -545,30 +565,32 @@ export default function VideoOverlay({
 
       // Add videos to the PiP window
       const videosContainer = pipWindow.document.getElementById('videos');
-      allParticipants.forEach((participant) => {
-        const videoItem = pipWindow.document.createElement('div');
-        videoItem.className = 'video-item';
-        videoItem.innerHTML = `
-          <div class="name-badge">${participant.username}</div>
-          ${participant.isMuted ? '<div class="mute-badge">🔇</div>' : ''}
-        `;
+      if (videosContainer) {
+        allParticipants.forEach((participant) => {
+          const videoItem = pipWindow.document.createElement('div');
+          videoItem.className = 'video-item';
+          videoItem.innerHTML = `
+            <div class="name-badge">${participant.username}</div>
+            ${participant.isMuted ? '<div class="mute-badge">🔇</div>' : ''}
+          `;
 
-        if (participant.isVideoOff) {
-          const placeholder = pipWindow.document.createElement('div');
-          placeholder.className = 'placeholder';
-          placeholder.innerHTML = `<div class="avatar">${participant.username.charAt(0).toUpperCase()}</div>`;
-          videoItem.insertBefore(placeholder, videoItem.firstChild);
-        } else {
-          const video = pipWindow.document.createElement('video');
-          video.autoplay = true;
-          video.playsInline = true;
-          video.muted = participant.isLocal;
-          video.srcObject = participant.stream;
-          videoItem.insertBefore(video, videoItem.firstChild);
-        }
+          if (participant.isVideoOff) {
+            const placeholder = pipWindow.document.createElement('div');
+            placeholder.className = 'placeholder';
+            placeholder.innerHTML = `<div class="avatar">${participant.username.charAt(0).toUpperCase()}</div>`;
+            videoItem.insertBefore(placeholder, videoItem.firstChild);
+          } else {
+            const video = pipWindow.document.createElement('video');
+            video.autoplay = true;
+            video.playsInline = true;
+            video.muted = participant.isLocal;
+            video.srcObject = participant.stream;
+            videoItem.insertBefore(video, videoItem.firstChild);
+          }
 
-        videosContainer.appendChild(videoItem);
-      });
+          videosContainer.appendChild(videoItem);
+        });
+      }
 
       // Track state within PiP window
       let pipAudioMuted = isAudioMuted;
@@ -577,42 +599,51 @@ export default function VideoOverlay({
       // Add event listeners for controls
       const btnAudio = pipWindow.document.getElementById('btnAudio');
       const btnVideo = pipWindow.document.getElementById('btnVideo');
+      const btnClose = pipWindow.document.getElementById('btnClose');
       
-      btnAudio.addEventListener('click', () => {
-        toggleAudio();
-        pipAudioMuted = !pipAudioMuted;
-        
-        // Update button appearance
-        if (pipAudioMuted) {
-          btnAudio.classList.add('muted');
-          btnAudio.title = 'Click to Unmute';
-          btnAudio.querySelector('.icon-wrapper').innerHTML = '🎤<div class="slash"></div>';
-        } else {
-          btnAudio.classList.remove('muted');
-          btnAudio.title = 'Click to Mute';
-          btnAudio.querySelector('.icon-wrapper').innerHTML = '🎤';
-        }
-      });
+      if (btnAudio) {
+        btnAudio.addEventListener('click', () => {
+          toggleAudio();
+          pipAudioMuted = !pipAudioMuted;
+          
+          // Update button appearance
+          const iconWrapper = btnAudio.querySelector('.icon-wrapper');
+          if (pipAudioMuted) {
+            btnAudio.classList.add('muted');
+            btnAudio.title = 'Click to Unmute';
+            if (iconWrapper) iconWrapper.innerHTML = '🎤<div class="slash"></div>';
+          } else {
+            btnAudio.classList.remove('muted');
+            btnAudio.title = 'Click to Mute';
+            if (iconWrapper) iconWrapper.innerHTML = '🎤';
+          }
+        });
+      }
 
-      btnVideo.addEventListener('click', () => {
-        toggleVideo();
-        pipVideoOff = !pipVideoOff;
-        
-        // Update button appearance
-        if (pipVideoOff) {
-          btnVideo.classList.add('off');
-          btnVideo.title = 'Click to turn on camera';
-          btnVideo.querySelector('.icon-wrapper').innerHTML = '📹<div class="slash"></div>';
-        } else {
-          btnVideo.classList.remove('off');
-          btnVideo.title = 'Click to turn off camera';
-          btnVideo.querySelector('.icon-wrapper').innerHTML = '📹';
-        }
-      });
+      if (btnVideo) {
+        btnVideo.addEventListener('click', () => {
+          toggleVideo();
+          pipVideoOff = !pipVideoOff;
+          
+          // Update button appearance
+          const iconWrapper = btnVideo.querySelector('.icon-wrapper');
+          if (pipVideoOff) {
+            btnVideo.classList.add('off');
+            btnVideo.title = 'Click to turn on camera';
+            if (iconWrapper) iconWrapper.innerHTML = '📹<div class="slash"></div>';
+          } else {
+            btnVideo.classList.remove('off');
+            btnVideo.title = 'Click to turn off camera';
+            if (iconWrapper) iconWrapper.innerHTML = '📹';
+          }
+        });
+      }
 
-      pipWindow.document.getElementById('btnClose').addEventListener('click', () => {
-        pipWindow.close();
-      });
+      if (btnClose) {
+        btnClose.addEventListener('click', () => {
+          pipWindow.close();
+        });
+      }
 
       pipWindow.addEventListener('pagehide', () => {
         setIsPiPActive(false);
@@ -642,7 +673,7 @@ export default function VideoOverlay({
         <Draggable handle=".drag-handle" bounds="parent">
           <div
             className="fixed bottom-4 right-4 z-50"
-            style={{ width: isCollapsed ? "64px" : "360px" }}
+            style={{ width: isCollapsed ? "64px" : "320px" }}
             data-testid="overlay-window"
           >
             <div className="bg-card dark:bg-card border border-border dark:border-border rounded-xl shadow-2xl overflow-hidden">
@@ -673,8 +704,8 @@ export default function VideoOverlay({
             {/* Content */}
             {!isCollapsed && (
               <div className="p-3">
-                {/* Video Grid - Pyramid Layout: 3 bottom, 2 top */}
-                <div className="mb-3">
+                {/* Video Grid - Compact Symmetrical Layout */}
+                <div className="mb-3 max-h-[280px] overflow-y-auto">
                   {(() => {
                     const allParticipants = [
                       { 
@@ -699,51 +730,32 @@ export default function VideoOverlay({
                       }))
                     ];
 
-                    // Calculate layout: First 2 on top row, remaining 3 on bottom
-                    const topRow = allParticipants.slice(0, 2);
-                    const bottomRow = allParticipants.slice(2, 5);
+                    const participantCount = allParticipants.length;
+                    
+                    // Determine grid layout based on participant count
+                    const getGridClass = () => {
+                      if (participantCount === 1) return 'grid-cols-1';
+                      if (participantCount === 2) return 'grid-cols-2';
+                      if (participantCount <= 4) return 'grid-cols-2';
+                      return 'grid-cols-2'; // For 5 participants, use 2 columns
+                    };
                     
                     return (
-                      <div className="space-y-2">
-                        {/* Top Row - 2 participants */}
-                        {topRow.length > 0 && (
-                          <div className={`grid gap-2 ${topRow.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                            {topRow.map((participant, idx) => (
-                              <div key={`top-${idx}`} className="w-full">
-                                <VideoThumbnail
-                                  username={participant.username}
-                                  isLocal={participant.isLocal}
-                                  isMuted={participant.isMuted}
-                                  isVideoOff={participant.isVideoOff}
-                                  videoRef={participant.videoRef}
-                                  stream={participant.stream || undefined}
-                                  userId={participant.userId}
-                                  onFriendRequest={handleFriendRequest}
-                                />
-                              </div>
-                            ))}
+                      <div className={`grid gap-1.5 ${getGridClass()}`}>
+                        {allParticipants.map((participant, idx) => (
+                          <div key={`participant-${idx}`} className="w-full h-[80px]">
+                            <VideoThumbnail
+                              username={participant.username}
+                              isLocal={participant.isLocal}
+                              isMuted={participant.isMuted}
+                              isVideoOff={participant.isVideoOff}
+                              videoRef={participant.videoRef}
+                              stream={participant.stream || undefined}
+                              userId={participant.userId}
+                              onFriendRequest={handleFriendRequest}
+                            />
                           </div>
-                        )}
-                        
-                        {/* Bottom Row - Up to 3 participants */}
-                        {bottomRow.length > 0 && (
-                          <div className={`grid gap-2 ${bottomRow.length === 1 ? 'grid-cols-1' : bottomRow.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                            {bottomRow.map((participant, idx) => (
-                              <div key={`bottom-${idx}`} className="w-full">
-                                <VideoThumbnail
-                                  username={participant.username}
-                                  isLocal={participant.isLocal}
-                                  isMuted={participant.isMuted}
-                                  isVideoOff={participant.isVideoOff}
-                                  videoRef={participant.videoRef}
-                                  stream={participant.stream || undefined}
-                                  userId={participant.userId}
-                                  onFriendRequest={handleFriendRequest}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        ))}
                       </div>
                     );
                   })()}

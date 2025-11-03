@@ -266,7 +266,7 @@ export default function UnifiedLobby({
           <Button
             onClick={onJoinRandom}
             variant="outline"
-            className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700 px-6"
+            className="px-6 hover:bg-accent hover:text-accent-foreground"
             data-testid="button-random-join"
           >
             <Shuffle className="w-4 h-4 mr-2" />
@@ -275,7 +275,8 @@ export default function UnifiedLobby({
 
           <Button
             onClick={() => setShowCreateRoom(true)}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-8"
+            variant="default"
+            className="px-8 bg-primary text-primary-foreground hover:bg-primary/90"
             data-testid="button-create"
           >
             CREATE
@@ -372,8 +373,9 @@ export default function UnifiedLobby({
               Cancel
             </Button>
             <Button 
-              onClick={handleCreateRoom} 
-              className="bg-yellow-500 hover:bg-yellow-600 text-black"
+              onClick={handleCreateRoom}
+              variant="default"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
               data-testid="button-submit-create"
             >
               Create Room
@@ -409,7 +411,8 @@ export default function UnifiedLobby({
               />
               <Button 
                 onClick={handleSearchRoom}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                variant="default"
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
                 data-testid="button-submit-search"
               >
                 <Search className="w-4 h-4 mr-2" />
@@ -506,7 +509,8 @@ export default function UnifiedLobby({
             </Button>
             <Button 
               onClick={handleJoinSelectedRoom}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              variant="default"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
               data-testid="button-submit-join"
             >
               Join Room
