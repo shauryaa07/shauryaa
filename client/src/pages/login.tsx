@@ -58,6 +58,38 @@ export default function LoginPage() {
     }
   }
 
+  async function handleTestAccount() {
+    setIsLoading(true);
+    try {
+      const response = await apiRequest("POST", "/api/auth/test-account", {});
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Test account login failed");
+      }
+
+      // Use AuthProvider's login method to update the auth context
+      login(result.user);
+
+      toast({
+        title: "Test Account Login",
+        description: "Welcome! You're using a test account.",
+      });
+
+      // Redirect to the app
+      setLocation("/app");
+    } catch (error) {
+      toast({
+        title: "Test account failed",
+        description: error instanceof Error ? error.message : "Failed to login with test account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md" data-testid="card-login">
@@ -122,6 +154,26 @@ export default function LoginPage() {
                 ) : (
                   "Log in"
                 )}
+              </Button>
+
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border"></span>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card dark:bg-card px-2 text-muted-foreground">Or</span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={isLoading}
+                onClick={handleTestAccount}
+                data-testid="button-test-account"
+              >
+                Continue with Test Account
               </Button>
 
               <div className="text-center text-sm text-muted-foreground">

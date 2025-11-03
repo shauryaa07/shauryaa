@@ -37,7 +37,7 @@ export default function UsernameEntry({ onSubmit }: UsernameEntryProps) {
               <div className="bg-primary/10 p-2 rounded-lg">
                 <Video className="w-6 h-6 text-primary" />
               </div>
-              <span className="font-semibold text-foreground dark:text-foreground text-lg">StudyConnect</span>
+              <span className="font-semibold text-foreground dark:text-foreground text-lg">Hey Buddy</span>
             </button>
           </Link>
           

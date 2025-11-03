@@ -24,7 +24,7 @@ export default function MessagesPage() {
   const [wsConnected, setWsConnected] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("studyconnect_user");
+    const userStr = localStorage.getItem("currentUser");
     if (userStr) {
       const user = JSON.parse(userStr);
       setCurrentUser(user);

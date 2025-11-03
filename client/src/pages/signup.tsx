@@ -43,7 +43,7 @@ export default function SignupPage() {
 
       toast({
         title: "Account created successfully!",
-        description: "Welcome to StudyConnect",
+        description: "Welcome to Hey Buddy",
       });
 
       // Redirect to the app

@@ -45,7 +45,7 @@ export default function AppNav({ currentUser }: AppNavProps) {
               <Video className="w-5 h-5 text-primary" />
             </div>
             <span className="font-semibold text-foreground dark:text-foreground">
-              StudyConnect
+              Hey Buddy
             </span>
           </div>
 

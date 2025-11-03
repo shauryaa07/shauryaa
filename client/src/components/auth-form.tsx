@@ -100,16 +100,11 @@ export function AuthForm({ onAuthSuccess }: AuthFormProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-background dark:bg-background p-4">
+      <Card className="w-full max-w-md shadow-2xl bg-card dark:bg-card border-border dark:border-border">
         <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-              <span className="text-3xl font-bold text-white">SC</span>
-            </div>
-          </div>
-          <CardTitle className="text-2xl text-center font-bold">StudyConnect</CardTitle>
-          <CardDescription className="text-center">
+          <CardTitle className="text-2xl text-center font-bold text-foreground dark:text-foreground">Hey Buddy</CardTitle>
+          <CardDescription className="text-center text-muted-foreground dark:text-muted-foreground">
             Connect with study partners in real-time
           </CardDescription>
         </CardHeader>

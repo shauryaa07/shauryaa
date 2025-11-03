@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import AppNav from "@/components/app-nav";
 export default function ProfilePage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Get user from localStorage (since we're using username-based auth)
   const [currentUser, setCurrentUser] = useState<{ id: string; username: string } | null>(null);
@@ -23,7 +24,7 @@ export default function ProfilePage() {
   const [photoUrl, setPhotoUrl] = useState("");
 
   useEffect(() => {
-    const userStr = localStorage.getItem("studyconnect_user");
+    const userStr = localStorage.getItem("currentUser");
     if (userStr) {
       const user = JSON.parse(userStr);
       setCurrentUser(user);
@@ -111,6 +112,26 @@ export default function ProfilePage() {
     setIsEditing(false);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File",
+          description: "Please select an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 dark:from-background dark:to-muted/5 flex items-center justify-center px-4">
@@ -162,15 +183,24 @@ export default function ProfilePage() {
                   
                   {isEditing && (
                     <div className="w-full max-w-md">
-                      <label className="text-sm font-medium text-foreground dark:text-foreground mb-2 block">
-                        Photo URL
-                      </label>
-                      <Input
-                        placeholder="Enter photo URL"
-                        value={photoUrl}
-                        onChange={(e) => setPhotoUrl(e.target.value)}
-                        data-testid="input-photo-url"
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        data-testid="input-photo-file"
                       />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full"
+                        data-testid="button-upload-photo"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        Choose Photo from Gallery
+                      </Button>
                     </div>
                   )}
                 </div>

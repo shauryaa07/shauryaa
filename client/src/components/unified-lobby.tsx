@@ -173,28 +173,28 @@ export default function UnifiedLobby({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
+    <div className="min-h-screen bg-background dark:bg-background flex flex-col">
       <AppNav currentUser={{ id: user.id, username: user.username }} />
-      <div className="flex flex-col p-6 mt-16">
-        <div className="flex-1 flex flex-col">
-        <div className="bg-slate-800/50 rounded-lg border border-slate-700 flex-1 mb-4 overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-slate-700">
-            <h2 className="text-lg font-semibold text-white">Available Rooms</h2>
-            <p className="text-sm text-gray-400 mt-1">Click on a room to join and start studying with others</p>
+      <div className="flex flex-col p-6 mt-16 flex-1">
+        <div className="flex flex-col flex-1">
+        <div className="bg-card dark:bg-card rounded-lg border border-border dark:border-border flex-1 mb-4 overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-border dark:border-border">
+            <h2 className="text-lg font-semibold text-foreground dark:text-foreground">Available Rooms</h2>
+            <p className="text-sm text-muted-foreground dark:text-muted-foreground mt-1">Click on a room to join and start studying with others</p>
           </div>
 
           <div className="flex-1 overflow-y-auto">
             {allRooms && allRooms.length > 0 ? (
-              <div className="divide-y divide-slate-700">
+              <div className="divide-y divide-border dark:divide-border">
                 {allRooms.map((room) => (
                   <button
                     key={room.id}
                     onClick={() => handleRoomClick(room)}
-                    className="w-full p-4 hover:bg-slate-700/30 transition-colors flex items-center justify-between group cursor-pointer text-left"
+                    className="w-full p-4 hover:bg-muted/50 dark:hover:bg-muted/20 transition-colors flex items-center justify-between group cursor-pointer text-left"
                     data-testid={`row-room-${room.id}`}
                   >
                     <div className="flex items-center gap-4 flex-1">
-                      <div className="w-16 h-16 bg-slate-700 rounded overflow-hidden">
+                      <div className="w-16 h-16 bg-muted dark:bg-muted rounded overflow-hidden">
                         <div className="w-full h-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
                           {room.type === "public" ? (
                             <Globe className="w-6 h-6 text-blue-400" />
@@ -204,16 +204,16 @@ export default function UnifiedLobby({
                         </div>
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-white font-medium font-mono text-lg" data-testid={`text-room-name-${room.id}`}>
+                        <h3 className="text-foreground dark:text-foreground font-medium font-mono text-lg" data-testid={`text-room-name-${room.id}`}>
                           {room.name}
                         </h3>
-                        <p className="text-sm text-gray-400">{room.type === "public" ? "Public Room" : "Private Room"}</p>
+                        <p className="text-sm text-muted-foreground dark:text-muted-foreground">{room.type === "public" ? "Public Room" : "Private Room"}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-6">
                       <div className="text-right">
-                        <div className="text-sm text-gray-400 flex items-center gap-1">
+                        <div className="text-sm text-muted-foreground dark:text-muted-foreground flex items-center gap-1">
                           {room.type === "public" ? (
                             <>
                               <Globe className="w-3 h-3" />
@@ -226,13 +226,13 @@ export default function UnifiedLobby({
                             </>
                           )}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-muted-foreground/70 dark:text-muted-foreground/70">
                           {room.type === "public" ? "Click to Join" : "Password Required"}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 min-w-[100px] justify-end">
-                        <Users className="w-4 h-4 text-gray-400" />
-                        <span className="text-white font-medium" data-testid={`text-occupancy-${room.id}`}>
+                        <Users className="w-4 h-4 text-muted-foreground dark:text-muted-foreground" />
+                        <span className="text-foreground dark:text-foreground font-medium" data-testid={`text-occupancy-${room.id}`}>
                           {room.currentOccupancy} / {room.maxOccupancy}
                         </span>
                       </div>
@@ -243,8 +243,8 @@ export default function UnifiedLobby({
             ) : (
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
-                  <p className="text-gray-400 mb-4">No rooms available</p>
-                  <p className="text-sm text-gray-500">Create a new room to get started</p>
+                  <p className="text-muted-foreground dark:text-muted-foreground mb-4">No rooms available</p>
+                  <p className="text-sm text-muted-foreground/70 dark:text-muted-foreground/70">Create a new room to get started</p>
                 </div>
               </div>
             )}
@@ -252,11 +252,11 @@ export default function UnifiedLobby({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex-1 flex items-center gap-2 bg-slate-800/50 rounded-lg border border-slate-700 px-4 py-2">
-            <Search className="w-5 h-5 text-gray-400" />
+          <div className="flex-1 flex items-center gap-2 bg-card dark:bg-card rounded-lg border border-border dark:border-border px-4 py-2">
+            <Search className="w-5 h-5 text-muted-foreground dark:text-muted-foreground" />
             <button
               onClick={() => setShowSearchRoom(true)}
-              className="flex-1 text-left text-gray-400 hover:text-gray-300 transition-colors py-1"
+              className="flex-1 text-left text-muted-foreground dark:text-muted-foreground hover:text-foreground dark:hover:text-foreground transition-colors py-1"
               data-testid="button-search-room"
             >
               Search for rooms by ID
@@ -285,33 +285,33 @@ export default function UnifiedLobby({
       </div>
 
       <Dialog open={showCreateRoom} onOpenChange={setShowCreateRoom}>
-        <DialogContent data-testid="dialog-create-room" className="bg-slate-800 border-slate-700">
+        <DialogContent data-testid="dialog-create-room" className="bg-card dark:bg-card border-border dark:border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Create New Room</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-foreground dark:text-foreground">Create New Room</DialogTitle>
+            <DialogDescription className="text-muted-foreground dark:text-muted-foreground">
               Set up your study room. Public rooms can be joined by anyone with the password.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label className="text-gray-300">Room Type</Label>
+              <Label className="text-foreground dark:text-foreground">Room Type</Label>
               <RadioGroup value={roomType} onValueChange={(value) => setRoomType(value as "public" | "private")} className="flex gap-4 mt-2">
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="public" id="public" data-testid="radio-public" />
-                  <Label htmlFor="public" className="text-gray-300 cursor-pointer flex items-center gap-1">
+                  <Label htmlFor="public" className="text-foreground dark:text-foreground cursor-pointer flex items-center gap-1">
                     <Globe className="w-4 h-4" />
                     Public
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="private" id="private" data-testid="radio-private" />
-                  <Label htmlFor="private" className="text-gray-300 cursor-pointer flex items-center gap-1">
+                  <Label htmlFor="private" className="text-foreground dark:text-foreground cursor-pointer flex items-center gap-1">
                     <Lock className="w-4 h-4" />
                     Private
                   </Label>
                 </div>
               </RadioGroup>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-2">
                 {roomType === "public" 
                   ? "Anyone can find and join this room with the password" 
                   : "Only people you share the room ID with can join"}
@@ -319,13 +319,13 @@ export default function UnifiedLobby({
             </div>
 
             <div>
-              <Label htmlFor="room-id" className="text-gray-300">Room ID</Label>
+              <Label htmlFor="room-id" className="text-foreground dark:text-foreground">Room ID</Label>
               <div className="flex gap-2">
                 <Input
                   id="room-id"
                   value={generatedRoomId}
                   readOnly
-                  className="bg-slate-700 border-slate-600 text-white font-mono text-lg"
+                  className="bg-muted dark:bg-muted border-border dark:border-border text-foreground dark:text-foreground font-mono text-lg"
                   data-testid="input-room-id"
                 />
                 <Button
@@ -333,30 +333,30 @@ export default function UnifiedLobby({
                   onClick={handleCopyRoomId}
                   variant="outline"
                   size="icon"
-                  className="bg-slate-700 border-slate-600 hover:bg-slate-600"
+                  className="bg-muted dark:bg-muted border-border dark:border-border hover:bg-muted/80 dark:hover:bg-muted/80"
                   data-testid="button-copy-room-id"
                 >
                   {roomIdCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1">
                 Share this Room ID with others to let them join
               </p>
             </div>
 
             {roomType === "private" && (
               <div>
-                <Label htmlFor="room-password" className="text-gray-300">Room Password</Label>
+                <Label htmlFor="room-password" className="text-foreground dark:text-foreground">Room Password</Label>
                 <Input
                   id="room-password"
                   type="password"
                   placeholder="Set a password..."
                   value={roomPassword}
                   onChange={(e) => setRoomPassword(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white"
+                  className="bg-muted dark:bg-muted border-border dark:border-border text-foreground dark:text-foreground"
                   data-testid="input-room-password"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1">
                   Share this password with people you want to invite
                 </p>
               </div>
@@ -366,7 +366,7 @@ export default function UnifiedLobby({
             <Button 
               variant="outline" 
               onClick={() => setShowCreateRoom(false)} 
-              className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+              className="bg-muted dark:bg-muted border-border dark:border-border text-foreground dark:text-foreground hover:bg-muted/80 dark:hover:bg-muted/80"
               data-testid="button-cancel-create"
             >
               Cancel
@@ -389,10 +389,10 @@ export default function UnifiedLobby({
           setSearchResults([]);
         }
       }}>
-        <DialogContent data-testid="dialog-search-room" className="bg-slate-800 border-slate-700 max-w-2xl">
+        <DialogContent data-testid="dialog-search-room" className="bg-card dark:bg-card border-border dark:border-border max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-white">Search Rooms</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-foreground dark:text-foreground">Search Rooms</DialogTitle>
+            <DialogDescription className="text-muted-foreground dark:text-muted-foreground">
               Enter a room ID to find and join a specific room.
             </DialogDescription>
           </DialogHeader>
@@ -404,7 +404,7 @@ export default function UnifiedLobby({
                 value={searchRoomId}
                 onChange={(e) => setSearchRoomId(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === "Enter" && handleSearchRoom()}
-                className="bg-slate-700 border-slate-600 text-white flex-1 font-mono"
+                className="bg-muted dark:bg-muted border-border dark:border-border text-foreground dark:text-foreground flex-1 font-mono"
                 data-testid="input-search-room-id"
               />
               <Button 
@@ -419,7 +419,7 @@ export default function UnifiedLobby({
 
             {searchResults.length > 0 && (
               <div className="max-h-[300px] overflow-y-auto space-y-2">
-                <p className="text-sm text-gray-400">{searchResults.length} room(s) found</p>
+                <p className="text-sm text-muted-foreground dark:text-muted-foreground">{searchResults.length} room(s) found</p>
                 {searchResults.map((room) => (
                   <button
                     key={room.id}
@@ -432,7 +432,7 @@ export default function UnifiedLobby({
                         setShowJoinRoomDialog(true);
                       }
                     }}
-                    className="w-full p-3 bg-slate-700/50 hover:bg-slate-700 rounded border border-slate-600 text-left transition-colors"
+                    className="w-full p-3 bg-muted/50 dark:bg-muted/50 hover:bg-muted dark:hover:bg-muted rounded border border-border dark:border-border text-left transition-colors"
                     data-testid={`search-result-${room.id}`}
                   >
                     <div className="flex items-center justify-between">
@@ -443,15 +443,15 @@ export default function UnifiedLobby({
                           <Lock className="w-5 h-5 text-purple-400" />
                         )}
                         <div>
-                          <h3 className="text-white font-medium font-mono text-lg">{room.name}</h3>
-                          <p className="text-sm text-gray-400">
+                          <h3 className="text-foreground dark:text-foreground font-medium font-mono text-lg">{room.name}</h3>
+                          <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                             Room ID: {room.name}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-gray-400" />
-                        <span className="text-white">{room.currentOccupancy}/{room.maxOccupancy}</span>
+                        <Users className="w-4 h-4 text-muted-foreground dark:text-muted-foreground" />
+                        <span className="text-foreground dark:text-foreground">{room.currentOccupancy}/{room.maxOccupancy}</span>
                       </div>
                     </div>
                   </button>
@@ -469,16 +469,16 @@ export default function UnifiedLobby({
           setSelectedRoomForJoin(null);
         }
       }}>
-        <DialogContent data-testid="dialog-join-room" className="bg-slate-800 border-slate-700">
+        <DialogContent data-testid="dialog-join-room" className="bg-card dark:bg-card border-border dark:border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Join Room: {selectedRoomForJoin?.name}</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogTitle className="text-foreground dark:text-foreground">Join Room: {selectedRoomForJoin?.name}</DialogTitle>
+            <DialogDescription className="text-muted-foreground dark:text-muted-foreground">
               Enter the password to join this {selectedRoomForJoin?.type} room.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="join-password" className="text-gray-300">Password</Label>
+              <Label htmlFor="join-password" className="text-foreground dark:text-foreground">Password</Label>
               <Input
                 id="join-password"
                 type="password"
@@ -486,7 +486,7 @@ export default function UnifiedLobby({
                 value={joinPassword}
                 onChange={(e) => setJoinPassword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleJoinSelectedRoom()}
-                className="bg-slate-700 border-slate-600 text-white"
+                className="bg-muted dark:bg-muted border-border dark:border-border text-foreground dark:text-foreground"
                 data-testid="input-join-password"
               />
             </div>
@@ -499,7 +499,7 @@ export default function UnifiedLobby({
                 setJoinPassword("");
                 setSelectedRoomForJoin(null);
               }} 
-              className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
+              className="bg-muted dark:bg-muted border-border dark:border-border text-foreground dark:text-foreground hover:bg-muted/80 dark:hover:bg-muted/80"
               data-testid="button-cancel-join"
             >
               Cancel

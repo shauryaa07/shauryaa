@@ -18,7 +18,7 @@ export default function FriendsPage() {
   const [currentUser, setCurrentUser] = useState<{ id: string; username: string } | null>(null);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("studyconnect_user");
+    const userStr = localStorage.getItem("currentUser");
     if (userStr) {
       const user = JSON.parse(userStr);
       setCurrentUser(user);

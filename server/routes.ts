@@ -149,6 +149,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/auth/test-account", async (req, res) => {
+    try {
+      const testUsername = "TestUser";
+      const testEmail = "test@heybuddy.app";
+      const testPassword = "test123";
+      
+      // Try to get existing test user
+      let user = await storage.getUserByEmail(testEmail);
+      
+      // If test user doesn't exist, create it
+      if (!user) {
+        const hashedPassword = await bcrypt.hash(testPassword, 8);
+        user = await storage.createUser({
+          username: testUsername,
+          email: testEmail,
+          password: hashedPassword,
+        });
+      }
+      
+      // Return user without password
+      res.json({ 
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+        },
+        message: "Test account login successful"
+      });
+    } catch (error) {
+      console.error("Error with test account:", error);
+      res.status(500).json({ error: "Failed to login with test account" });
+    }
+  });
+
   app.post("/api/users/upsert", async (req, res) => {
     try {
       const { username, email } = req.body;

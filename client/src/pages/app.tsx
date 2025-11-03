@@ -200,7 +200,7 @@ export default function App() {
     try {
       const response = await apiRequest("POST", "/api/users/upsert", {
         username,
-        email: `${username}@studyconnect.local`, // Generate a local email for username-only users
+        email: `${username}@heybuddy.local`, // Generate a local email for username-only users
       });
       
       const userData = await response.json();
@@ -212,7 +212,7 @@ export default function App() {
       };
       
       setUser(newUser);
-      localStorage.setItem("studyconnect_user", JSON.stringify(newUser));
+      localStorage.setItem("currentUser", JSON.stringify(newUser));
       setAppState("lobby");
     } catch (error) {
       console.error("Error creating user:", error);

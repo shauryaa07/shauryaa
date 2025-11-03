@@ -16,7 +16,7 @@ export default function LandingPage() {
                   <div className="bg-primary/10 p-2 rounded-lg">
                     <Video className="w-6 h-6 text-primary" />
                   </div>
-                  <span className="text-sm font-medium text-primary">StudyConnect</span>
+                  <span className="text-sm font-medium text-primary">Hey Buddy</span>
                 </div>
               </div>
               
@@ -93,7 +93,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-foreground dark:text-foreground mb-4">
-              Why StudyConnect?
+              Why Hey Buddy?
             </h2>
             <p className="text-lg text-muted-foreground dark:text-muted-foreground max-w-2xl mx-auto">
               Built for students who want to learn together without disrupting their online classes
@@ -249,7 +249,7 @@ export default function LandingPage() {
                 <div className="bg-primary/10 p-2 rounded-lg">
                   <Video className="w-5 h-5 text-primary" />
                 </div>
-                <span className="font-semibold text-foreground dark:text-foreground">StudyConnect</span>
+                <span className="font-semibold text-foreground dark:text-foreground">Hey Buddy</span>
               </div>
               <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                 Connect with study partners during live online classes
@@ -275,7 +275,7 @@ export default function LandingPage() {
           
           <div className="pt-8 border-t border-border dark:border-border text-center">
             <p className="text-xs text-muted-foreground dark:text-muted-foreground">
-              © 2025 StudyConnect. All rights reserved. Made with ❤️ for students.
+              © 2025 Hey Buddy. All rights reserved. Made with ❤️ for students.
             </p>
           </div>
         </div>
