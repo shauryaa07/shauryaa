@@ -620,6 +620,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'register-messaging':
             handleMessagingRegistration(ws, message);
             break;
+          case 'participant-state':
+            handleParticipantState(ws, message);
+            break;
           default:
             console.log('Unknown message type:', message.type);
         }
@@ -924,27 +927,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       storage.removeSession(ws.userId);
     }
 
-    // Decrement occupancy for the lobby room if user was in one
-    if (ws.lobbyRoomId) {
-      const storedRoom = await storage.getRoom(ws.lobbyRoomId);
-      if (storedRoom) {
-        const newOccupancy = Math.max(0, storedRoom.currentOccupancy - 1);
-        storage.updateRoomOccupancy(ws.lobbyRoomId, newOccupancy);
-        console.log(`Decremented occupancy for lobby room ${ws.lobbyRoomId} to ${newOccupancy}`);
-        
-        // Delete room if empty
-        if (newOccupancy === 0) {
-          storage.deleteRoom(ws.lobbyRoomId);
-          console.log(`Deleted empty room ${ws.lobbyRoomId}`);
-        }
-      }
-    }
-
-    // Remove from WebRTC room and notify others
+    // Remove from WebRTC room first and get the actual room size
+    let actualRoomSize = 0;
     if (ws.roomId) {
       const room = rooms.get(ws.roomId);
       if (room) {
         room.delete(ws);
+        actualRoomSize = room.size;
 
         // Notify remaining users
         room.forEach(user => {
@@ -958,9 +947,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // Clean up empty WebRTC rooms
-        if (room.size === 0) {
+        if (actualRoomSize === 0) {
           rooms.delete(ws.roomId);
-          console.log(`WebRTC room ${ws.roomId} deleted`);
+          console.log(`WebRTC room ${ws.roomId} deleted (no participants remaining)`);
+        } else {
+          console.log(`WebRTC room ${ws.roomId} still has ${actualRoomSize} participant(s)`);
+        }
+      }
+    }
+
+    // Update lobby room occupancy based on actual WebRTC room size
+    if (ws.lobbyRoomId) {
+      const storedRoom = await storage.getRoom(ws.lobbyRoomId);
+      if (storedRoom) {
+        // Persist the actual room size to storage
+        await storage.updateRoomOccupancy(ws.lobbyRoomId, actualRoomSize);
+        console.log(`Updated lobby room ${ws.lobbyRoomId} occupancy to ${actualRoomSize}`);
+        
+        // Only delete room if both the WebRTC room is empty AND no one is waiting
+        const hasWaitingUsers = Array.from(waitingUsers.values()).some(
+          waitingUser => waitingUser.lobbyRoomId === ws.lobbyRoomId
+        );
+        
+        if (actualRoomSize === 0 && !hasWaitingUsers) {
+          await storage.deleteRoom(ws.lobbyRoomId);
+          console.log(`Deleted empty lobby room ${ws.lobbyRoomId} (no participants or waiting users)`);
+        } else if (actualRoomSize > 0) {
+          console.log(`Keeping lobby room ${ws.lobbyRoomId} - still has ${actualRoomSize} active participant(s)`);
+        } else if (hasWaitingUsers) {
+          console.log(`Keeping lobby room ${ws.lobbyRoomId} - has waiting users`);
         }
       }
     }
@@ -979,6 +994,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
       }));
     }
+  }
+
+  function handleParticipantState(ws: WSClient, message: any) {
+    const { isMuted, isVideoOff } = message;
+    
+    if (!ws.roomId) {
+      console.error('Participant state update from user not in a room');
+      return;
+    }
+
+    const room = rooms.get(ws.roomId);
+    if (!room) {
+      console.error('Room not found for participant state update');
+      return;
+    }
+
+    room.forEach(user => {
+      if (user.userId !== ws.userId && user.readyState === WebSocket.OPEN) {
+        user.send(JSON.stringify({
+          type: 'participant-state-update',
+          userId: ws.userId,
+          username: ws.username,
+          isMuted,
+          isVideoOff,
+        }));
+      }
+    });
+
+    console.log(`Broadcasted state update from ${ws.username}: muted=${isMuted}, videoOff=${isVideoOff}`);
   }
 
   function handleDirectMessage(ws: WSClient, message: any) {

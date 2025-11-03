@@ -189,6 +189,14 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
     setPeers((prev) => prev.filter((p) => p.id !== peerId));
   }, []);
 
+  const updatePeerState = useCallback((peerId: string, isMuted: boolean, isVideoOff: boolean) => {
+    setPeers((prev) => {
+      return prev.map((p) =>
+        p.id === peerId ? { ...p, isMuted, isVideoOff } : p
+      );
+    });
+  }, []);
+
   const cleanup = useCallback(() => {
     peersRef.current.forEach((peerConnection) => peerConnection.close());
     peersRef.current.clear();
@@ -207,6 +215,7 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
     createPeer,
     handleSignal,
     removePeer,
+    updatePeerState,
     cleanup,
   };
 }

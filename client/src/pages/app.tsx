@@ -38,6 +38,7 @@ export default function App() {
     connect,
     disconnect,
     sendSignal,
+    sendParticipantState,
   } = useWebSocket({
     user,
     roomId: selectedRoomId,
@@ -92,6 +93,10 @@ export default function App() {
         });
       }
     },
+    onParticipantStateUpdate: (update) => {
+      console.log("Participant state update:", update);
+      webRTC.updatePeerState?.(update.userId, update.isMuted, update.isVideoOff);
+    },
   });
 
   const webRTC = useWebRTC({
@@ -99,6 +104,27 @@ export default function App() {
     userId: user?.id || "",
     onSignal: sendSignal,
   });
+
+  useEffect(() => {
+    if (appState !== "connected" || !localStream || !user) return;
+
+    matchedPeers.forEach((peer) => {
+      const existingPeer = webRTC.peers.find(p => p.id === peer.userId);
+      
+      if (!existingPeer) {
+        console.log(`Creating peer connection for new user: ${peer.username} (${peer.userId})`);
+        webRTC.createPeer(peer.userId, peer.username, true);
+      }
+    });
+
+    const currentPeerIds = new Set(matchedPeers.map(p => p.userId));
+    webRTC.peers.forEach((peer) => {
+      if (!currentPeerIds.has(peer.id)) {
+        console.log(`Removing peer connection for left user: ${peer.id}`);
+        webRTC.removePeer(peer.id);
+      }
+    });
+  }, [matchedPeers, appState, localStream, user, webRTC]);
 
   useEffect(() => {
     // Check for authenticated user in localStorage
@@ -438,6 +464,7 @@ export default function App() {
           screenStream={screenStream}
           isRoomOwner={isRoomOwner}
           peers={webRTC.peers}
+          sendParticipantState={sendParticipantState}
         />
       )}
     </div>

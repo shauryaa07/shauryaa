@@ -27,6 +27,7 @@ interface VideoOverlayProps {
   screenStream?: MediaStream | null;
   isRoomOwner?: boolean;
   peers: PeerConnection[];
+  sendParticipantState?: (isMuted: boolean, isVideoOff: boolean) => void;
 }
 
 export default function VideoOverlay({
@@ -38,6 +39,7 @@ export default function VideoOverlay({
   screenStream,
   isRoomOwner = false,
   peers,
+  sendParticipantState,
 }: VideoOverlayProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -59,6 +61,8 @@ export default function VideoOverlay({
       videoRef.current.srcObject = localStream;
     }
   }, [localStream]);
+
+  const updatePiPContentRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!isPiPActive || !pipDocumentRef.current || pipDocumentRef.current.closed) {
@@ -123,7 +127,8 @@ export default function VideoOverlay({
       const gap = 8;
       const padding = 12;
       const controlsWidth = 140;
-      const windowWidth = Math.min(600, Math.max(400, (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth));
+      const availableWidth = Math.min(window.screen.availWidth * 0.6, 800);
+      const windowWidth = Math.min(availableWidth, Math.max(400, (participantCount * videoWidth) + ((participantCount - 1) * gap) + (padding * 2) + controlsWidth));
       const windowHeight = 120;
 
       try {
@@ -133,11 +138,30 @@ export default function VideoOverlay({
       }
     };
 
+    updatePiPContentRef.current = updatePiPContent;
+
     updatePiPContent();
+
+    const handleResize = () => {
+      updatePiPContent();
+    };
+
+    window.addEventListener('resize', handleResize);
+    if (pipDocumentRef.current) {
+      pipDocumentRef.current.addEventListener('resize', handleResize);
+    }
 
     pipUpdateIntervalRef.current = setInterval(updatePiPContent, 1000);
 
     return () => {
+      window.removeEventListener('resize', handleResize);
+      if (pipDocumentRef.current) {
+        try {
+          pipDocumentRef.current.removeEventListener('resize', handleResize);
+        } catch (e) {
+          console.log('Could not remove resize listener from PiP window:', e);
+        }
+      }
       if (pipUpdateIntervalRef.current) {
         clearInterval(pipUpdateIntervalRef.current);
         pipUpdateIntervalRef.current = null;
@@ -157,7 +181,9 @@ export default function VideoOverlay({
       const audioTrack = localStream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
-        setIsAudioMuted(!audioTrack.enabled);
+        const newMutedState = !audioTrack.enabled;
+        setIsAudioMuted(newMutedState);
+        sendParticipantState?.(newMutedState, isVideoOff);
       }
     }
   };
@@ -175,6 +201,7 @@ export default function VideoOverlay({
         // Turning video OFF - just disable the track
         videoTrack.enabled = false;
         setIsVideoOff(true);
+        sendParticipantState?.(isAudioMuted, true);
         console.log('Video disabled');
       } else {
         // Turning video ON
@@ -227,6 +254,7 @@ export default function VideoOverlay({
         }
         
         setIsVideoOff(false);
+        sendParticipantState?.(isAudioMuted, false);
         
         // Ensure the video element is playing to show the preview
         if (videoRef.current && localStream) {

@@ -10,6 +10,7 @@ interface UseWebSocketProps {
   onSignal?: (message: SignalingMessage) => void;
   onWaiting?: (data: { message: string }) => void;
   onError?: (message: string) => void;
+  onParticipantStateUpdate?: (update: { userId: string; username: string; isMuted: boolean; isVideoOff: boolean }) => void;
 }
 
 export function useWebSocket({
@@ -21,6 +22,7 @@ export function useWebSocket({
   onSignal,
   onWaiting,
   onError,
+  onParticipantStateUpdate,
 }: UseWebSocketProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
@@ -80,6 +82,9 @@ export function useWebSocket({
           case "ice-candidate":
             onSignal?.(message);
             break;
+          case "participant-state-update":
+            onParticipantStateUpdate?.(message);
+            break;
           default:
             console.log("Unknown message type:", message.type);
         }
@@ -121,6 +126,18 @@ export function useWebSocket({
     }
   }, []);
 
+  const sendParticipantState = useCallback((isMuted: boolean, isVideoOff: boolean) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(
+        JSON.stringify({
+          type: "participant-state",
+          isMuted,
+          isVideoOff,
+        })
+      );
+    }
+  }, []);
+
   useEffect(() => {
     return () => {
       disconnect();
@@ -133,5 +150,6 @@ export function useWebSocket({
     connect,
     disconnect,
     sendSignal,
+    sendParticipantState,
   };
 }
