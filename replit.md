@@ -53,6 +53,27 @@ I prefer iterative development with clear, concise explanations for each step. P
 - **TanStack Query**: For server state management in the frontend.
 ## Recent Changes
 
+### November 10, 2025 - Multi-User WebRTC Matching & Video Thumbnail Fixes
+- **Fixed critical multi-user video chat bug**: Users can now see each other's video streams
+  - Implemented persistent `lobbyRoomMap` that survives socket disconnects
+  - Second user joining a lobby now receives populated peers array with existing participants
+  - Stale lobby mapping detection: Cleans up when WebRTC room deleted but mapping persists
+  - Robust cleanup on disconnect: Iterates all lobby entries to remove WebSocket instances
+- **Video thumbnail improvements**:
+  - Removed all resize functionality (onResize prop, resize state, handlers)
+  - Made thumbnails fixed size with `w-full aspect-video` classes
+  - Removed Maximize2 icon and resize handle from UI
+- **Occupancy tracking fixes**:
+  - Uses authoritative lobby map size for accurate room occupancy
+  - Only deletes lobby mapping when members.size === 0
+  - Prevents memory leaks from stale WebSocket references
+- **WebRTC room lifecycle**:
+  - User 1 joins lobby → Creates WebRTC room → Gets matched with empty peers
+  - User 2 joins same lobby → Finds existing room → Gets peers array with User 1
+  - All users leave → Mapping and room cleaned up
+  - New user joins after cleanup → Detects stale mapping → Creates fresh room
+- **Architect approval**: All fixes passed final review, ready for multi-user testing
+
 ### November 2, 2025 - Storage Switch & DisplayName Cleanup
 - **Switched to in-memory storage**: Replaced Firebase with MemStorage to simplify setup and avoid configuration errors
   - Updated `server/index.ts` to use MemStorage by default
