@@ -1,5 +1,5 @@
-import { User as UserIcon, MicOff, Maximize2, UserPlus } from "lucide-react";
-import { RefObject, useEffect, useRef, useState, useCallback } from "react";
+import { User as UserIcon, MicOff, UserPlus } from "lucide-react";
+import { RefObject, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 
 interface VideoThumbnailProps {
@@ -9,7 +9,6 @@ interface VideoThumbnailProps {
   isVideoOff: boolean;
   videoRef?: RefObject<HTMLVideoElement>;
   stream?: MediaStream;
-  onResize?: (width: number, height: number) => void;
   userId?: string;
   onFriendRequest?: (userId: string) => void;
 }
@@ -21,14 +20,10 @@ export default function VideoThumbnail({
   isVideoOff,
   videoRef,
   stream,
-  onResize,
   userId,
   onFriendRequest,
 }: VideoThumbnailProps) {
   const peerVideoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isResizing, setIsResizing] = useState(false);
-  const [size, setSize] = useState({ width: 0, height: 0 });
 
   // Handle peer stream
   useEffect(() => {
@@ -62,57 +57,12 @@ export default function VideoThumbnail({
     }
   }, [isLocal, stream, username]);
 
-  // Initialize size
-  useEffect(() => {
-    if (containerRef.current && size.width === 0) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setSize({ width: rect.width, height: rect.height });
-    }
-  }, [size.width]);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(true);
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startWidth = size.width || containerRef.current?.offsetWidth || 300;
-    const startHeight = size.height || containerRef.current?.offsetHeight || 169;
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaY = moveEvent.clientY - startY;
-      
-      const newWidth = Math.max(200, Math.min(600, startWidth + deltaX));
-      const newHeight = Math.max(113, Math.min(338, startHeight + deltaY));
-      
-      setSize({ width: newWidth, height: newHeight });
-      onResize?.(newWidth, newHeight);
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [size, onResize]);
-
   const hasVideo = isLocal ? videoRef : (stream && peerVideoRef);
   const showPlaceholder = isVideoOff || !hasVideo;
 
   return (
     <div
-      ref={containerRef}
-      className="relative rounded-lg overflow-hidden bg-muted dark:bg-muted group"
-      style={{
-        width: size.width > 0 ? `${size.width}px` : '100%',
-        height: size.width > 0 ? `${size.height}px` : 'auto',
-        aspectRatio: size.width === 0 ? '16/9' : 'auto',
-      }}
+      className="relative rounded-lg overflow-hidden bg-muted dark:bg-muted group w-full aspect-video"
       data-testid={`video-${isLocal ? "local" : username}`}
     >
       {!showPlaceholder ? (
@@ -186,19 +136,6 @@ export default function VideoThumbnail({
             <div className="absolute inset-0 w-2 h-2 bg-green-500 rounded-full animate-pulse-ring"></div>
           </div>
         )}
-      </div>
-
-      {/* Resize Handle */}
-      <div
-        className={`absolute bottom-0 right-0 w-8 h-8 cursor-nwse-resize opacity-0 group-hover:opacity-100 transition-opacity ${
-          isResizing ? 'opacity-100' : ''
-        }`}
-        onMouseDown={handleMouseDown}
-        data-testid={`resize-handle-${username}`}
-      >
-        <div className="absolute bottom-1 right-1 w-6 h-6 flex items-center justify-center bg-primary/80 rounded-tl-lg hover:bg-primary">
-          <Maximize2 className="w-3 h-3 text-white rotate-90" />
-        </div>
       </div>
     </div>
   );

@@ -558,6 +558,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Active rooms (each room has 2-3 users)
   const rooms: Map<string, Set<WSClient>> = new Map();
   
+  // Persistent mapping from lobby room ID to WebRTC room info
+  // This survives socket disconnects so new users can find existing rooms
+  const lobbyRoomMap: Map<string, { webrtcRoomId: string, members: Set<WSClient> }> = new Map();
+  
   // Pending join reservations: userId → roomId
   // Created by REST API validation, consumed by WebSocket join
   const pendingJoins: Map<string, string> = new Map();
@@ -704,59 +708,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       createdAt: new Date(),
     });
 
-    // Check if there's an existing WebRTC room for this lobby room
-    let existingWebrtcRoom: Set<WSClient> | null = null;
-    let existingWebrtcRoomId: string | null = null;
+    // Check if there's an existing WebRTC room for this lobby room using persistent map
+    let lobbyInfo = roomId ? lobbyRoomMap.get(roomId) : null;
     
-    if (roomId) {
-      // Find existing WebRTC room for this lobby room
-      for (const [webrtcId, webrtcRoom] of Array.from(rooms.entries())) {
-        const firstUser = Array.from(webrtcRoom)[0] as WSClient;
-        if (firstUser && firstUser.lobbyRoomId === roomId) {
-          existingWebrtcRoom = webrtcRoom;
-          existingWebrtcRoomId = webrtcId;
-          break;
-        }
+    if (lobbyInfo) {
+      // Check if the WebRTC room still exists
+      const existingWebrtcRoom = rooms.get(lobbyInfo.webrtcRoomId);
+      
+      if (existingWebrtcRoom) {
+        // Join the existing WebRTC room
+        const existingWebrtcRoomId = lobbyInfo.webrtcRoomId;
+        ws.roomId = existingWebrtcRoomId;
+        existingWebrtcRoom.add(ws);
+        lobbyInfo.members.add(ws); // Also add to persistent tracking
+        
+        // Remove from waiting list if present
+        waitingUsers.delete(userId);
+        waitingStartTimes.delete(userId);
+        
+        console.log(`User ${username} joined existing WebRTC room ${existingWebrtcRoomId} (lobby room: ${roomId})`);
+        
+        // Notify all users in the room about the updated peer list
+        existingWebrtcRoom.forEach(user => {
+          const peers = Array.from(existingWebrtcRoom)
+            .filter(u => u.userId !== user.userId)
+            .map(u => ({
+              userId: u.userId,
+              username: u.username,
+            }));
+
+          if (user.readyState === WebSocket.OPEN) {
+            user.send(JSON.stringify({
+              type: user.userId === userId ? 'matched' : 'user-joined',
+              roomId: existingWebrtcRoomId,
+              peers,
+            }));
+          }
+        });
+
+        console.log(`WebRTC room ${existingWebrtcRoomId} now has ${existingWebrtcRoom.size} users`);
+      } else {
+        // Stale mapping - WebRTC room was deleted but lobby mapping persisted
+        console.log(`Stale lobby mapping detected for ${roomId}, cleaning up and creating new room`);
+        lobbyRoomMap.delete(roomId);
+        lobbyInfo = null; // Fall through to create new room
       }
     }
-
-    if (existingWebrtcRoom && existingWebrtcRoomId) {
-      // Join the existing WebRTC room
-      ws.roomId = existingWebrtcRoomId;
-      existingWebrtcRoom.add(ws);
-      
-      // Remove from waiting list if present
-      waitingUsers.delete(userId);
-      waitingStartTimes.delete(userId);
-      
-      console.log(`User ${username} joined existing WebRTC room ${existingWebrtcRoomId} (lobby room: ${roomId})`);
-      
-      // Notify all users in the room about the updated peer list
-      existingWebrtcRoom.forEach(user => {
-        const peers = Array.from(existingWebrtcRoom)
-          .filter(u => u.userId !== user.userId)
-          .map(u => ({
-            userId: u.userId,
-            username: u.username,
-          }));
-
-        if (user.readyState === WebSocket.OPEN) {
-          user.send(JSON.stringify({
-            type: user.userId === userId ? 'matched' : 'user-joined',
-            roomId: existingWebrtcRoomId,
-            peers,
-          }));
-        }
-      });
-
-      console.log(`WebRTC room ${existingWebrtcRoomId} now has ${existingWebrtcRoom.size} users`);
-    } else {
+    
+    if (!lobbyInfo) {
       // Create a new WebRTC room for this user
       const webrtcRoomId = `webrtc-${Date.now()}`;
       ws.roomId = webrtcRoomId;
       
       const roomUsers = new Set<WSClient>([ws]);
       rooms.set(webrtcRoomId, roomUsers);
+      
+      // If this is a lobby room, add to persistent map so future joins can find it
+      if (roomId) {
+        lobbyRoomMap.set(roomId, {
+          webrtcRoomId,
+          members: new Set<WSClient>([ws])
+        });
+        console.log(`Created lobby mapping: ${roomId} → ${webrtcRoomId}`);
+      }
       
       // Immediately send matched event with empty peers list
       if (ws.readyState === WebSocket.OPEN) {
@@ -956,24 +970,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
 
-    // Update lobby room occupancy based on actual WebRTC room size
+    // Update lobby room tracking and occupancy based on actual WebRTC room size
+    // Clean up from persistent lobby map - search all mappings to ensure we remove this ws
+    for (const [lobbyId, lobbyInfo] of Array.from(lobbyRoomMap.entries())) {
+      if (lobbyInfo.members.has(ws)) {
+        lobbyInfo.members.delete(ws);
+        console.log(`Removed ${ws.username} from lobby ${lobbyId} members (${lobbyInfo.members.size} remaining)`);
+        
+        // Only delete lobby mapping when no members remain
+        if (lobbyInfo.members.size === 0) {
+          lobbyRoomMap.delete(lobbyId);
+          console.log(`Deleted lobby mapping for ${lobbyId} (no members remaining)`);
+        }
+      }
+    }
+    
     if (ws.lobbyRoomId) {
+      const lobbyInfo = lobbyRoomMap.get(ws.lobbyRoomId);
+      
       const storedRoom = await storage.getRoom(ws.lobbyRoomId);
       if (storedRoom) {
-        // Persist the actual room size to storage
-        await storage.updateRoomOccupancy(ws.lobbyRoomId, actualRoomSize);
-        console.log(`Updated lobby room ${ws.lobbyRoomId} occupancy to ${actualRoomSize}`);
+        // Persist the actual room size to storage (use lobby map size for accuracy)
+        const actualOccupancy = lobbyInfo ? lobbyInfo.members.size : actualRoomSize;
+        await storage.updateRoomOccupancy(ws.lobbyRoomId, actualOccupancy);
+        console.log(`Updated lobby room ${ws.lobbyRoomId} occupancy to ${actualOccupancy}`);
         
         // Only delete room if both the WebRTC room is empty AND no one is waiting
         const hasWaitingUsers = Array.from(waitingUsers.values()).some(
           waitingUser => waitingUser.lobbyRoomId === ws.lobbyRoomId
         );
         
-        if (actualRoomSize === 0 && !hasWaitingUsers) {
+        if (actualOccupancy === 0 && !hasWaitingUsers) {
           await storage.deleteRoom(ws.lobbyRoomId);
           console.log(`Deleted empty lobby room ${ws.lobbyRoomId} (no participants or waiting users)`);
-        } else if (actualRoomSize > 0) {
-          console.log(`Keeping lobby room ${ws.lobbyRoomId} - still has ${actualRoomSize} active participant(s)`);
+        } else if (actualOccupancy > 0) {
+          console.log(`Keeping lobby room ${ws.lobbyRoomId} - still has ${actualOccupancy} active participant(s)`);
         } else if (hasWaitingUsers) {
           console.log(`Keeping lobby room ${ws.lobbyRoomId} - has waiting users`);
         }
