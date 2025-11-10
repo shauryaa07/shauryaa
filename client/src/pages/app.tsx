@@ -108,15 +108,8 @@ export default function App() {
   useEffect(() => {
     if (appState !== "connected" || !localStream || !user) return;
 
-    matchedPeers.forEach((peer) => {
-      const existingPeer = webRTC.peers.find(p => p.id === peer.userId);
-      
-      if (!existingPeer) {
-        console.log(`Creating peer connection for new user: ${peer.username} (${peer.userId})`);
-        webRTC.createPeer(peer.userId, peer.username, true);
-      }
-    });
-
+    // Only clean up peers that have left - don't create any here
+    // Peer creation is handled by the useEffect below with proper initiator logic
     const currentPeerIds = new Set(matchedPeers.map(p => p.userId));
     webRTC.peers.forEach((peer) => {
       if (!currentPeerIds.has(peer.id)) {

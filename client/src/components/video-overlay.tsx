@@ -224,16 +224,15 @@ export default function VideoOverlay({
           localStream.addTrack(newVideoTrack);
           
           // Update all peer connections with the new track
+          // SimplePeer will automatically renegotiate when the stream changes
           peers.forEach((peer) => {
             if (peer.peer) {
-              const peerConnection = peer.peer as RTCPeerConnection;
-              const senders = peerConnection.getSenders();
-              const videoSender = senders.find((s) => s.track?.kind === 'video');
-              
-              if (videoSender) {
-                videoSender.replaceTrack(newVideoTrack).catch((error) => {
-                  console.error('Error replacing video track for peer:', error);
-                });
+              try {
+                // Remove old track and add new track to trigger renegotiation
+                peer.peer.removeStream(localStream);
+                peer.peer.addStream(localStream);
+              } catch (error) {
+                console.error('Error updating video track for peer:', error);
               }
             }
           });
@@ -732,8 +731,8 @@ export default function VideoOverlay({
             {/* Content */}
             {!isCollapsed && (
               <div className="p-3">
-                {/* Video Grid - Compact Symmetrical Layout */}
-                <div className="mb-3 max-h-[280px] overflow-y-auto">
+                {/* Video Grid - Responsive Layout */}
+                <div className="mb-3">
                   {(() => {
                     const allParticipants = [
                       { 
@@ -760,18 +759,20 @@ export default function VideoOverlay({
 
                     const participantCount = allParticipants.length;
                     
-                    // Determine grid layout based on participant count
-                    const getGridClass = () => {
-                      if (participantCount === 1) return 'grid-cols-1';
-                      if (participantCount === 2) return 'grid-cols-2';
-                      if (participantCount <= 4) return 'grid-cols-2';
-                      return 'grid-cols-2'; // For 5 participants, use 2 columns
+                    // Determine grid layout and height based on participant count
+                    const getLayoutConfig = () => {
+                      if (participantCount === 1) return { cols: 'grid-cols-1', height: 'h-[140px]' };
+                      if (participantCount === 2) return { cols: 'grid-cols-2', height: 'h-[90px]' };
+                      if (participantCount <= 4) return { cols: 'grid-cols-2', height: 'h-[70px]' };
+                      return { cols: 'grid-cols-2', height: 'h-[56px]' }; // For 5 participants, smaller tiles
                     };
                     
+                    const layout = getLayoutConfig();
+                    
                     return (
-                      <div className={`grid gap-1.5 ${getGridClass()}`}>
+                      <div className={`grid gap-1.5 ${layout.cols}`}>
                         {allParticipants.map((participant, idx) => (
-                          <div key={`participant-${idx}`} className="w-full h-[80px]">
+                          <div key={`participant-${idx}`} className={`w-full ${layout.height}`}>
                             <VideoThumbnail
                               username={participant.username}
                               isLocal={participant.isLocal}
