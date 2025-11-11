@@ -13,9 +13,17 @@ interface UseWebRTCProps {
   onSignal: (to: string, type: string, data: any) => void;
 }
 
+interface BufferedSignal {
+  from: string;
+  username: string;
+  data: any;
+  type: string;
+}
+
 export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
   const [peers, setPeers] = useState<PeerConnection[]>([]);
   const peersRef = useRef<Map<string, SimplePeer.Instance>>(new Map());
+  const bufferedSignalsRef = useRef<BufferedSignal[]>([]);
 
   const createPeer = useCallback(
     (peerId: string, username: string, initiator: boolean) => {
@@ -126,6 +134,13 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
     (from: string, username: string, data: any, type: string) => {
       console.log(`Handling ${type} from ${username}`);
 
+      // If localStream is not ready yet, buffer the signal for later
+      if (!localStream) {
+        console.log(`LocalStream not ready, buffering ${type} from ${username}`);
+        bufferedSignalsRef.current.push({ from, username, data, type });
+        return;
+      }
+
       let peer = peersRef.current.get(from);
 
       if (!peer) {
@@ -145,7 +160,7 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
         console.error(`Error signaling peer ${username}:`, error);
       }
     },
-    [createPeer]
+    [createPeer, localStream]
   );
 
   const removePeer = useCallback((peerId: string) => {
@@ -176,6 +191,19 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
       cleanup();
     };
   }, [cleanup]);
+
+  // Process buffered signals when localStream becomes available
+  useEffect(() => {
+    if (localStream && bufferedSignalsRef.current.length > 0) {
+      console.log(`LocalStream ready, processing ${bufferedSignalsRef.current.length} buffered signals`);
+      const signals = [...bufferedSignalsRef.current];
+      bufferedSignalsRef.current = [];
+      
+      signals.forEach(({ from, username, data, type }) => {
+        handleSignal(from, username, data, type);
+      });
+    }
+  }, [localStream, handleSignal]);
 
   return {
     peers,
