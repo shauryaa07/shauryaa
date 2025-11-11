@@ -1,0 +1,245 @@
+Okay, if the STUN servers are in place but it's still not working, the problem is almost certainly a subtle mismatch between your client-side code and your server-side signaling logic.
+When users only see themselves, it means the RTCPeerConnection failed. This is always a client-side issue, but it's often caused by the signaling messages (offers, answers, candidates) not being sent or received correctly.
+Your server's handleSignaling function is very specific:
+ * It expects messages with { type, to, data }.
+ * It sends messages with { type, from, username, data }.
+Your client-side code must match this perfectly.
+Client-Side Checklist & Code
+Here is a minimal client-side implementation that is built to work exactly with your server code. Please compare it carefully with your own.
+1. Global Setup
+You need to manage a map of peer connections, where the key is the userId of the other person.
+// CLIENT-SIDE JAVASCRIPT
+
+// --- 1. STUN Servers (You have this, but for completeness) ---
+const configuration = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ]
+};
+
+// --- 2. Global Variables ---
+let localStream;
+let ws; // Your WebSocket connection
+let myUserId;
+let myUsername;
+const peerConnections = new Map(); // Map<string, RTCPeerConnection>
+
+// --- 3. DOM Elements ---
+const localVideo = document.getElementById('localVideo');
+const remoteVideoContainer = document.getElementById('remoteVideos');
+
+// --- 4. WebSocket Connection (Example) ---
+// You must set myUserId and myUsername before connecting
+// ws = new WebSocket('ws://localhost:3000/ws');
+// ws.onopen = () => {
+//   // Send the join message right after connecting
+//   ws.send(JSON.stringify({
+//     type: 'join',
+//     userId: myUserId,
+//     username: myUsername,
+//     roomId: 'some-room-id' // If joining a specific room
+//   }));
+// };
+// ws.onmessage = handleSocketMessage;
+
+2. The Core WebSocket Message Handler
+This is the most likely place for an error. It has to route messages from the server to the correct peer connection.
+// CLIENT-SIDE JAVASCRIPT
+
+async function handleSocketMessage(event) {
+  const message = JSON.parse(event.data);
+
+  switch (message.type) {
+    // --- A. Room Setup ---
+    case 'matched':
+    case 'user-joined':
+      // 'peers' is an array: [{ userId, username }]
+      console.log(Received ${message.type} with peers:, message.peers);
+      
+      // For every peer, create a new connection and send an offer
+      for (const peer of message.peers) {
+        // Don't connect to yourself if server accidentally includes you
+        if (peer.userId === myUserId) continue; 
+        
+        // Only create if we don't have a connection already
+        if (!peerConnections.has(peer.userId)) {
+          const pc = createPeerConnection(peer.userId, peer.username);
+          
+          // The new person (initiator) sends the offer
+          if (message.type === 'matched') {
+            await createAndSendOffer(pc, peer.userId);
+          }
+        }
+      }
+      break;
+
+    // --- B. WebRTC Signaling (The critical part) ---
+    case 'offer':
+      // Someone is sending us an offer
+      console.log(Received offer from ${message.from});
+      await handleOffer(message.from, message.username, message.data);
+      break;
+
+    case 'answer':
+      // Someone is replying to our offer
+      console.log(Received answer from ${message.from});
+      await handleAnswer(message.from, message.data);
+      break;
+
+    case 'ice-candidate':
+      // A network path suggestion
+      console.log(Received ICE candidate from ${message.from});
+      await handleIceCandidate(message.from, message.data);
+      break;
+
+    // --- C. Other Events ---
+    case 'user-left':
+      console.log(User ${message.userId} left);
+      closePeerConnection(message.userId);
+      break;
+      
+    case 'error':
+      console.error('Server error:', message.message);
+      break;
+  }
+}
+
+3. Creating a Peer Connection
+This function creates one connection and sets up all its event listeners.
+// CLIENT-SIDE JAVASCRIPT
+
+function createPeerConnection(peerUserId, peerUsername) {
+  console.log(Creating peer connection for ${peerUsername} (${peerUserId}));
+  
+  const pc = new RTCPeerConnection(configuration);
+
+  // --- A. Send ICE candidates as they are found ---
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      console.log(Sending ICE candidate to ${peerUserId});
+      // This MUST match your server's expected format
+      ws.send(JSON.stringify({
+        type: 'ice-candidate',
+        to: peerUserId, // CRITICAL: 'to' field
+        data: event.candidate // CRITICAL: 'data' field
+      }));
+    }
+  };
+
+  // --- B. Handle the remote user's video stream ---
+  pc.ontrack = (event) => {
+    console.log(Received remote track from ${peerUsername});
+    // Create a new video element for the remote user
+    const video = document.createElement('video');
+    video.id = video-${peerUserId};
+    video.autoplay = true;
+    video.playsInline = true;
+    video.srcObject = event.streams[0];
+    remoteVideoContainer.appendChild(video);
+  };
+
+  // --- C. Add your local video tracks to this connection ---
+  // This sends your video to the other person
+  if (localStream) {
+    localStream.getTracks().forEach(track => {
+      pc.addTrack(track, localStream);
+    });
+  }
+
+  // Store this connection
+  peerConnections.set(peerUserId, pc);
+  return pc;
+}
+
+4. Signaling Functions (Offer/Answer)
+These functions create, send, and process the signaling messages.
+// CLIENT-SIDE JAVASCRIPT
+
+// --- Used by the person INITIATING the call ---
+async function createAndSendOffer(pc, peerUserId) {
+  try {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    console.log(Sending offer to ${peerUserId});
+    // This MUST match your server's expected format
+    ws.send(JSON.stringify({
+      type: 'offer',
+      to: peerUserId, // CRITICAL: 'to' field
+      data: offer      // CRITICAL: 'data' field
+    }));
+  } catch (err) {
+    console.error(Error creating offer for ${peerUserId}:, err);
+  }
+}
+
+// --- Used by the person RECEIVING the call ---
+async function handleOffer(peerUserId, peerUsername, offer) {
+  let pc = peerConnections.get(peerUserId);
+
+  // If we get an offer but have no connection, create one
+  if (!pc) {
+    pc = createPeerConnection(peerUserId, peerUsername);
+  }
+
+  try {
+    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    console.log(Sending answer to ${peerUserId});
+    // This MUST match your server's expected format
+    ws.send(JSON.stringify({
+      type: 'answer',
+      to: peerUserId, // CRITICAL: 'to' field
+      data: answer     // CRITICAL: 'data' field
+    }));
+  } catch (err) {
+    console.error(Error handling offer from ${peerUserId}:, err);
+  }
+}
+
+// --- Used by the INITIATOR after receiving an answer ---
+async function handleAnswer(peerUserId, answer) {
+  const pc = peerConnections.get(peerUserId);
+  if (pc) {
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      console.log(Set remote description (answer) from ${peerUserId});
+    } catch (err) {
+      console.error(Error handling answer from ${peerUserId}:, err);
+    }
+  }
+}
+
+// --- Used by BOTH parties ---
+async function handleIceCandidate(peerUserId, candidate) {
+  const pc = peerConnections.get(peerUserId);
+  if (pc) {
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      console.log(Added ICE candidate from ${peerUserId});
+    } catch (err) {
+      console.error(Error adding ICE candidate from ${peerUserId}:, err);
+    }
+  }
+}
+
+// --- Cleanup ---
+function closePeerConnection(peerUserId) {
+  const pc = peerConnections.get(peerUserId);
+  if (pc) {
+    pc.close();
+    peerConnections.delete(peerUserId);
+  }
+  const videoElement = document.getElementById(video-${peerUserId});
+  if (videoElement) {
+    videoElement.remove();
+  }
+}
+
+Please triple-check your client-side code against this, paying special attention to:
+ * The JSON structure: Is it exactly { type, to, data } when sending signals?
+ * The from field: Is your handleSocketMessage function correctly using message.from to find the right peer connection?
+ * The peerConnections map: Are you creating a new, separate RTCPeerConnection for every peer in the room? You cannot reuse one connection for multiple people.
