@@ -1,7 +1,7 @@
 # StudyConnect - Student Live Connect Overlay App
 
 ## Overview
-StudyConnect is a peer-to-peer video chat application designed for students to connect with up to 4 study partners (5 people total) during live online classes. It features a floating, draggable video overlay that allows students to interact while watching lectures on various online learning platforms. The project aims to provide a private, scalable, and non-intrusive solution for collaborative online studying.
+StudyConnect is a video chat application designed for students to connect with one study partner (2 people total) during live online classes using ultra-low bandwidth streaming. It features optimized video quality for minimal data usage while allowing students to interact while watching lectures on various online learning platforms. The project aims to provide a private, bandwidth-efficient solution for collaborative online studying.
 
 ## User Preferences
 I prefer iterative development with clear, concise explanations for each step. Please ask for confirmation before making significant architectural changes or adding new external dependencies. I value privacy-focused solutions and prefer direct, peer-to-peer communication where possible. I like clean code with good TypeScript practices and clear separation of concerns.
@@ -29,7 +29,7 @@ I prefer iterative development with clear, concise explanations for each step. P
 ### Feature Specifications
 - Secure Authentication with registration and login.
 - Smart Matching based on user preferences.
-- WebRTC P2P Video/Audio for up to 5 participants.
+- LiveKit video chat for 2 participants (1 host + 1 partner) with ultra-low bandwidth.
 - Draggable Video Overlay with enhanced Picture-in-Picture for each partner.
 - Real-time controls (mute/unmute, settings, disconnect).
 - Profile management with photo and bio editing.
@@ -38,13 +38,15 @@ I prefer iterative development with clear, concise explanations for each step. P
 
 ### System Design Choices
 - **Storage**: In-memory storage (MemStorage) for user management and session data (data is lost on restart)
-- **Video Architecture**: LiveKit centralized media server (replaces P2P WebRTC)
+- **Video Architecture**: LiveKit Cloud (centralized media server)
   - Token-based authentication with 10-minute TTL
   - Server-side session validation for security
-  - Automatic media routing and optimization
+  - Ultra-low bandwidth optimization: 180p @ 20fps, 200kbps video, 50kbps audio
+  - Fixed quality (adaptive streaming disabled)
+  - Maximum 2 users per room (1 host + 1 participant)
 - **Session Security**: HttpOnly cookies, secure in production, 7-day expiry
 - **Media Stream Handling**: LiveKit SDK handles getUserMedia automatically
-- **Self-Hosting Support**: Designed to work with self-hosted LiveKit server or LiveKit Cloud
+- **Bandwidth Optimization**: Designed for minimal data usage with fixed low-quality streaming
 
 ## External Dependencies
 - **livekit-client**: LiveKit JavaScript SDK for video/audio connections
@@ -60,6 +62,24 @@ I prefer iterative development with clear, concise explanations for each step. P
 - **shadcn/ui**: UI component library
 - **TanStack Query**: Server state management
 ## Recent Changes
+
+### November 11, 2025 - Ultra-Low Bandwidth Configuration & 2-User Room Limit
+- **Reduced room capacity**: Changed from 5-user rooms to 2-user rooms (1 host + 1 participant)
+  - Updated room schema (shared/schema.ts) to enforce maxOccupancy: 2
+  - Updated room creation logic (server/routes.ts) to use 2-user limit
+- **Ultra-low bandwidth video configuration**:
+  - Fixed resolution: 180p (320x180 pixels)
+  - Fixed frame rate: 20 fps
+  - Video bitrate: 200 kbps maximum
+  - Audio bitrate: 50 kbps with discontinuous transmission (dtx)
+  - Audio sample rate: 16 kHz for minimal bandwidth
+- **Disabled adaptive quality**:
+  - adaptiveStream: false - prevents quality auto-adjustment
+  - dynacast: false - disables dynamic broadcast
+  - simulcast: false - single quality stream only
+- **Bandwidth savings**: Configured for ~250 kbps total bandwidth (video + audio)
+- **LiveKit Cloud**: Connected to wss://ssss-fctk56o9.livekit.cloud
+- **Configuration location**: client/src/lib/livekit-provider.tsx
 
 ### November 11, 2025 - Complete Migration from WebRTC to LiveKit
 - **Removed all WebRTC dependencies**: Eliminated simple-peer and ws packages (1100+ lines of signaling code)
