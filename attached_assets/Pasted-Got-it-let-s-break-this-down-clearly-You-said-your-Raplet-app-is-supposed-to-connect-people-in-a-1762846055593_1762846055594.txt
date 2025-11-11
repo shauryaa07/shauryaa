@@ -1,0 +1,106 @@
+Got it — let’s break this down clearly.
+
+You said your Raplet app is supposed to connect people in a video room (like Zoom). But when two users join:
+
+Each user only sees themselves (their own video).
+
+They don’t see the other user.
+
+
+You’ve told the Raplet team, and they keep saying “it’s fixed,” but it’s still not working.
+
+
+---
+
+✅ Likely causes
+
+This is a WebRTC signaling / peer connection issue — not just a visual glitch.
+Here are the most common reasons this happens:
+
+1. Signaling server issue
+
+When one user joins, their offer/answer (SDP) or ICE candidates are not being exchanged correctly between peers.
+
+So each user’s camera starts locally (they see themselves) but no connection is established between them.
+
+
+
+2. Room ID mismatch
+
+Sometimes the app creates a new room for each user by accident, even if they think it’s the same room.
+
+That means they’re actually in two different rooms with the same name showing, but not linked.
+
+
+
+3. ICE / STUN / TURN servers misconfigured
+
+If your STUN or TURN servers are not working or not publicly accessible, peers won’t connect — especially if both users are behind NAT/firewalls.
+
+
+
+4. Permission or browser issue
+
+Sometimes, if you test on the same browser tab or device, the local and remote streams overlap incorrectly (you only see yourself).
+
+Try on two different devices (e.g., phone + laptop) to confirm it’s not a local test artifact.
+
+
+
+
+
+---
+
+🧠 How to diagnose quickly
+
+Try this checklist:
+
+1. Open DevTools → Console → look for ICE connection failed, setRemoteDescription errors, or “No remote stream” warnings.
+
+
+2. Confirm that both users have the same room ID in the console logs.
+
+
+3. Use a public STUN server like:
+
+{ urls: "stun:stun.l.google.com:19302" }
+
+and a reliable TURN server if NAT traversal is needed.
+
+
+4. Test on two separate networks (e.g., mobile data + Wi-Fi).
+
+
+
+
+---
+
+🛠 Likely fix
+
+If Raplet’s backend is managing signaling, they probably:
+
+are not correctly broadcasting peer offers/answers to other clients in the same room,
+
+or are creating multiple isolated sockets per user instead of joining one shared socket room.
+
+
+So the root cause is:
+
+> The peer-to-peer signaling channel isn’t correctly sharing SDP and ICE data between users in the same room.
+
+
+
+
+---
+
+If you can share:
+
+the JavaScript snippet where peers connect (the RTCPeerConnection, ontrack, and socket.emit parts),
+or
+
+a small console log output from both users,
+
+
+I can pinpoint the exact bug for you — likely a one-line fix.
+
+Would you like to paste that part of your code here (the part handling video connection and signaling)?

@@ -59,21 +59,23 @@ export default function App() {
     },
     onSignal: (message) => {
       console.log(`[SIGNAL DEBUG] Received signal message:`, JSON.stringify(message, null, 2));
-      console.log(`[SIGNAL DEBUG] message.from=${message.from}, message.type=${message.type}, message.data=`, message.data);
-      console.log("Current matchedPeers:", matchedPeers.map(p => `userId: ${p.userId}, username: ${p.username}`));
+      console.log(`[SIGNAL DEBUG] message.from=${message.from}, message.type=${message.type}, message.username=${message.username}, message.data=`, message.data);
       
-      const peerInfo = matchedPeers.find(p => p.userId === message.from);
-      const peerUsername = peerInfo?.username || message.from || "Unknown";
-      
-      console.log(`Found peer info: userId=${message.from}, username=${peerUsername}`);
+      if (!message.from) {
+        console.error("[SIGNAL ERROR] message.from is undefined! Full message:", message);
+        return;
+      }
       
       if (!message.type) {
         console.error("[SIGNAL ERROR] message.type is undefined! Full message:", message);
         return;
       }
       
+      // Use username from message if available, otherwise fallback to matchedPeers lookup
+      const peerUsername = message.username || matchedPeers.find(p => p.userId === message.from)?.username || message.from;
+      
       console.log(`[SIGNAL DEBUG] Calling webRTC.handleSignal with from=${message.from}, username=${peerUsername}, type=${message.type}`);
-      webRTC.handleSignal(message.from!, peerUsername, message.data, message.type);
+      webRTC.handleSignal(message.from, peerUsername, message.data, message.type);
     },
     onWaiting: (data) => {
       console.log("Waiting message:", data);

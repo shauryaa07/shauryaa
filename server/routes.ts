@@ -913,6 +913,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return;
     }
 
+    // Validate sender has userId and username set
+    if (!ws.userId || !ws.username) {
+      console.error(`[SERVER SIGNAL ERROR] Sender missing userId or username: userId=${ws.userId}, username=${ws.username}`);
+      return;
+    }
+
     // Find the target user in the same room
     if (!ws.roomId) {
       console.error('User not in a room');
@@ -930,14 +936,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     if (targetUser && targetUser.readyState === WebSocket.OPEN) {
       // CRITICAL: Ensure we forward the exact signal type so the client can route to correct handler
+      // Include both userId (from) and username so client can properly identify the peer
       const forwardedMessage = {
         type: type,  // Explicitly forward the signal type (offer/answer/ice-candidate)
         from: ws.userId,
+        username: ws.username,  // Include username for client-side peer identification
         data: data,
       };
       console.log(`[SERVER SIGNAL DEBUG] Forwarding message to ${targetUser.username}:`, JSON.stringify(forwardedMessage, null, 2));
       targetUser.send(JSON.stringify(forwardedMessage));
-      console.log(`Forwarded ${type} from ${ws.username} to ${targetUser.username}`);
+      console.log(`Forwarded ${type} from ${ws.username} (${ws.userId}) to ${targetUser.username} (${targetUser.userId})`);
     } else {
       console.error(`Target user ${to} not found or not connected`);
     }

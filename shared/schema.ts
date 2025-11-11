@@ -43,6 +43,7 @@ export const signalingMessageSchema = z.object({
   type: z.enum(["offer", "answer", "ice-candidate", "join", "leave", "user-joined", "user-left"]),
   from: z.string().optional(),
   to: z.string().optional(),
+  username: z.string().optional(),
   data: z.any().optional(),
 });
 
