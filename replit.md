@@ -17,12 +17,14 @@ I prefer iterative development with clear, concise explanations for each step. P
 
 ### Technical Implementations
 - **Frontend**: React with TypeScript, Wouter for routing, and TanStack Query for data fetching.
-- **Backend**: Node.js with Express, handling authentication, matching, and WebSocket signaling.
-- **WebRTC**: Utilizes `simple-peer` library for direct peer-to-peer video/audio connections, minimizing server load and ensuring privacy.
-- **Authentication**: Secure registration and login with bcrypt hashing.
+- **Backend**: Node.js with Express, handling authentication and room management.
+- **Video Infrastructure**: LiveKit for real-time video/audio communication (replaced WebRTC)
+  - Server-side token generation with session authentication
+  - Pre-built React components for video UI
+  - Automatic reconnection and connection state management
+- **Authentication**: Session-based with express-session, bcrypt password hashing.
 - **Smart Matching**: Algorithm connecting students based on subject, study mood, and partner preferences.
-- **Real-time Communication**: WebSockets for signaling (SDP/ICE exchange) and direct messaging.
-- **Session Management**: Tracks active users and rooms for matchmaking.
+- **Session Management**: Express sessions with MemoryStore (configurable for production).
 
 ### Feature Specifications
 - Secure Authentication with registration and login.
@@ -36,24 +38,50 @@ I prefer iterative development with clear, concise explanations for each step. P
 
 ### System Design Choices
 - **Storage**: In-memory storage (MemStorage) for user management and session data (data is lost on restart)
-- **P2P Focus**: Emphasizes direct peer connections over central media servers for scalability and privacy.
-- **Initiator Selection**: WebRTC initiator determined by the user with the lower `userId` to prevent deadlocks.
-- **Media Stream Handling**: `getUserMedia` is called and stream is ready before WebSocket connection for robust WebRTC setup.
-- **Separate Popup Windows**: Uses `window.open()` for PiP, created synchronously on user interaction to bypass browser popup blockers.
+- **Video Architecture**: LiveKit centralized media server (replaces P2P WebRTC)
+  - Token-based authentication with 10-minute TTL
+  - Server-side session validation for security
+  - Automatic media routing and optimization
+- **Session Security**: HttpOnly cookies, secure in production, 7-day expiry
+- **Media Stream Handling**: LiveKit SDK handles getUserMedia automatically
+- **Self-Hosting Support**: Designed to work with self-hosted LiveKit server or LiveKit Cloud
 
 ## External Dependencies
-- **simple-peer**: JavaScript library for WebRTC peer-to-peer connections.
-- **ws**: WebSocket library for Node.js backend.
-- **bcrypt**: For password hashing (optimized to 8 rounds).
-- **React**: Frontend UI library.
-- **TypeScript**: For type safety across the codebase.
-- **TailwindCSS**: For utility-first styling.
-- **Wouter**: For client-side routing.
-- **shadcn/ui**: UI component library.
-- **TanStack Query**: For server state management in the frontend.
+- **livekit-client**: LiveKit JavaScript SDK for video/audio connections
+- **@livekit/components-react**: Pre-built React components for video UI
+- **livekit-server-sdk**: Server-side token generation
+- **express-session**: Session management middleware
+- **memorystore**: In-memory session store (configurable)
+- **bcrypt**: Password hashing (optimized to 8 rounds)
+- **React**: Frontend UI library
+- **TypeScript**: Type safety across the codebase
+- **TailwindCSS**: Utility-first styling
+- **Wouter**: Client-side routing
+- **shadcn/ui**: UI component library
+- **TanStack Query**: Server state management
 ## Recent Changes
 
-### November 10, 2025 - Multi-User WebRTC Matching & Video Thumbnail Fixes
+### November 11, 2025 - Complete Migration from WebRTC to LiveKit
+- **Removed all WebRTC dependencies**: Eliminated simple-peer and ws packages (1100+ lines of signaling code)
+- **Installed LiveKit SDKs**: Added livekit-client, @livekit/components-react, livekit-server-sdk
+- **Implemented session-based authentication**: Added express-session with MemoryStore for secure token generation
+- **Created LiveKit infrastructure**:
+  - server/livekit.ts: Token generation with 10-minute TTL
+  - LiveKitRoomProvider: Context-based room connection wrapper
+  - LiveKitVideoRoom: Pre-built video UI components
+- **Security improvements**:
+  - Token endpoint requires authenticated session (no impersonation possible)
+  - User identity derived from server-side session, not client request
+  - Room authorization checks (capacity, existence) before token issuance
+  - Session management on login/logout
+- **Simplified state management**: Replaced WebRTC/WebSocket state machine with LiveKit connection states
+- **Production ready**: Requires setting LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, and SESSION_SECRET
+- **Development mode**: Works without LiveKit server for testing (shows warnings)
+- **Architecture change**: Direct peer-to-peer WebRTC replaced with centralized LiveKit server routing
+- **Code reduction**: 1100+ lines of custom signaling code replaced with ~200 lines of LiveKit integration
+- **Architect approved**: Security implementation passed final review
+
+### November 10, 2025 - Multi-User WebRTC Matching & Video Thumbnail Fixes (DEPRECATED - WebRTC Removed)
 - **Fixed critical multi-user video chat bug**: Users can now see each other's video streams
   - Implemented persistent `lobbyRoomMap` that survives socket disconnects
   - Second user joining a lobby now receives populated peers array with existing participants
