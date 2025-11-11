@@ -58,14 +58,15 @@ export const settingsSchema = z.object({
 export type Settings = z.infer<typeof settingsSchema>;
 
 // Room schema - for managing study rooms (public and private)
+// LIMIT: Maximum 2 users per room (1 host + 1 participant)
 export const roomSchema = z.object({
   id: z.string(),
   name: z.string().min(1).max(50),
   type: z.enum(["public", "private"]),
   password: z.string().optional(),
   createdBy: z.string(),
-  currentOccupancy: z.number().min(0).max(5).default(0),
-  maxOccupancy: z.number().default(5),
+  currentOccupancy: z.number().min(0).max(2).default(0),
+  maxOccupancy: z.number().default(2),
   createdAt: z.date(),
 });
 
