@@ -903,6 +903,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   function handleSignaling(ws: WSClient, message: any) {
     const { to, data, type } = message;
+    
+    console.log(`[SERVER SIGNAL DEBUG] Received signaling message:`, JSON.stringify(message, null, 2));
+    console.log(`[SERVER SIGNAL DEBUG] Extracted: to=${to}, type=${type}, data=`, data);
+
+    // Validate that we have a proper signal type
+    if (!type || !['offer', 'answer', 'ice-candidate'].includes(type)) {
+      console.error(`[SERVER SIGNAL ERROR] Invalid or missing signal type: ${type}`);
+      return;
+    }
 
     // Find the target user in the same room
     if (!ws.roomId) {
@@ -920,11 +929,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const targetUser = Array.from(room).find(user => user.userId === to);
     
     if (targetUser && targetUser.readyState === WebSocket.OPEN) {
-      targetUser.send(JSON.stringify({
-        type,
+      // CRITICAL: Ensure we forward the exact signal type so the client can route to correct handler
+      const forwardedMessage = {
+        type: type,  // Explicitly forward the signal type (offer/answer/ice-candidate)
         from: ws.userId,
-        data,
-      }));
+        data: data,
+      };
+      console.log(`[SERVER SIGNAL DEBUG] Forwarding message to ${targetUser.username}:`, JSON.stringify(forwardedMessage, null, 2));
+      targetUser.send(JSON.stringify(forwardedMessage));
       console.log(`Forwarded ${type} from ${ws.username} to ${targetUser.username}`);
     } else {
       console.error(`Target user ${to} not found or not connected`);

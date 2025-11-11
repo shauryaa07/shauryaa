@@ -58,7 +58,8 @@ export default function App() {
       webRTC.removePeer(userId);
     },
     onSignal: (message) => {
-      console.log(`Received signal from ${message.from}, type: ${message.type}`);
+      console.log(`[SIGNAL DEBUG] Received signal message:`, JSON.stringify(message, null, 2));
+      console.log(`[SIGNAL DEBUG] message.from=${message.from}, message.type=${message.type}, message.data=`, message.data);
       console.log("Current matchedPeers:", matchedPeers.map(p => `userId: ${p.userId}, username: ${p.username}`));
       
       const peerInfo = matchedPeers.find(p => p.userId === message.from);
@@ -66,6 +67,12 @@ export default function App() {
       
       console.log(`Found peer info: userId=${message.from}, username=${peerUsername}`);
       
+      if (!message.type) {
+        console.error("[SIGNAL ERROR] message.type is undefined! Full message:", message);
+        return;
+      }
+      
+      console.log(`[SIGNAL DEBUG] Calling webRTC.handleSignal with from=${message.from}, username=${peerUsername}, type=${message.type}`);
       webRTC.handleSignal(message.from!, peerUsername, message.data, message.type);
     },
     onWaiting: (data) => {
