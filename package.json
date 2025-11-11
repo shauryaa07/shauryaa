@@ -98,7 +98,7 @@
     "@types/passport-local": "^1.0.38",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
-    "tsx": "^4.20.5"
+    "tsx": "^4.20.6"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
