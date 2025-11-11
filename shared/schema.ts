@@ -38,25 +38,13 @@ export const sessionSchema = z.object({
 
 export type Session = z.infer<typeof sessionSchema>;
 
-// WebRTC signaling messages
-export const signalingMessageSchema = z.object({
-  type: z.enum(["offer", "answer", "ice-candidate", "join", "leave", "user-joined", "user-left"]),
-  from: z.string().optional(),
-  to: z.string().optional(),
-  username: z.string().optional(),
-  data: z.any().optional(),
-});
-
-export type SignalingMessage = z.infer<typeof signalingMessageSchema>;
-
-// Peer connection state
-export interface PeerConnection {
+// LiveKit participant info
+export interface ParticipantInfo {
   id: string;
   username: string;
-  stream?: MediaStream;
-  peer?: any; // SimplePeer instance
   isMuted: boolean;
   isVideoOff: boolean;
+  isSpeaking?: boolean;
 }
 
 // Settings
