@@ -934,6 +934,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Forward signaling message to the target peer
     const targetUser = Array.from(room).find(user => user.userId === to);
     
+    // CRITICAL: Never send signals back to the sender (prevent loopback connections)
+    if (targetUser && targetUser.userId === ws.userId) {
+      console.warn(`[SERVER SIGNAL DEBUG] Prevented loopback: user ${ws.userId} tried to signal themselves`);
+      return;
+    }
+    
     if (targetUser && targetUser.readyState === WebSocket.OPEN) {
       // CRITICAL: Ensure we forward the exact signal type so the client can route to correct handler
       // Include both userId (from) and username so client can properly identify the peer

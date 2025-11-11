@@ -71,6 +71,12 @@ export default function App() {
         return;
       }
       
+      // CRITICAL: Ignore signals from ourselves to prevent loopback connections
+      if (user && message.from === user.id) {
+        console.log(`[SIGNAL DEBUG] Ignoring self-signal from ${message.from}`);
+        return;
+      }
+      
       // Use username from message if available, otherwise fallback to matchedPeers lookup
       const peerUsername = message.username || matchedPeers.find(p => p.userId === message.from)?.username || message.from;
       
