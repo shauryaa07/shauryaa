@@ -331,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         password: type === "private" ? password : undefined,
         createdBy,
         currentOccupancy: 0,
-        maxOccupancy: 5,
+        maxOccupancy: 2,
         createdAt: new Date(),
       });
       
