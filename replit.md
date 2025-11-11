@@ -71,15 +71,16 @@ I prefer iterative development with clear, concise explanations for each step. P
   - Fixed resolution: 180p (320x180 pixels)
   - Fixed frame rate: 20 fps
   - Video bitrate: 200 kbps maximum
-  - Audio bitrate: 50 kbps with discontinuous transmission (dtx)
-  - Audio sample rate: 16 kHz for minimal bandwidth
+  - Audio: AudioPresets.music (48 kbps) with discontinuous transmission (dtx)
+  - Audio processing: Noise suppression and echo cancellation enabled
 - **Disabled adaptive quality**:
   - adaptiveStream: false - prevents quality auto-adjustment
   - dynacast: false - disables dynamic broadcast
   - simulcast: false - single quality stream only
-- **Bandwidth savings**: Configured for ~250 kbps total bandwidth (video + audio)
+- **Bandwidth savings**: Configured for ~248 kbps total bandwidth (200 kbps video + 48 kbps audio)
 - **LiveKit Cloud**: Connected to wss://ssss-fctk56o9.livekit.cloud
 - **Configuration location**: client/src/lib/livekit-provider.tsx
+- **Architect approved**: Final configuration verified for fixed quality with guaranteed bandwidth constraints
 
 ### November 11, 2025 - Complete Migration from WebRTC to LiveKit
 - **Removed all WebRTC dependencies**: Eliminated simple-peer and ws packages (1100+ lines of signaling code)
