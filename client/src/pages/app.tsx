@@ -6,7 +6,7 @@ import VideoOverlay from "@/components/video-overlay";
 import MatchingState from "@/components/matching-state";
 import UnifiedLobby from "@/components/unified-lobby";
 import { useWebSocket } from "@/lib/useWebSocket";
-import { useWebRTC } from "@/lib/useWebRTC-native";
+import { useWebRTC } from "@/lib/useWebRTC";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
