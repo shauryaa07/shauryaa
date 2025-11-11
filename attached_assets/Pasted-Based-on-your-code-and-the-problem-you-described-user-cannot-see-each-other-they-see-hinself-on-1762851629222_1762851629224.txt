@@ -1,0 +1,69 @@
+Based on your code and the problem you described ("user cannot see each other... they see hinself only"), the issue is not in your handleSignaling function. That function actually appears to be a correct and standard implementation of a WebRTC signaling "pass-through" server.
+The problem you're describing is a classic WebRTC symptom. Seeing only yourself means:
+ * getUserMedia() (getting your own camera) is working.
+ * The RTCPeerConnection (the part that connects to other users) is failing.
+Your server's job is just to pass messages (Offers, Answers, and ICE Candidates) between clients. Your handleSignaling function does exactly that: it takes a message from one user, finds the to user in the same room, and forwards the message.
+The problem is almost certainly on your client-side (JavaScript in the browser) code.
+🌎 Most Likely Cause: Missing STUN Servers
+The most common reason peer connections fail is due to NAT (Network Address Translation). Most home routers hide your computer's real IP address. For two users to find each other, they need a "phonebook" service in the middle. This is what STUN servers do.
+Your client-side code must provide a list of STUN servers when creating the RTCPeerConnection.
+Solution: In your client-side JavaScript, find where you create new RTCPeerConnection() and add an iceServers configuration.
+// CLIENT-SIDE JAVASCRIPT
+
+// Configuration for the peer connection
+const configuration = {
+  iceServers: [
+    {
+      urls: [
+        'stun:stun.l.google.com:19302',
+        'stun:stun1.l.google.com:19302',
+        // You can add more public STUN servers
+      ],
+    },
+    // If you need to support users behind very strict firewalls,
+    // you will eventually need a TURN server here as well.
+  ],
+};
+
+// When you create a new connection for a peer:
+const peerConnection = new RTCPeerConnection(configuration);
+
+// ... rest of your client-side logic (addTrack, createOffer, etc.)
+
+Without this, the users' browsers have no way to discover each other's public IP addresses, and the connection will fail, leaving each user seeing only their own video.
+🕵 Other Possible Client-Side Issues
+If adding STUN servers doesn't fix it, the problem is still likely on the client side. Here’s what to check next:
+1. Client Signaling Message Format
+Your server's handleSignaling function expects a very specific JSON structure.
+ * When Sending (Client -> Server): The client must send messages that look like this:
+   {
+  "type": "offer", // or "answer", or "ice-candidate"
+  "to": "the-user-id-of-the-recipient",
+  "data": { ... } // The actual offer, answer, or candidate
+}
+
+   If your client is sending { "type": "offer", "data": ... } but missing the to field, your server's handleSignaling function will fail to find a targetUser and nothing will be forwarded.
+ * When Receiving (Server -> Client): Your server forwards messages that look like this:
+   {
+  "type": "offer", // or "answer", or "ice-candidate"
+  "from": "the-user-id-of-the-sender",
+  "username": "sender-username",
+  "data": { ... }
+}
+
+   Your client-side code must be listening for these and must use the from field to know which RTCPeerConnection to use.
+2. Client Peer Connection Management
+Your server's handleJoin logic correctly sends a 'matched' or 'user-joined' event with a peers array.
+Your client-side code must:
+ * Receive this peers array.
+ * Create a new RTCPeerConnection for each peer in that array.
+ * The user who just joined (who got 'matched') should be responsible for creating and sending an offer to every peer in the list.
+ * The users who were already in the room (who got 'user-joined') must create and send an offer to the new peer.
+If your client code is only set up to handle one peer, it won't work in a room with 3+ people.
+🛠 How to Debug
+ * Open the Developer Console in your browser (F12).
+ * Look for WebRTC or ICE errors. You will likely see "ICE failed" or "Connection failed". This confirms the STUN server issue.
+ * Add console.log() statements in your client-side WebSocket code to see:
+   * Exactly what JSON you are sending to the server.
+   * Exactly what JSON you are receiving from the server.
+This will help you verify that the client and server are speaking the same language.
