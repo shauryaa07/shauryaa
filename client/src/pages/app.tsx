@@ -419,9 +419,19 @@ export default function App() {
     
     if (appState === "connected" && localStream && matchedPeers.length > 0 && user) {
       console.log("✅ ALL CONDITIONS MET - Creating initiator peers");
-      console.log(`Matched peers:`, matchedPeers);
+      console.log(`Matched peers (before filter):`, matchedPeers);
       
-      matchedPeers.forEach((peer) => {
+      // CRITICAL FIX: Filter out ourselves from the peers list to prevent self-connections
+      const remotePeers = matchedPeers.filter(p => p.userId !== user.id);
+      console.log(`Remote peers (after filtering self):`, remotePeers);
+      
+      if (remotePeers.length === 0) {
+        console.log("⚠️ No remote peers found after filtering - only myself in the room");
+        console.log("=== END PEER CREATION EFFECT ===\n");
+        return;
+      }
+      
+      remotePeers.forEach((peer) => {
         const shouldInitiate = user.id < peer.userId;
         console.log(`\n🔍 Processing peer: ${peer.username}`);
         console.log(`  - Peer userId: ${peer.userId}`);
@@ -444,6 +454,10 @@ export default function App() {
       });
     } else {
       console.log("❌ CONDITIONS NOT MET - Cannot create peers yet");
+      if (appState === "connected" && !localStream && matchedPeers.length > 0) {
+        console.log("⚠️ RACE CONDITION DETECTED: Matched with peers but localStream not ready yet!");
+        console.log("   Peers will be created once localStream becomes available");
+      }
     }
     console.log("=== END PEER CREATION EFFECT ===\n");
   }, [appState, localStream, matchedPeers, user, webRTC]);
