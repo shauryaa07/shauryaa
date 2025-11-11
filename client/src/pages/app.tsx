@@ -410,24 +410,42 @@ export default function App() {
 
   // Create initiator peers only after localStream is ready
   useEffect(() => {
+    console.log("=== PEER CREATION EFFECT ===");
+    console.log(`appState: ${appState}`);
+    console.log(`localStream: ${localStream ? 'READY' : 'NULL'}`);
+    console.log(`matchedPeers.length: ${matchedPeers.length}`);
+    console.log(`user: ${user ? user.id : 'NULL'}`);
+    console.log(`webRTC.peers.length: ${webRTC.peers.length}`);
+    
     if (appState === "connected" && localStream && matchedPeers.length > 0 && user) {
-      console.log("LocalStream ready, creating initiator peers");
+      console.log("✅ ALL CONDITIONS MET - Creating initiator peers");
+      console.log(`Matched peers:`, matchedPeers);
       
       matchedPeers.forEach((peer) => {
         const shouldInitiate = user.id < peer.userId;
-        console.log(`Processing peer: userId=${peer.userId}, username=${peer.username}`);
-        console.log(`My userId: ${user.id}, Peer userId: ${peer.userId}, Should initiate: ${shouldInitiate}`);
+        console.log(`\n🔍 Processing peer: ${peer.username}`);
+        console.log(`  - Peer userId: ${peer.userId}`);
+        console.log(`  - My userId: ${user.id}`);
+        console.log(`  - Should I initiate? ${shouldInitiate}`);
         
         if (shouldInitiate) {
-          if (!webRTC.peers.some(p => p.id === peer.userId)) {
-            console.log(`Creating initiator peer with userId=${peer.userId}, username=${peer.username}`);
+          const peerExists = webRTC.peers.some(p => p.id === peer.userId);
+          console.log(`  - Peer already exists? ${peerExists}`);
+          
+          if (!peerExists) {
+            console.log(`  - ✅ CREATING INITIATOR PEER for ${peer.username}`);
             webRTC.createPeer(peer.userId, peer.username, true);
           } else {
-            console.log(`Peer ${peer.userId} already exists, skipping creation`);
+            console.log(`  - ⏭️ Skipping ${peer.username} - already exists`);
           }
+        } else {
+          console.log(`  - ⏭️ Not initiating for ${peer.username} - they should initiate to me`);
         }
       });
+    } else {
+      console.log("❌ CONDITIONS NOT MET - Cannot create peers yet");
     }
+    console.log("=== END PEER CREATION EFFECT ===\n");
   }, [appState, localStream, matchedPeers, user, webRTC]);
 
   return (
