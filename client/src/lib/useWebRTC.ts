@@ -19,12 +19,17 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
 
   const createPeer = useCallback(
     (peerId: string, username: string, initiator: boolean) => {
+      if (!localStream) {
+        console.warn(`Cannot create peer for ${username} - localStream not ready yet`);
+        return null;
+      }
+
       console.log(`Creating peer for ${username} (initiator: ${initiator})`);
 
       const peer = new SimplePeer({
         initiator,
         trickle: true,
-        stream: localStream || undefined,
+        stream: localStream,
         config: {
           iceServers: ICE_SERVERS,
         },
@@ -105,6 +110,18 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
     [localStream, onSignal]
   );
 
+  const addStreamToPeer = useCallback((peerId: string, stream: MediaStream) => {
+    const peer = peersRef.current.get(peerId);
+    if (peer && stream) {
+      try {
+        peer.addStream(stream);
+        console.log(`Added stream to existing peer ${peerId}`);
+      } catch (error) {
+        console.error(`Error adding stream to peer ${peerId}:`, error);
+      }
+    }
+  }, []);
+
   const handleSignal = useCallback(
     (from: string, username: string, data: any, type: string) => {
       console.log(`Handling ${type} from ${username}`);
@@ -114,7 +131,12 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
       if (!peer) {
         // If we don't have a peer yet and we receive an offer, create one as non-initiator
         console.log(`Creating non-initiator peer for ${username}`);
-        peer = createPeer(from, username, false);
+        const newPeer = createPeer(from, username, false);
+        if (!newPeer) {
+          console.warn(`Cannot create peer for ${username} - localStream not ready`);
+          return;
+        }
+        peer = newPeer;
       }
 
       try {
@@ -162,5 +184,6 @@ export function useWebRTC({ localStream, userId, onSignal }: UseWebRTCProps) {
     removePeer,
     updatePeerState,
     cleanup,
+    addStreamToPeer,
   };
 }
