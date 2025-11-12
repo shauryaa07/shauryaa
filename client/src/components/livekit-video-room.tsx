@@ -52,19 +52,62 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
     remoteParticipantsRef.current = remoteParticipants;
   }, [participants, remoteParticipants]);
 
-  // Handle audio playback permissions
+  // Handle audio playback permissions and track subscription events
   useEffect(() => {
     const handleAudioPlaybackChanged = () => {
+      console.log("🔊 Audio playback status changed:", room.canPlaybackAudio);
       setNeedsAudioPermission(!room.canPlaybackAudio);
     };
 
+    // Track subscription event - critical for audio circulation debugging
+    const handleTrackSubscribed = (track: any, publication: any, participant: any) => {
+      console.log("📥 Track subscribed:", {
+        kind: track.kind,
+        participant: participant.identity,
+        trackSid: publication.trackSid,
+        enabled: track.isEnabled,
+      });
+      
+      if (track.kind === 'audio') {
+        console.log("✅ Audio track subscribed from:", participant.identity);
+        console.log("✅ Audio track will auto-attach and play");
+      }
+    };
+
+    // Track unsubscribed event
+    const handleTrackUnsubscribed = (track: any, publication: any, participant: any) => {
+      console.log("📤 Track unsubscribed:", {
+        kind: track.kind,
+        participant: participant.identity,
+      });
+    };
+
+    // Local track published event
+    const handleLocalTrackPublished = (publication: any) => {
+      console.log("📤 Local track published:", {
+        kind: publication.kind,
+        trackSid: publication.trackSid,
+        enabled: publication.track?.isEnabled,
+      });
+      
+      if (publication.kind === 'audio') {
+        console.log("✅ Local audio track published successfully");
+      }
+    };
+
     room.on(RoomEvent.AudioPlaybackStatusChanged, handleAudioPlaybackChanged);
+    room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+    room.on(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
+    room.on(RoomEvent.LocalTrackPublished, handleLocalTrackPublished);
     
     // Check initial state
     setNeedsAudioPermission(!room.canPlaybackAudio);
 
     return () => {
       room.off(RoomEvent.AudioPlaybackStatusChanged, handleAudioPlaybackChanged);
+      room.off(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+      room.off(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed);
+      room.off(RoomEvent.LocalTrackPublished, handleLocalTrackPublished);
     };
   }, [room]);
 
@@ -76,12 +119,47 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
     console.log("Total participants:", participants.length);
     console.log("Remote participants:", remoteParticipants.length);
 
+    // Log local participant audio status
+    if (localParticipant) {
+      console.log("✅ Local participant:", localParticipant.identity);
+      console.log("✅ Mic enabled:", localParticipant.isMicrophoneEnabled);
+      
+      // Check if audio track is being published
+      const micTrack = localParticipant.getTrackPublication(Track.Source.Microphone);
+      if (micTrack) {
+        console.log("✅ Publishing audio track:", micTrack.trackSid);
+        console.log("✅ Audio track muted:", micTrack.isMuted);
+      } else {
+        console.warn("⚠️  No audio track found - audio may not be circulating");
+      }
+    }
+
+    // Log remote participants audio status
+    remoteParticipants.forEach((participant) => {
+      console.log("👤 Remote participant:", participant.identity);
+      const remoteAudioTrack = participant.getTrackPublication(Track.Source.Microphone);
+      if (remoteAudioTrack) {
+        console.log("✅ Subscribed to remote audio track:", remoteAudioTrack.trackSid);
+        console.log("✅ Remote audio muted:", remoteAudioTrack.isMuted);
+      } else {
+        console.warn("⚠️  No remote audio track subscribed from:", participant.identity);
+      }
+    });
+
     // Automatically try to start audio on room connection
+    // This is critical for browser autoplay policy
     if (!room.canPlaybackAudio) {
-      room.startAudio().catch(err => {
-        console.log("Auto audio start blocked:", err);
+      console.log("🔊 Attempting to start audio playback...");
+      room.startAudio().then(() => {
+        console.log("✅ Audio playback started successfully");
+        setNeedsAudioPermission(false);
+      }).catch(err => {
+        console.warn("⚠️  Auto audio start blocked by browser:", err);
+        console.log("💡 User interaction required - showing permission prompt");
         setNeedsAudioPermission(true);
       });
+    } else {
+      console.log("✅ Audio playback already enabled");
     }
 
     // AUTO-ENTER PIP when another user joins (only once per session)
@@ -112,25 +190,55 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
   
   const handleStartAudio = async () => {
     try {
+      console.log("🔊 User clicked to enable audio playback...");
       await room.startAudio();
+      console.log("✅ Audio playback started successfully via user interaction");
       setNeedsAudioPermission(false);
       toast({
         title: "Audio Enabled",
         description: "You can now hear other participants",
       });
     } catch (error) {
-      console.error("Failed to start audio:", error);
+      console.error("❌ Failed to start audio:", error);
       toast({
         title: "Audio Error",
-        description: "Failed to enable audio playback",
+        description: "Failed to enable audio playback. Please try again.",
         variant: "destructive",
       });
     }
   };
 
   const toggleAudio = async () => {
-    if (!localParticipant) return;
-    await localParticipant.setMicrophoneEnabled(!localParticipant.isMicrophoneEnabled);
+    if (!localParticipant) {
+      console.warn("⚠️  Cannot toggle audio - no local participant");
+      return;
+    }
+    
+    const newState = !localParticipant.isMicrophoneEnabled;
+    console.log(`🎙️  Toggling microphone: ${localParticipant.isMicrophoneEnabled} → ${newState}`);
+    
+    try {
+      await localParticipant.setMicrophoneEnabled(newState);
+      console.log(`✅ Microphone ${newState ? 'enabled' : 'disabled'} successfully`);
+      
+      // Verify the audio track after toggle
+      const micTrack = localParticipant.getTrackPublication(Track.Source.Microphone);
+      if (micTrack) {
+        console.log("✅ Audio track still published:", {
+          trackSid: micTrack.trackSid,
+          muted: micTrack.isMuted,
+        });
+      } else {
+        console.warn("⚠️  Audio track not found after toggle");
+      }
+    } catch (error) {
+      console.error("❌ Failed to toggle microphone:", error);
+      toast({
+        title: "Microphone Error",
+        description: "Failed to toggle microphone. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const toggleVideo = async () => {

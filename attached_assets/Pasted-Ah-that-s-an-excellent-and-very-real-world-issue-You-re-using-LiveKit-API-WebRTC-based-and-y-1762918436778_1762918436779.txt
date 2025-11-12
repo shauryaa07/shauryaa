@@ -1,0 +1,164 @@
+Ah — that’s an excellent and very real-world issue 👏
+You’re using LiveKit API (WebRTC-based), and you’re seeing this error:
+
+> “Audio is not circulating”
+Rapid (the AI code agent) keeps saying it’s fixed, but nothing actually changes.
+
+
+
+Let’s break this down properly — because this problem is technical, not “AI misunderstanding.”
+
+
+---
+
+🎯 What “audio not circulating” actually means
+
+In LiveKit (or any WebRTC system), “audio circulation” usually means:
+
+You can hear your own audio or others’ audio — it’s being transmitted properly between clients.
+
+If it’s not circulating, then:
+
+Mic audio is not being captured, or
+
+Audio track is not being published to the room, or
+
+Audio from remote participants is not being subscribed/played.
+
+
+
+So even if Rapid says “fixed,” the issue might be in one of these layers 👇
+
+
+---
+
+🧩 POSSIBLE ROOT CAUSES (and how to verify each)
+
+1. Mic permission / stream capture issue
+
+If getUserMedia fails silently or returns a muted audio track, LiveKit won’t have any audio to send.
+
+Check:
+
+const localTrack = await createLocalAudioTrack();
+console.log(localTrack.isEnabled); // should be true
+
+✅ If false, then permission or browser-level mic issue.
+
+
+---
+
+2. Audio track not published
+
+LiveKit requires you to publish your local audio track to the room.
+
+Correct code example:
+
+const room = await connect(LIVEKIT_URL, TOKEN);
+const audioTrack = await createLocalAudioTrack();
+await room.localParticipant.publishTrack(audioTrack);
+
+🚫 If you forget publishTrack(), your mic will appear “on,” but nobody hears anything.
+
+
+---
+
+3. Remote participant audio not subscribed
+
+Even if the remote person sends audio, your client must subscribe and play it.
+
+Make sure you have:
+
+room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+  if (track.kind === 'audio') {
+    track.attach(); // attaches to a hidden <audio> element
+  }
+});
+
+If you forget to attach() the remote audio track, you’ll never hear it.
+
+
+---
+
+4. Browser Autoplay Policy
+
+Modern browsers (Chrome, Edge) block auto-playing audio without user interaction.
+So if you join automatically, audio may be blocked until you click/tap something.
+
+✅ Fix: Add this after join:
+
+document.body.addEventListener('click', () => {
+  room.startAudio(); // resumes audio context
+});
+
+
+---
+
+5. HTTPS and Secure Context
+
+If your app is not served over HTTPS, browsers will block mic/audio in many cases.
+Make sure your LiveKit frontend runs on:
+
+https://yourapp.example.com
+
+not http:// or raw IP.
+
+
+---
+
+6. Audio device conflict
+
+If you’re testing with 2 browser tabs or 2 devices, one might have the mic locked.
+Try refreshing or switching input device via:
+
+navigator.mediaDevices.enumerateDevices();
+
+
+---
+
+⚙ Rapid might “say fixed” because:
+
+Rapid agents often rely on your logs, and if they don’t see browser console warnings,
+they’ll assume the logic is correct — but LiveKit’s audio issues often happen in runtime state, not in syntax.
+
+So to truly debug, you must open your browser console and check:
+
+LiveKit: Publishing audio track
+LiveKit: Subscribed to remote audio track
+
+If those logs never appear → the issue is in your publishing/subscribing logic.
+
+
+---
+
+✅ What to do now
+
+Try this checklist in order:
+
+1. ✅ Confirm mic permission and audio track created.
+
+
+2. ✅ Confirm publishTrack() actually runs after joining room.
+
+
+3. ✅ Add TrackSubscribed listener with .attach().
+
+
+4. ✅ Add room.startAudio() on user click.
+
+
+5. ✅ Test on HTTPS.
+
+
+6. ✅ Check browser console logs (look for TrackSubscribed events).
+
+
+
+
+---
+
+If you want, you can paste your LiveKit connect code snippet here
+(just the part where you join the room and handle tracks — no secrets or tokens),
+and I’ll show you exactly where the audio circulation breaks and how to fix it.
+
+Would you like to do that?

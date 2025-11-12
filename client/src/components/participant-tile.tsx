@@ -103,7 +103,7 @@ export default function ParticipantTile({
         </div>
       )}
 
-      {/* Audio Track for remote participants */}
+      {/* Audio Track for remote participants - CRITICAL for audio circulation */}
       {!isLocal && participant.getTrackPublication(Track.Source.Microphone)?.track && (
         <AudioTrack
           trackRef={{
