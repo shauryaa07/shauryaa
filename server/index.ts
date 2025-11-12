@@ -1,10 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import memorystore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const MemoryStore = memorystore(session);
+const PgSession = connectPgSimple(session);
 
 const app = express();
 
@@ -33,15 +36,41 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
+// Configure session store based on environment
+const sessionStore = (() => {
+  if (process.env.DATABASE_URL) {
+    // Use PostgreSQL for persistent sessions (works on Render, production, etc.)
+    log("✅ Using PostgreSQL session store for persistence");
+    const pool = new pg.Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+    });
+    return new PgSession({
+      pool,
+      createTableIfMissing: true,
+      tableName: 'session',
+    });
+  } else {
+    // Fall back to memory (only works on Replit, NOT on Render)
+    if (process.env.NODE_ENV === "production") {
+      log("⚠️  WARNING: Using MemoryStore in production! Sessions will be lost on restart.");
+      log("⚠️  Set DATABASE_URL environment variable to use persistent sessions.");
+    } else {
+      log("Using MemoryStore for development");
+    }
+    return new MemoryStore({
+      checkPeriod: 86400000, // 24 hours
+    });
+  }
+})();
+
 // Session middleware for authentication
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "dev-secret-change-in-production",
     resave: false,
     saveUninitialized: false,
-    store: new MemoryStore({
-      checkPeriod: 86400000, // 24 hours
-    }),
+    store: sessionStore,
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       httpOnly: true,
