@@ -430,10 +430,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Invalid password" });
       }
 
+      // Increment occupancy
+      await storage.updateRoomOccupancy(roomId, room.currentOccupancy + 1);
+
       res.json({ success: true, room });
     } catch (error) {
       console.error("Error joining room:", error);
       res.status(500).json({ error: "Failed to join room" });
+    }
+  });
+
+  // Room disconnect endpoint - decrements occupancy and cleans up empty rooms
+  app.post("/api/rooms/:roomId/disconnect", async (req, res) => {
+    try {
+      const { roomId } = req.params;
+
+      // Get the room directly by ID (more efficient than fetching all rooms)
+      const room = await storage.getRoom(roomId);
+      
+      if (!room) {
+        // Room might have already been deleted, treat as success
+        return res.json({ success: true, deleted: true, message: "Room not found or already deleted" });
+      }
+
+      // Decrement occupancy
+      const newOccupancy = Math.max(0, room.currentOccupancy - 1);
+      await storage.updateRoomOccupancy(roomId, newOccupancy);
+
+      // If room is now empty, delete it
+      if (newOccupancy === 0) {
+        await storage.deleteRoom(roomId);
+        console.log(`Room ${roomId} deleted - occupancy reached zero`);
+        return res.json({ success: true, deleted: true, message: "Room deleted" });
+      }
+
+      res.json({ success: true, deleted: false, currentOccupancy: newOccupancy });
+    } catch (error) {
+      console.error("Error disconnecting from room:", error);
+      res.status(500).json({ error: "Failed to disconnect from room" });
     }
   });
 

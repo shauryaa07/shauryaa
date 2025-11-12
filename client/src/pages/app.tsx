@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { User, Settings } from "@shared/schema";
 import { AuthForm } from "@/components/auth-form";
 import UnifiedLobby from "@/components/unified-lobby";
@@ -21,6 +21,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [livekitSession, setLivekitSession] = useState<LiveKitSession | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const isDisconnectingRef = useRef(false);
 
   const { toast } = useToast();
 
@@ -175,7 +176,28 @@ export default function App() {
     }
   };
 
-  const handleDisconnect = () => {
+  // Centralized room disconnect handler - calls API to decrement occupancy and cleanup
+  const handleRoomDisconnect = async () => {
+    // Prevent duplicate disconnect calls
+    if (isDisconnectingRef.current || !livekitSession?.roomId) {
+      return;
+    }
+
+    isDisconnectingRef.current = true;
+
+    try {
+      await apiRequest("POST", `/api/rooms/${livekitSession.roomId}/disconnect`, {});
+      console.log(`Disconnected from room ${livekitSession.roomId}`);
+    } catch (error) {
+      console.error("Error disconnecting from room:", error);
+    } finally {
+      isDisconnectingRef.current = false;
+    }
+  };
+
+  const handleDisconnect = async () => {
+    await handleRoomDisconnect();
+    
     setAppState("lobby");
     setLivekitSession(null);
     setSelectedRoomId(null);
@@ -185,6 +207,25 @@ export default function App() {
       description: "You have left the room",
     });
   };
+
+  // Handle tab close or browser crash - use sendBeacon for reliable cleanup
+  useEffect(() => {
+    const handlePageHide = () => {
+      if (livekitSession?.roomId && !isDisconnectingRef.current) {
+        // Use sendBeacon for reliable delivery even when page is unloading
+        const blob = new Blob([JSON.stringify({})], { type: 'application/json' });
+        navigator.sendBeacon(`/api/rooms/${livekitSession.roomId}/disconnect`, blob);
+      }
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('beforeunload', handlePageHide);
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('beforeunload', handlePageHide);
+    };
+  }, [livekitSession]);
 
   const handleLogout = () => {
     setUser(null);

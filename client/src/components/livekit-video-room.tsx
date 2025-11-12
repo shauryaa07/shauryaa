@@ -68,10 +68,34 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
     };
   }, [room]);
 
+  // Track if we've already auto-entered PIP
+  const [hasAutoEnteredPip, setHasAutoEnteredPip] = useState(false);
+
   useEffect(() => {
     console.log("Room connected:", room.name);
     console.log("Total participants:", participants.length);
     console.log("Remote participants:", remoteParticipants.length);
+
+    // Automatically try to start audio on room connection
+    if (!room.canPlaybackAudio) {
+      room.startAudio().catch(err => {
+        console.log("Auto audio start blocked:", err);
+        setNeedsAudioPermission(true);
+      });
+    }
+
+    // AUTO-ENTER PIP when another user joins (only once per session)
+    if (remoteParticipants.length > 0 && !hasAutoEnteredPip && !isPipActive) {
+      setHasAutoEnteredPip(true);
+      // Small delay to let video tracks initialize
+      setTimeout(() => {
+        togglePip();
+        toast({
+          title: "Study Partner Joined!",
+          description: "Entered Picture-in-Picture mode. Use controls on main screen to adjust settings.",
+        });
+      }, 1000);
+    }
 
     // Listen for PIP events
     const handlePipEnter = () => setIsPipActive(true);
@@ -84,7 +108,7 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
       document.removeEventListener('enterpictureinpicture', handlePipEnter);
       document.removeEventListener('leavepictureinpicture', handlePipExit);
     };
-  }, [room, participants, remoteParticipants.length]);
+  }, [room, participants, remoteParticipants.length, hasAutoEnteredPip, isPipActive, toast]);
   
   const handleStartAudio = async () => {
     try {
@@ -136,16 +160,16 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
           return;
         }
 
-        // Create PiP window with all participants
+        // Create minimal PiP window (YouTube-style - just video, no controls)
         const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
-          width: 600,
-          height: 400,
+          width: 400,
+          height: 300,
         });
 
         pipWindowRef.current = pipWindow;
         setIsPipActive(true);
 
-        // Create and populate PiP window content
+        // Create and populate minimal PiP window content (no controls!)
         const doc = pipWindow.document;
         doc.write(`
           <!DOCTYPE html>
@@ -164,53 +188,19 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
                   color: white;
                   height: 100vh;
                   display: flex;
-                  flex-direction: column;
                   overflow: hidden;
-                }
-                .header {
-                  background: rgba(0, 0, 0, 0.95);
-                  padding: 12px 16px;
-                  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  flex-shrink: 0;
-                }
-                .title {
-                  font-size: 14px;
-                  font-weight: 600;
-                }
-                .controls {
-                  display: flex;
-                  gap: 8px;
-                }
-                .btn {
-                  background: rgba(255, 255, 255, 0.1);
-                  border: none;
-                  color: white;
-                  padding: 8px 12px;
-                  border-radius: 6px;
-                  cursor: pointer;
-                  font-size: 12px;
-                  transition: background 0.2s;
-                }
-                .btn:hover {
-                  background: rgba(255, 255, 255, 0.2);
-                }
-                .btn.active {
-                  background: #ef4444;
                 }
                 .grid {
                   flex: 1;
                   display: grid;
-                  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                  gap: 8px;
-                  padding: 12px;
+                  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                  gap: 4px;
+                  padding: 4px;
                   overflow: auto;
                 }
                 .participant {
                   background: #1a1a1a;
-                  border-radius: 8px;
+                  border-radius: 6px;
                   overflow: hidden;
                   position: relative;
                   aspect-ratio: 16 / 9;
@@ -227,99 +217,43 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
                   align-items: center;
                   justify-content: center;
                   background: #2a2a2a;
+                  font-size: 32px;
                 }
                 .participant .name {
                   position: absolute;
-                  bottom: 8px;
-                  left: 8px;
+                  bottom: 4px;
+                  left: 4px;
                   background: rgba(0, 0, 0, 0.8);
-                  padding: 4px 8px;
-                  border-radius: 4px;
-                  font-size: 12px;
-                }
-                .participant .friend-btn {
-                  position: absolute;
-                  top: 8px;
-                  right: 8px;
-                  background: rgba(255, 255, 255, 0.2);
-                  border: none;
-                  color: white;
-                  padding: 6px;
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-size: 12px;
+                  padding: 2px 6px;
+                  border-radius: 3px;
+                  font-size: 10px;
                 }
               </style>
             </head>
             <body>
-              <div class="header">
-                <div class="title">Study Session (${participants.length} participants)</div>
-                <div class="controls">
-                  <button class="btn" id="toggleMic">Mic</button>
-                  <button class="btn" id="toggleCam">Camera</button>
-                  <button class="btn" id="closeBtn">Close</button>
-                </div>
-              </div>
               <div class="grid" id="grid"></div>
             </body>
           </html>
         `);
         doc.close();
 
-        // Wire up controls
-        const toggleMicBtn = doc.getElementById('toggleMic');
-        const toggleCamBtn = doc.getElementById('toggleCam');
-        const closeBtn = doc.getElementById('closeBtn');
-
-        toggleMicBtn?.addEventListener('click', async () => {
-          await toggleAudio();
-          // Update button state after toggle
-          setTimeout(() => {
-            const currentMuted = localParticipant?.isMicrophoneEnabled === false;
-            toggleMicBtn.classList.toggle('active', currentMuted);
-          }, 100);
-        });
-
-        toggleCamBtn?.addEventListener('click', async () => {
-          await toggleVideo();
-          // Update button state after toggle
-          setTimeout(() => {
-            const currentVideoOff = localParticipant?.isCameraEnabled === false;
-            toggleCamBtn.classList.toggle('active', currentVideoOff);
-          }, 100);
-        });
-
-        closeBtn?.addEventListener('click', () => {
-          pipWindow.close();
-        });
-
-        // Track added friend button listeners to avoid duplicates
-        const addedListeners = new Set<string>();
-
-        // Modified updatePipContent to avoid duplicate listeners and use fresh participant data
-        const updatePipContentWithListeners = () => {
+        // Update PIP content function (minimal - no controls)
+        const updatePipContent = () => {
           const grid = doc.getElementById('grid');
           if (!grid || pipWindow.closed) return;
 
-          // Get fresh participant list from the ref (updated on each render)
+          // Get fresh participant list
           const currentRemoteParticipants = remoteParticipantsRef.current;
 
-          // Update participant count in header
-          const titleEl = doc.querySelector('.title');
-          if (titleEl) {
-            titleEl.textContent = `Study Session (${currentRemoteParticipants.length + 1} participants)`;
-          }
-
           grid.innerHTML = '';
-          addedListeners.clear();
 
           // Add local participant
           if (localParticipant) {
             const localEl = doc.createElement('div');
             localEl.className = 'participant';
             localEl.innerHTML = `
-              ${localParticipant.isCameraEnabled ? '<video id="local-video" autoplay playsinline muted></video>' : '<div class="placeholder">📹 Camera Off</div>'}
-              <div class="name">You ${!localParticipant.isMicrophoneEnabled ? '(Muted)' : ''}</div>
+              ${localParticipant.isCameraEnabled ? '<video id="local-video" autoplay playsinline muted></video>' : '<div class="placeholder">📹</div>'}
+              <div class="name">You${!localParticipant.isMicrophoneEnabled ? ' 🔇' : ''}</div>
             `;
             grid.appendChild(localEl);
 
@@ -336,16 +270,14 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
             }
           }
 
-          // Add remote participants using fresh data
+          // Add remote participants
           currentRemoteParticipants.forEach((participant, index) => {
             const participantEl = doc.createElement('div');
             participantEl.className = 'participant';
             
-            const btnId = `friend-btn-${participant.identity}`;
             participantEl.innerHTML = `
-              ${participant.isCameraEnabled ? `<video id="video-${index}" autoplay playsinline></video>` : '<div class="placeholder">📹 Camera Off</div>'}
-              <div class="name">${participant.identity} ${!participant.isMicrophoneEnabled ? '(Muted)' : ''}</div>
-              <button class="friend-btn" id="${btnId}">👤+</button>
+              ${participant.isCameraEnabled ? `<video id="video-${index}" autoplay playsinline></video>` : '<div class="placeholder">📹</div>'}
+              <div class="name">${participant.identity}${!participant.isMicrophoneEnabled ? ' 🔇' : ''}</div>
             `;
             grid.appendChild(participantEl);
 
@@ -360,22 +292,13 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
                 }
               }
             }
-
-            // Add single event listener per button
-            const friendBtn = doc.getElementById(btnId);
-            if (friendBtn && !addedListeners.has(btnId)) {
-              friendBtn.addEventListener('click', () => {
-                handleFriendRequest(participant.identity);
-              });
-              addedListeners.add(btnId);
-            }
           });
         };
 
         // Initial content
-        updatePipContentWithListeners();
+        updatePipContent();
 
-        // Update content periodically with fresh participant data
+        // Update content periodically
         const updateInterval = setInterval(() => {
           if (pipWindow.closed) {
             clearInterval(updateInterval);
@@ -383,7 +306,7 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
             pipWindowRef.current = null;
             return;
           }
-          updatePipContentWithListeners();
+          updatePipContent();
         }, 1000);
 
         // Handle window close
@@ -395,7 +318,7 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
 
         toast({
           title: "PIP Activated",
-          description: "You can now browse other websites while studying together",
+          description: "All controls remain on the main screen. Close this toast to continue.",
         });
       } else {
         // Fallback to simple PIP
