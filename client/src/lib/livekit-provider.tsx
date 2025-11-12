@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { LiveKitRoom } from "@livekit/components-react";
-import { AudioPresets } from "livekit-client";
+import type { AudioPreset } from "livekit-client";
 
 interface LiveKitRoomProviderProps {
   token: string;
@@ -9,6 +9,11 @@ interface LiveKitRoomProviderProps {
   onDisconnected?: () => void;
   children: ReactNode;
 }
+
+// Custom audio preset for voice - fixed 50kbps
+const customAudioPreset: AudioPreset = {
+  maxBitrate: 50_000,
+};
 
 export function LiveKitRoomProvider({
   token,
@@ -31,9 +36,11 @@ export function LiveKitRoomProvider({
         publishDefaults: {
           simulcast: false,
           dtx: true,
-          audioPreset: AudioPresets.music,
+          // Custom audio preset for voice - 50kbps fixed
+          audioPreset: customAudioPreset,
+          // Fixed video encoding - 180p, 20fps, 150-250kbps
           videoEncoding: {
-            maxBitrate: 200_000,
+            maxBitrate: 250_000,
             maxFramerate: 20,
           },
         },
@@ -45,7 +52,7 @@ export function LiveKitRoomProvider({
           frameRate: 20,
         },
         audioCaptureDefaults: {
-          autoGainControl: false,
+          autoGainControl: true,
           noiseSuppression: true,
           echoCancellation: true,
         },
