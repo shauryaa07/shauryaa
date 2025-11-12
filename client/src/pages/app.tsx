@@ -61,7 +61,6 @@ export default function App() {
 
     try {
       const response = await apiRequest("POST", "/api/rooms", {
-        id: name,
         name: name,
         password: password || undefined,
         type,
@@ -73,13 +72,15 @@ export default function App() {
         throw new Error(data.error || "Failed to create room");
       }
 
+      const createdRoom = await response.json();
+
       toast({
         title: "Room Created",
         description: `Room "${name}" has been created successfully`,
       });
 
-      // Join the newly created room
-      handleRoomJoin(name, password);
+      // Join the newly created room using the actual room ID
+      handleRoomJoin(createdRoom.id, password);
     } catch (error) {
       console.error("Error creating room:", error);
       toast({
