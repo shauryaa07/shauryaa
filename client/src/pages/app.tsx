@@ -65,6 +65,7 @@ export default function App() {
         name: name,
         password: password || undefined,
         type,
+        createdBy: user.id,
       });
 
       if (!response.ok) {
