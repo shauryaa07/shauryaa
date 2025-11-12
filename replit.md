@@ -63,6 +63,29 @@ I prefer iterative development with clear, concise explanations for each step. P
 - **TanStack Query**: Server state management
 ## Recent Changes
 
+### November 12, 2025 - Critical Bug Fixes & LiveKit Configuration
+- **Fixed duplicate video display bug**: Users no longer see themselves twice in the video grid
+  - Modified `client/src/components/livekit-video-room.tsx` to filter local participant from remote participants array
+  - Prevents local participant from being displayed in both local and remote video sections
+- **Fixed audio configuration**: Corrected audio bitrate to enforce 50kbps limit
+  - Changed from AudioPresets.music (48kbps) to custom AudioPreset with 50kbps maxBitrate
+  - Proper TypeScript structure: `{ maxBitrate: 50_000 }` without invalid properties
+  - Updated `client/src/lib/livekit-provider.tsx` with correctly typed AudioPreset
+- **Added Picture-in-Picture (PIP) functionality**:
+  - New PIP button in video controls for browsing other websites while in study session
+  - Smart video selector prioritizes remote participant videos over local video
+  - Fallback to local video if no remote participant available
+  - Cross-browser compatibility with proper error handling
+- **LiveKit credentials configured**: Added LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET to environment
+  - Enables real-time video/audio streaming between study partners
+  - Fixed connection issues preventing camera and microphone access
+- **Updated bandwidth configuration**:
+  - Video: 180p (320x180), 20fps, max 250kbps (increased from 200kbps for stability)
+  - Audio: 50kbps fixed bitrate with DTX enabled
+  - Total bandwidth: ~300kbps (250kbps video + 50kbps audio)
+- **Configuration location**: client/src/lib/livekit-provider.tsx, client/src/components/livekit-video-room.tsx
+- **Architect approved**: All fixes verified and approved
+
 ### November 11, 2025 - Ultra-Low Bandwidth Configuration & 2-User Room Limit
 - **Reduced room capacity**: Changed from 5-user rooms to 2-user rooms (1 host + 1 participant)
   - Updated room schema (shared/schema.ts) to enforce maxOccupancy: 2
