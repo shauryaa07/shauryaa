@@ -10,7 +10,8 @@ I prefer iterative development with clear, concise explanations for each step. P
 
 ### UI/UX Decisions
 - **Minimalist Design**: Non-intrusive UI with a focus on functionality.
-- **Draggable Overlay**: Floating, resizable video overlay with individual Picture-in-Picture windows for each participant.
+- **YouTube-Style Minimal PIP**: Picture-in-Picture window shows only video feeds and participant labels, no controls. All controls (mute, settings, disconnect) remain on the main screen.
+- **Auto-PIP Activation**: Automatically enters PIP mode when the first remote participant joins (once per session).
 - **Cross-Tab Persistence**: PiP windows follow the user across browser tabs.
 - **Styling**: TailwindCSS with `shadcn/ui` components, featuring a custom design system including primary blue accents, high-contrast text, and subtle card elevations.
 - **Typography**: Inter font family for readability.
@@ -27,7 +28,10 @@ I prefer iterative development with clear, concise explanations for each step. P
 - Secure Authentication with registration and login.
 - Smart Matching based on user preferences.
 - LiveKit video chat for 2 participants (1 host + 1 partner) with ultra-low bandwidth (180p @ 20fps, 250kbps video, 50kbps audio).
-- Draggable Video Overlay with enhanced Picture-in-Picture for each partner.
+- **Auto-Start Audio**: Automatically attempts to start audio when joining a room with fallback permission prompt.
+- **Minimal YouTube-Style PIP**: Shows video grid and participant labels only, all controls remain on main screen.
+- **Auto-PIP on Join**: Automatically enters PIP mode when first remote participant joins (one-time per session).
+- **Automatic Room Cleanup**: Rooms are automatically deleted when occupancy reaches zero, including reliable tab-close handling.
 - Real-time controls (mute/unmute, settings, disconnect).
 - Profile management with photo and bio editing.
 - Real-time direct messaging.
@@ -39,6 +43,9 @@ I prefer iterative development with clear, concise explanations for each step. P
 - **Bandwidth Optimization**: Ultra-low bandwidth with fixed quality (adaptive streaming disabled), max 2 users per room.
 - **Session Security**: HttpOnly cookies, secure in production, 7-day expiry.
 - **Media Stream Handling**: LiveKit SDK handles getUserMedia automatically.
+- **Audio Auto-Start**: Room audio starts automatically on connection with fallback to permission prompt if blocked by browser.
+- **Room Lifecycle**: Automatic cleanup with occupancy tracking and deletion when empty, using sendBeacon for reliability during tab close.
+- **PIP Implementation**: DocumentPictureInPicture API with legacy PiP fallback for browser compatibility.
 
 ## External Dependencies
 - **livekit-client**: LiveKit JavaScript SDK for video/audio connections.
