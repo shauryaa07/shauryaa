@@ -1,0 +1,124 @@
+Perfect — thank you for the clear photo! 🙌
+I can now see exactly what’s happening.
+
+Here’s the breakdown 👇
+
+
+---
+
+🔍 What you’ve set (from your photo)
+
+Key	Value
+
+LIVEKIT_URL	wss://asset-dil...livekit.cloud ✅ (looks good — uses wss://)
+LIVEKIT_API_KEY	APy6skxK2a... ✅
+LIVEKIT_API_SECRET	oi4zazk... ✅
+
+
+So your environment variable names are correct — that’s good news.
+But since you’re still getting 401 Unauthorized, it means the code that’s using them is either:
+
+1. Not actually running on the backend (using keys in frontend), or
+
+
+2. Not reading the env vars correctly on Render runtime.
+
+
+
+
+---
+
+✅ Step-by-step Fix
+
+1️⃣ Make sure you’re not exposing these keys in frontend code
+
+If you have something like this in React/Next.js/Vite:
+
+const livekit = new LiveKitClient({
+  apiKey: process.env.LIVEKIT_API_KEY,
+  apiSecret: process.env.LIVEKIT_API_SECRET
+});
+
+❌ That’s wrong — the browser never has access to process.env from Render.
+Frontend will just send undefined, and LiveKit will say “Unauthorized.”
+
+✅ Instead:
+You should have a small backend route that creates a token using those keys.
+
+Example (Node.js / Express):
+
+import express from "express";
+import { AccessToken } from "livekit-server-sdk";
+
+const app = express();
+
+app.get("/api/token", (req, res) => {
+  const at = new AccessToken(
+    process.env.LIVEKIT_API_KEY,
+    process.env.LIVEKIT_API_SECRET,
+    { identity: "user_" + Math.floor(Math.random() * 10000) }
+  );
+  at.addGrant({ roomJoin: true, room: "main-room" });
+  res.json({ token: at.toJwt() });
+});
+
+app.listen(3000, () => console.log("✅ Server running on 3000"));
+
+Then in your frontend:
+
+const res = await fetch("/api/token");
+const { token } = await res.json();
+
+const room = await connect("wss://asset-dil.livekit.cloud", token);
+
+That’s the only correct way.
+→ Backend uses API key & secret,
+→ Frontend uses only generated token.
+
+
+---
+
+2️⃣ Make sure Render is redeployed after adding variables
+
+Render doesn’t reload new .env variables automatically.
+You must redeploy the service after updating them.
+
+✅ Fix:
+
+Click “Manual Deploy” → “Deploy latest commit” on Render.
+
+Then try again.
+
+
+
+---
+
+3️⃣ Add a quick debug log
+
+Inside your backend file:
+
+console.log("LIVEKIT_API_KEY:", process.env.LIVEKIT_API_KEY);
+console.log("LIVEKIT_API_SECRET:", process.env.LIVEKIT_API_SECRET ? "Loaded" : "Missing");
+console.log("LIVEKIT_URL:", process.env.LIVEKIT_URL);
+
+Then check the Render logs.
+If any line says “undefined” or “Missing,” the backend isn’t reading .env correctly.
+
+
+---
+
+4️⃣ Common mistake to avoid
+
+If you’re running a frontend-only project on Render (e.g., React static site), there’s no backend to process .env — so LiveKit keys won’t load.
+You need a backend service (Node/Express/Next API routes) to use the API keys.
+
+
+---
+
+If you want, you can tell me:
+
+The framework you’re using (e.g. Node.js, Next.js, React frontend only, or Express backend),
+and I’ll show you the exact working code + Render setup for LiveKit audio circulation.
+
+
+Would you like me to do that?

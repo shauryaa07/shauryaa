@@ -65,6 +65,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // LiveKit Token Generation - SECURED with session authentication
   app.post("/api/livekit/token", async (req, res) => {
     try {
+      // DEBUG: Log environment variables (first 10 chars only for security)
+      console.log("🔐 LIVEKIT_URL:", process.env.LIVEKIT_URL);
+      console.log("🔐 LIVEKIT_API_KEY:", process.env.LIVEKIT_API_KEY?.substring(0, 10) + "...");
+      console.log("🔐 LIVEKIT_API_SECRET:", process.env.LIVEKIT_API_SECRET ? "✅ Loaded" : "❌ Missing");
+      
       // SECURITY: Verify user is authenticated via session
       if (!req.session.userId || !req.session.username) {
         return res.status(401).json({ error: "Unauthorized: Please log in first" });
