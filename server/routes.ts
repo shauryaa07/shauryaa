@@ -81,7 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const username = req.session.username;
 
       // SECURITY: Verify the user still exists in storage
-      const user = await storage.getUserById(userId);
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(401).json({ error: "Unauthorized: User not found" });
       }
