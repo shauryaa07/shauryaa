@@ -8,6 +8,10 @@ const MemoryStore = memorystore(session);
 
 const app = express();
 
+// Trust proxy for proper session handling on platforms like Render
+// This is essential for secure cookies and proper client IP detection
+app.set('trust proxy', 1);
+
 declare module 'http' {
   interface IncomingMessage {
     rawBody: unknown
