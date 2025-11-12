@@ -45,7 +45,51 @@ export default function App() {
     setAppState("lobby");
   };
 
-  const handleRoomJoin = async (roomId: string) => {
+  const handleCreateRoom = async (
+    name: string,
+    password: string,
+    type: "public" | "private"
+  ) => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Please log in first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await apiRequest("POST", "/api/rooms", {
+        id: name,
+        name: name,
+        password: password || undefined,
+        type,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to create room");
+      }
+
+      toast({
+        title: "Room Created",
+        description: `Room "${name}" has been created successfully`,
+      });
+
+      // Join the newly created room
+      handleRoomJoin(name, password);
+    } catch (error) {
+      console.error("Error creating room:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create room",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRoomJoin = async (roomId: string, password: string = "") => {
     if (!user) {
       toast({
         title: "Error",
@@ -62,6 +106,7 @@ export default function App() {
       // Request LiveKit token from server (userId/username come from session)
       const response = await apiRequest("POST", "/api/livekit/token", {
         roomId,
+        password: password || undefined,
       });
 
       const data = await response.json();
@@ -86,6 +131,45 @@ export default function App() {
       });
       setAppState("lobby");
       setSelectedRoomId(null);
+    }
+  };
+
+  const handleJoinRandom = async () => {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "Please log in first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/rooms/public");
+      if (!response.ok) {
+        throw new Error("Failed to fetch public rooms");
+      }
+
+      const rooms = await response.json();
+      const availableRooms = rooms.filter((room: any) => room.currentOccupancy < room.maxOccupancy);
+
+      if (availableRooms.length === 0) {
+        toast({
+          title: "No Rooms Available",
+          description: "There are no available public rooms. Try creating one!",
+        });
+        return;
+      }
+
+      const randomRoom = availableRooms[Math.floor(Math.random() * availableRooms.length)];
+      handleRoomJoin(randomRoom.id, "");
+    } catch (error) {
+      console.error("Error joining random room:", error);
+      toast({
+        title: "Error",
+        description: "Failed to find a random room",
+        variant: "destructive",
+      });
     }
   };
 
@@ -120,6 +204,8 @@ export default function App() {
         <UnifiedLobby
           user={user}
           onJoinRoom={handleRoomJoin}
+          onCreateRoom={handleCreateRoom}
+          onJoinRandom={handleJoinRandom}
         />
       )}
 
