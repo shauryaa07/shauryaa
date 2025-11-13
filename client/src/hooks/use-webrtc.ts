@@ -39,16 +39,23 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
   const socketRef = useRef<Socket | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const otherSocketIdRef = useRef<string | null>(null);
+  const reconnectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const onDisconnectedCallback = useCallback(() => {
+    onDisconnected();
+  }, [onDisconnected]);
 
-  // Get local media stream with echo cancellation and noise suppression
+  // Get local media stream with enhanced echo cancellation and noise suppression
   const getLocalMedia = useCallback(async () => {
     try {
+      // Use ideal constraints for better cross-browser compatibility
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          sampleRate: 48000
+          sampleRate: { ideal: 48000 },
+          channelCount: { ideal: 1 }
         },
         video: {
           width: { ideal: 1280 },
@@ -96,6 +103,33 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
       setIsConnecting(false);
     };
 
+    // Handle ICE connection state changes (more reliable than connection state)
+    pc.oniceconnectionstatechange = () => {
+      console.log('❄️ ICE connection state:', pc.iceConnectionState);
+      
+      if (reconnectionTimeoutRef.current) {
+        clearTimeout(reconnectionTimeoutRef.current);
+        reconnectionTimeoutRef.current = null;
+      }
+      
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        setIsConnected(true);
+        setIsConnecting(false);
+      } else if (pc.iceConnectionState === 'disconnected') {
+        setIsConnected(false);
+        reconnectionTimeoutRef.current = setTimeout(() => {
+          if (pc.iceConnectionState === 'disconnected') {
+            console.log('⚠️ Connection timeout - disconnecting');
+            onDisconnectedCallback();
+          }
+        }, 5000);
+      } else if (pc.iceConnectionState === 'failed') {
+        console.log('❌ ICE connection failed');
+        setIsConnected(false);
+        onDisconnectedCallback();
+      }
+    };
+
     // Handle connection state changes
     pc.onconnectionstatechange = () => {
       console.log('🔌 Connection state:', pc.connectionState);
@@ -103,15 +137,12 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
       if (pc.connectionState === 'connected') {
         setIsConnected(true);
         setIsConnecting(false);
-      } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-        setIsConnected(false);
-        onDisconnected();
       }
     };
 
     peerConnectionRef.current = pc;
     return pc;
-  }, [roomId, onDisconnected]);
+  }, [roomId, onDisconnectedCallback]);
 
   // Create and send offer
   const createOffer = useCallback(async () => {
@@ -244,6 +275,12 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
     return () => {
       console.log('🧹 Cleaning up WebRTC connection');
       
+      // Clear reconnection timeout
+      if (reconnectionTimeoutRef.current) {
+        clearTimeout(reconnectionTimeoutRef.current);
+        reconnectionTimeoutRef.current = null;
+      }
+      
       // Close peer connection
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close();
@@ -261,7 +298,7 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
         socket.disconnect();
       }
     };
-  }, [roomId, userId, username, getLocalMedia, createPeerConnection, createOffer, onDisconnected]);
+  }, [roomId, userId, username, getLocalMedia, createPeerConnection, createOffer, onDisconnectedCallback]);
 
   const toggleAudio = useCallback(() => {
     if (localStream) {

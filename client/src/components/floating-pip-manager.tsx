@@ -45,8 +45,8 @@ export default function FloatingPiPManager({
 
         const offsetX = 100 + (index * 50);
         const offsetY = 100 + (index * 50);
-        const width = 400;
-        const height = 320;
+        const width = 320;
+        const height = 240;
 
         const popup = window.open(
           '',

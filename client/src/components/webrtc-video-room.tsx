@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useWebRTC } from '@/hooks/use-webrtc';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Loader2, PictureInPicture2 } from 'lucide-react';
+import FloatingPiPManager from '@/components/floating-pip-manager';
 
 interface WebRTCVideoRoomProps {
   roomId: string;
@@ -17,6 +18,7 @@ export function WebRTCVideoRoom({ roomId, userId, username, onDisconnect }: WebR
   
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isPiPActive, setIsPiPActive] = useState(false);
 
   const {
     localStream,
@@ -66,6 +68,33 @@ export function WebRTCVideoRoom({ roomId, userId, username, onDisconnect }: WebR
       setIsVideoEnabled(getVideoEnabled());
     }
   }, [localStream, getAudioEnabled, getVideoEnabled]);
+
+  // Build PIP participants list (include local user and remote if connected)
+  const pipParticipants = [];
+  if (localStream) {
+    pipParticipants.push({
+      id: 'local',
+      username: username,
+      stream: localStream,
+      isLocal: true,
+      isMuted: !isAudioEnabled,
+      isVideoOff: !isVideoEnabled
+    });
+  }
+  if (remoteStream && isConnected) {
+    pipParticipants.push({
+      id: 'remote',
+      username: 'Peer',
+      stream: remoteStream,
+      isLocal: false,
+      isMuted: false,
+      isVideoOff: false
+    });
+  }
+
+  const handleTogglePiP = () => {
+    setIsPiPActive(!isPiPActive);
+  };
 
   if (error) {
     return (
@@ -171,6 +200,16 @@ export function WebRTCVideoRoom({ roomId, userId, username, onDisconnect }: WebR
 
             <Button
               size="icon"
+              variant={isPiPActive ? "secondary" : "outline"}
+              onClick={handleTogglePiP}
+              className="h-12 w-12 rounded-full"
+              data-testid="button-toggle-pip"
+            >
+              <PictureInPicture2 className="w-5 h-5" />
+            </Button>
+
+            <Button
+              size="icon"
               variant="destructive"
               onClick={onDisconnect}
               className="h-12 w-12 rounded-full"
@@ -190,6 +229,13 @@ export function WebRTCVideoRoom({ roomId, userId, username, onDisconnect }: WebR
           </div>
         </Card>
       </div>
+
+      {/* Picture-in-Picture Manager */}
+      <FloatingPiPManager
+        participants={pipParticipants}
+        isActive={isPiPActive}
+        onDeactivate={() => setIsPiPActive(false)}
+      />
     </div>
   );
 }
