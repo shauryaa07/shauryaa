@@ -235,6 +235,9 @@ export function WebRTCVideoRoom({ roomId, userId, username, onDisconnect }: WebR
         participants={pipParticipants}
         isActive={isPiPActive}
         onDeactivate={() => setIsPiPActive(false)}
+        onToggleAudio={handleToggleAudio}
+        onToggleVideo={handleToggleVideo}
+        onDisconnect={onDisconnect}
       />
     </div>
   );

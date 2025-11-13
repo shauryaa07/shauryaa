@@ -13,12 +13,18 @@ interface FloatingPiPManagerProps {
   participants: ParticipantData[];
   isActive: boolean;
   onDeactivate: () => void;
+  onToggleAudio?: () => void;
+  onToggleVideo?: () => void;
+  onDisconnect?: () => void;
 }
 
 export default function FloatingPiPManager({
   participants,
   isActive,
   onDeactivate,
+  onToggleAudio,
+  onToggleVideo,
+  onDisconnect,
 }: FloatingPiPManagerProps) {
   const popupWindowsRef = useRef<Map<string, Window>>(new Map());
 
@@ -46,7 +52,7 @@ export default function FloatingPiPManager({
         const offsetX = 100 + (index * 50);
         const offsetY = 100 + (index * 50);
         const width = 320;
-        const height = 240;
+        const height = 180;
 
         const popup = window.open(
           '',
@@ -111,41 +117,6 @@ export default function FloatingPiPManager({
               display: flex;
               flex-direction: column;
             }
-            .header {
-              background: rgba(0, 0, 0, 0.9);
-              padding: 12px 16px;
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-              flex-shrink: 0;
-            }
-            .username {
-              color: white;
-              font-size: 14px;
-              font-weight: 600;
-              display: flex;
-              align-items: center;
-              gap: 8px;
-            }
-            .status {
-              width: 8px;
-              height: 8px;
-              background: #22c55e;
-              border-radius: 50%;
-              animation: pulse 2s infinite;
-            }
-            @keyframes pulse {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0.5; }
-            }
-            .mute-indicator {
-              color: #ef4444;
-              font-size: 12px;
-              padding: 4px 8px;
-              background: rgba(239, 68, 68, 0.1);
-              border-radius: 4px;
-            }
             .video-container {
               flex: 1;
               background: #000;
@@ -164,11 +135,11 @@ export default function FloatingPiPManager({
               color: #888;
             }
             .placeholder-icon {
-              font-size: 64px;
-              margin-bottom: 12px;
-              width: 80px;
-              height: 80px;
-              margin: 0 auto 12px;
+              font-size: 32px;
+              margin-bottom: 8px;
+              width: 48px;
+              height: 48px;
+              margin: 0 auto 8px;
               background: rgba(255, 255, 255, 0.1);
               border-radius: 50%;
               display: flex;
@@ -176,19 +147,63 @@ export default function FloatingPiPManager({
               justify-content: center;
             }
             .placeholder-text {
-              font-size: 14px;
+              font-size: 12px;
               color: #666;
+            }
+            .controls {
+              position: absolute;
+              bottom: 8px;
+              left: 50%;
+              transform: translateX(-50%);
+              display: flex;
+              gap: 6px;
+              background: rgba(0, 0, 0, 0.7);
+              padding: 6px;
+              border-radius: 8px;
+              backdrop-filter: blur(8px);
+            }
+            .control-btn {
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              border: none;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 14px;
+              transition: all 0.2s;
+            }
+            .control-btn:hover {
+              transform: scale(1.1);
+            }
+            .control-btn.mic {
+              background: ${participant.isMuted ? '#ef4444' : '#22c55e'};
+              color: white;
+            }
+            .control-btn.video {
+              background: ${participant.isVideoOff ? '#ef4444' : '#3b82f6'};
+              color: white;
+            }
+            .control-btn.disconnect {
+              background: #dc2626;
+              color: white;
+            }
+            .username-label {
+              position: absolute;
+              top: 8px;
+              left: 8px;
+              background: rgba(0, 0, 0, 0.7);
+              color: white;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 500;
+              backdrop-filter: blur(8px);
             }
           </style>
         </head>
         <body>
-          <div class="header">
-            <div class="username">
-              <span class="status"></span>
-              <span id="username">${participant.username}</span>
-            </div>
-            ${participant.isMuted ? '<div class="mute-indicator">🔇 Muted</div>' : ''}
-          </div>
           <div class="video-container" id="videoContainer">
             ${participant.isVideoOff ? `
               <div class="placeholder">
@@ -196,6 +211,20 @@ export default function FloatingPiPManager({
                 <div class="placeholder-text">Video Off</div>
               </div>
             ` : '<video id="video" autoplay playsinline></video>'}
+            <div class="username-label">${participant.username}</div>
+            ${participant.isLocal ? `
+              <div class="controls">
+                <button class="control-btn mic" id="micBtn" title="Toggle Microphone">
+                  ${participant.isMuted ? '🔇' : '🎤'}
+                </button>
+                <button class="control-btn video" id="videoBtn" title="Toggle Camera">
+                  ${participant.isVideoOff ? '📹' : '🎥'}
+                </button>
+                <button class="control-btn disconnect" id="disconnectBtn" title="Disconnect">
+                  ✕
+                </button>
+              </div>
+            ` : ''}
           </div>
         </body>
       </html>
@@ -208,6 +237,30 @@ export default function FloatingPiPManager({
         video.srcObject = participant.stream;
         video.muted = participant.isLocal;
         video.play().catch(err => console.warn('Autoplay blocked:', err));
+      }
+    }
+
+    if (participant.isLocal) {
+      const micBtn = doc.getElementById('micBtn');
+      const videoBtn = doc.getElementById('videoBtn');
+      const disconnectBtn = doc.getElementById('disconnectBtn');
+
+      if (micBtn && onToggleAudio) {
+        micBtn.addEventListener('click', () => {
+          onToggleAudio();
+        });
+      }
+
+      if (videoBtn && onToggleVideo) {
+        videoBtn.addEventListener('click', () => {
+          onToggleVideo();
+        });
+      }
+
+      if (disconnectBtn && onDisconnect) {
+        disconnectBtn.addEventListener('click', () => {
+          onDisconnect();
+        });
       }
     }
   };
