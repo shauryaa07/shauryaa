@@ -1,10 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import memorystore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const MemoryStore = memorystore(session);
+const PgSession = connectPgSimple(session);
 
 const app = express();
 
@@ -33,12 +36,32 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
-// Use MemoryStore for sessions - Firebase handles authentication
-// Rooms are temporary and don't need to persist across restarts
-log("Using Firebase for authentication and MemoryStore for temporary room data");
-const sessionStore = new MemoryStore({
-  checkPeriod: 86400000, // 24 hours
-});
+// Session store configuration - use PostgreSQL for persistence
+let sessionStore;
+
+if (process.env.DATABASE_URL) {
+  // Production: Use PostgreSQL for persistent sessions
+  const pgPool = new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_SSL !== "false" ? { rejectUnauthorized: false } : undefined,
+  });
+
+  sessionStore = new PgSession({
+    pool: pgPool,
+    tableName: "session",
+    createTableIfMissing: true,
+  });
+
+  log("✅ Using PostgreSQL session store for persistence");
+} else {
+  // Development: Use MemoryStore (sessions lost on restart)
+  sessionStore = new MemoryStore({
+    checkPeriod: 86400000, // 24 hours
+  });
+
+  log("⚠️  WARNING: Using MemoryStore in development! Sessions will be lost on restart.");
+  log("⚠️  For production, set DATABASE_URL environment variable.");
+}
 
 // Session middleware for authentication
 app.use(
@@ -51,7 +74,7 @@ app.use(
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "lax" : "lax",
     },
   })
 );
