@@ -269,35 +269,68 @@ export default function FloatingPiPManager({
     if (popup.closed) return;
 
     const doc = popup.document;
-    const usernameEl = doc.getElementById('username');
-    if (usernameEl) {
-      usernameEl.textContent = participant.username;
+    
+    // Update username label
+    const usernameLabel = doc.querySelector('.username-label');
+    if (usernameLabel) {
+      usernameLabel.textContent = participant.username;
     }
 
+    // Update video/placeholder without destroying controls
+    const existingVideo = doc.getElementById('video') as HTMLVideoElement;
+    const existingPlaceholder = doc.querySelector('.placeholder');
     const videoContainer = doc.getElementById('videoContainer');
-    if (videoContainer) {
-      if (participant.isVideoOff) {
-        videoContainer.innerHTML = `
-          <div class="placeholder">
-            <div class="placeholder-icon">${participant.username.charAt(0).toUpperCase()}</div>
-            <div class="placeholder-text">Video Off</div>
-          </div>
+    
+    if (!videoContainer) return;
+
+    if (participant.isVideoOff) {
+      // Remove video if exists, add placeholder if not exists
+      if (existingVideo) {
+        existingVideo.remove();
+      }
+      if (!existingPlaceholder) {
+        const placeholder = doc.createElement('div');
+        placeholder.className = 'placeholder';
+        placeholder.innerHTML = `
+          <div class="placeholder-icon">${participant.username.charAt(0).toUpperCase()}</div>
+          <div class="placeholder-text">Video Off</div>
         `;
-      } else {
-        const existingVideo = doc.getElementById('video') as HTMLVideoElement;
-        if (existingVideo && existingVideo.srcObject !== participant.stream) {
-          existingVideo.srcObject = participant.stream;
-          existingVideo.muted = participant.isLocal;
-          existingVideo.play().catch(err => console.warn('Autoplay blocked:', err));
-        } else if (!existingVideo && participant.stream) {
-          videoContainer.innerHTML = '<video id="video" autoplay playsinline></video>';
-          const video = doc.getElementById('video') as HTMLVideoElement;
-          if (video) {
-            video.srcObject = participant.stream;
-            video.muted = participant.isLocal;
-            video.play().catch(err => console.warn('Autoplay blocked:', err));
-          }
-        }
+        videoContainer.insertBefore(placeholder, videoContainer.firstChild);
+      }
+    } else {
+      // Remove placeholder if exists, add/update video
+      if (existingPlaceholder) {
+        existingPlaceholder.remove();
+      }
+      if (existingVideo && existingVideo.srcObject !== participant.stream) {
+        existingVideo.srcObject = participant.stream;
+        existingVideo.muted = participant.isLocal;
+        existingVideo.play().catch(err => console.warn('Autoplay blocked:', err));
+      } else if (!existingVideo && participant.stream) {
+        const video = doc.createElement('video');
+        video.id = 'video';
+        video.autoplay = true;
+        video.playsInline = true;
+        video.srcObject = participant.stream;
+        video.muted = participant.isLocal;
+        videoContainer.insertBefore(video, videoContainer.firstChild);
+        video.play().catch(err => console.warn('Autoplay blocked:', err));
+      }
+    }
+
+    // Update control button states if local participant
+    if (participant.isLocal) {
+      const micBtn = doc.getElementById('micBtn');
+      const videoBtn = doc.getElementById('videoBtn');
+      
+      if (micBtn) {
+        micBtn.style.background = participant.isMuted ? '#ef4444' : '#22c55e';
+        micBtn.textContent = participant.isMuted ? '🔇' : '🎤';
+      }
+      
+      if (videoBtn) {
+        videoBtn.style.background = participant.isVideoOff ? '#ef4444' : '#3b82f6';
+        videoBtn.textContent = participant.isVideoOff ? '📹' : '🎥';
       }
     }
   };
