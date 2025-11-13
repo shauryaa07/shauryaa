@@ -19,7 +19,7 @@ I prefer iterative development with clear, concise explanations for each step. P
 ### Technical Implementations
 - **Frontend**: React with TypeScript, Wouter for routing, and TanStack Query for data fetching.
 - **Backend**: Node.js with Express, handling authentication and room management.
-- **Video Infrastructure**: LiveKit for real-time video/audio communication.
+- **Video Infrastructure**: WebRTC P2P with Socket.io signaling for real-time video/audio communication.
 - **Authentication**: Session-based with express-session, bcrypt password hashing.
 - **Smart Matching**: Algorithm connecting students based on subject, study mood, and partner preferences.
 - **Session Management**: Express sessions with MemoryStore.
@@ -27,30 +27,30 @@ I prefer iterative development with clear, concise explanations for each step. P
 ### Feature Specifications
 - Secure Authentication with registration and login.
 - Smart Matching based on user preferences.
-- LiveKit video chat for 2 participants (1 host + 1 partner) with ultra-low bandwidth (180p @ 20fps, 250kbps video, 50kbps audio).
-- **Auto-Start Audio**: Automatically attempts to start audio when joining a room with fallback permission prompt.
-- **Minimal YouTube-Style PIP**: Shows video grid and participant labels only, all controls remain on main screen.
-- **Auto-PIP on Join**: Automatically enters PIP mode when first remote participant joins (one-time per session).
+- WebRTC P2P video chat for 2 participants (1 host + 1 partner) with direct peer-to-peer connection.
+- **Real-time Video/Audio**: Local and remote video streams with toggle controls for audio/video.
+- **Socket.io Signaling**: Lightweight signaling server relays WebRTC offer/answer/ICE candidates.
+- **2-Participant Room Limit**: Enforced at signaling level, rooms support exactly 2 peers.
 - **Automatic Room Cleanup**: Rooms are automatically deleted when occupancy reaches zero, including reliable tab-close handling.
-- Real-time controls (mute/unmute, settings, disconnect).
+- Real-time controls (mute/unmute, video toggle, disconnect).
 - Profile management with photo and bio editing.
 - Real-time direct messaging.
 - Friend request management.
 
 ### System Design Choices
 - **Storage**: In-memory storage (MemStorage) for user management and session data (data is lost on restart).
-- **Video Architecture**: LiveKit Cloud (centralized media server) with token-based authentication (10-minute TTL).
-- **Bandwidth Optimization**: Ultra-low bandwidth with fixed quality (adaptive streaming disabled), max 2 users per room.
+- **Video Architecture**: WebRTC P2P (direct peer-to-peer) with Socket.io signaling server. No media goes through the server.
+- **Bandwidth**: Direct P2P connection, bandwidth managed by WebRTC's adaptive bitrate control. STUN servers for NAT traversal.
 - **Session Security**: HttpOnly cookies, secure in production, 7-day expiry.
-- **Media Stream Handling**: LiveKit SDK handles getUserMedia automatically.
-- **Audio Auto-Start**: Room audio starts automatically on connection with fallback to permission prompt if blocked by browser.
+- **Media Stream Handling**: navigator.mediaDevices.getUserMedia in client-side hook.
+- **WebRTC Connection**: RTCPeerConnection with ICE candidate exchange via Socket.io signaling.
 - **Room Lifecycle**: Automatic cleanup with occupancy tracking and deletion when empty, using sendBeacon for reliability during tab close.
-- **PIP Implementation**: DocumentPictureInPicture API with legacy PiP fallback for browser compatibility.
+- **Signaling Events**: join, signal (offer/answer/ice), leave, peer-joined, peer-left, room-full.
 
 ## External Dependencies
-- **livekit-client**: LiveKit JavaScript SDK for video/audio connections.
-- **@livekit/components-react**: Pre-built React components for video UI.
-- **livekit-server-sdk**: Server-side token generation.
+- **socket.io**: WebRTC signaling server for relaying connection messages.
+- **socket.io-client**: Client-side Socket.io for signaling connection.
+- **uuid**: Generating unique identifiers for rooms and entities.
 - **express-session**: Session management middleware.
 - **memorystore**: In-memory session store.
 - **bcrypt**: Password hashing.
