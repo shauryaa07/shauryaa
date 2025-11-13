@@ -40,12 +40,21 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const otherSocketIdRef = useRef<string | null>(null);
 
-  // Get local media stream
+  // Get local media stream with echo cancellation and noise suppression
   const getLocalMedia = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: true
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000
+        },
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: 'user'
+        }
       });
       setLocalStream(stream);
       return stream;
@@ -259,8 +268,11 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
       const audioTrack = localStream.getAudioTracks()[0];
       if (audioTrack) {
         audioTrack.enabled = !audioTrack.enabled;
+        console.log('🎤 Audio toggled:', audioTrack.enabled);
+        return audioTrack.enabled;
       }
     }
+    return false;
   }, [localStream]);
 
   const toggleVideo = useCallback(() => {
@@ -268,8 +280,27 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
       const videoTrack = localStream.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
+        console.log('📹 Video toggled:', videoTrack.enabled);
+        return videoTrack.enabled;
       }
     }
+    return false;
+  }, [localStream]);
+
+  const getAudioEnabled = useCallback(() => {
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      return audioTrack ? audioTrack.enabled : false;
+    }
+    return false;
+  }, [localStream]);
+
+  const getVideoEnabled = useCallback(() => {
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      return videoTrack ? videoTrack.enabled : false;
+    }
+    return false;
   }, [localStream]);
 
   return {
@@ -279,6 +310,8 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
     isConnected,
     error,
     toggleAudio,
-    toggleVideo
+    toggleVideo,
+    getAudioEnabled,
+    getVideoEnabled
   };
 }

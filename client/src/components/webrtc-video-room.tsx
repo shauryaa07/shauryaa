@@ -25,7 +25,9 @@ export function WebRTCVideoRoom({ roomId, userId, username, onDisconnect }: WebR
     isConnected,
     error,
     toggleAudio,
-    toggleVideo
+    toggleVideo,
+    getAudioEnabled,
+    getVideoEnabled
   } = useWebRTC({
     roomId,
     userId,
@@ -48,14 +50,22 @@ export function WebRTCVideoRoom({ roomId, userId, username, onDisconnect }: WebR
   }, [remoteStream]);
 
   const handleToggleAudio = () => {
-    toggleAudio();
-    setIsAudioEnabled(!isAudioEnabled);
+    const newState = toggleAudio();
+    setIsAudioEnabled(newState);
   };
 
   const handleToggleVideo = () => {
-    toggleVideo();
-    setIsVideoEnabled(!isVideoEnabled);
+    const newState = toggleVideo();
+    setIsVideoEnabled(newState);
   };
+
+  // Sync UI state with actual track state
+  useEffect(() => {
+    if (localStream) {
+      setIsAudioEnabled(getAudioEnabled());
+      setIsVideoEnabled(getVideoEnabled());
+    }
+  }, [localStream, getAudioEnabled, getVideoEnabled]);
 
   if (error) {
     return (
@@ -72,13 +82,13 @@ export function WebRTCVideoRoom({ roomId, userId, username, onDisconnect }: WebR
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Video Grid */}
-      <div className="h-screen flex flex-col">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      {/* Video Grid Container - Medium Zoom Size */}
+      <div className="w-full max-w-6xl">
         {/* Main Video Area */}
-        <div className="flex-1 relative p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {/* Local Video */}
-          <div className="relative bg-muted rounded-lg overflow-hidden">
+          <div className="relative bg-muted rounded-lg overflow-hidden aspect-video">
             <video
               ref={localVideoRef}
               autoPlay
@@ -98,7 +108,7 @@ export function WebRTCVideoRoom({ roomId, userId, username, onDisconnect }: WebR
           </div>
 
           {/* Remote Video */}
-          <div className="relative bg-muted rounded-lg overflow-hidden">
+          <div className="relative bg-muted rounded-lg overflow-hidden aspect-video">
             {isConnecting ? (
               <div className="flex flex-col items-center justify-center h-full">
                 <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
@@ -129,8 +139,8 @@ export function WebRTCVideoRoom({ roomId, userId, username, onDisconnect }: WebR
         </div>
 
         {/* Controls */}
-        <div className="border-t bg-card p-4">
-          <div className="max-w-4xl mx-auto flex items-center justify-center gap-4">
+        <Card className="p-4">
+          <div className="flex items-center justify-center gap-4">
             <Button
               size="icon"
               variant={isAudioEnabled ? "default" : "destructive"}
@@ -178,7 +188,7 @@ export function WebRTCVideoRoom({ roomId, userId, username, onDisconnect }: WebR
               )}
             </p>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
