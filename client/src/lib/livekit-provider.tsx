@@ -55,6 +55,7 @@ export function LiveKitRoomProvider({
           autoGainControl: true,
           noiseSuppression: true,
           echoCancellation: true,
+          deviceId: undefined,
         },
       }}
       data-lk-theme="default"
