@@ -38,7 +38,7 @@ export const sessionSchema = z.object({
 
 export type Session = z.infer<typeof sessionSchema>;
 
-// LiveKit participant info
+// WebRTC participant info
 export interface ParticipantInfo {
   id: string;
   username: string;

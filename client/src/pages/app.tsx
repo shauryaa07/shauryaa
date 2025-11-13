@@ -2,24 +2,15 @@ import { useState, useEffect, useRef } from "react";
 import { User, Settings } from "@shared/schema";
 import { AuthForm } from "@/components/auth-form";
 import UnifiedLobby from "@/components/unified-lobby";
-import LiveKitVideoRoom from "@/components/livekit-video-room";
-import { LiveKitRoomProvider } from "@/lib/livekit-provider";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
 type AppState = "auth" | "lobby" | "connecting" | "connected";
 
-interface LiveKitSession {
-  token: string;
-  url: string;
-  roomId: string;
-}
-
 export default function App() {
   const [appState, setAppState] = useState<AppState>("auth");
   const [user, setUser] = useState<User | null>(null);
-  const [livekitSession, setLivekitSession] = useState<LiveKitSession | null>(null);
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const isDisconnectingRef = useRef(false);
 
@@ -106,24 +97,8 @@ export default function App() {
     setSelectedRoomId(roomId);
 
     try {
-      // Request LiveKit token from server (userId/username come from session)
-      const response = await apiRequest("POST", "/api/livekit/token", {
-        roomId,
-        password: password || undefined,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to get access token");
-      }
-
-      setLivekitSession({
-        token: data.token,
-        url: data.url,
-        roomId: data.roomId,
-      });
-
+      // Join room logic will be implemented with WebRTC
+      // For now, just set the state to connected
       setAppState("connected");
     } catch (error) {
       console.error("Error joining room:", error);
@@ -179,15 +154,15 @@ export default function App() {
   // Centralized room disconnect handler - calls API to decrement occupancy and cleanup
   const handleRoomDisconnect = async () => {
     // Prevent duplicate disconnect calls
-    if (isDisconnectingRef.current || !livekitSession?.roomId) {
+    if (isDisconnectingRef.current || !selectedRoomId) {
       return;
     }
 
     isDisconnectingRef.current = true;
 
     try {
-      await apiRequest("POST", `/api/rooms/${livekitSession.roomId}/disconnect`, {});
-      console.log(`Disconnected from room ${livekitSession.roomId}`);
+      await apiRequest("POST", `/api/rooms/${selectedRoomId}/disconnect`, {});
+      console.log(`Disconnected from room ${selectedRoomId}`);
     } catch (error) {
       console.error("Error disconnecting from room:", error);
     } finally {
@@ -199,7 +174,6 @@ export default function App() {
     await handleRoomDisconnect();
     
     setAppState("lobby");
-    setLivekitSession(null);
     setSelectedRoomId(null);
     
     toast({
@@ -211,10 +185,10 @@ export default function App() {
   // Handle tab close or browser crash - use sendBeacon for reliable cleanup
   useEffect(() => {
     const handlePageHide = () => {
-      if (livekitSession?.roomId && !isDisconnectingRef.current) {
+      if (selectedRoomId && !isDisconnectingRef.current) {
         // Use sendBeacon for reliable delivery even when page is unloading
         const blob = new Blob([JSON.stringify({})], { type: 'application/json' });
-        navigator.sendBeacon(`/api/rooms/${livekitSession.roomId}/disconnect`, blob);
+        navigator.sendBeacon(`/api/rooms/${selectedRoomId}/disconnect`, blob);
       }
     };
 
@@ -225,12 +199,11 @@ export default function App() {
       window.removeEventListener('pagehide', handlePageHide);
       window.removeEventListener('beforeunload', handlePageHide);
     };
-  }, [livekitSession]);
+  }, [selectedRoomId]);
 
   const handleLogout = () => {
     setUser(null);
     setAppState("auth");
-    setLivekitSession(null);
     setSelectedRoomId(null);
     localStorage.removeItem("currentUser");
   };
@@ -261,15 +234,19 @@ export default function App() {
         </div>
       )}
 
-      {appState === "connected" && livekitSession && (
-        <LiveKitRoomProvider
-          token={livekitSession.token}
-          serverUrl={livekitSession.url}
-          roomName={livekitSession.roomId}
-          onDisconnected={handleDisconnect}
-        >
-          <LiveKitVideoRoom onDisconnect={handleDisconnect} />
-        </LiveKitRoomProvider>
+      {appState === "connected" && selectedRoomId && (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold mb-4">WebRTC Room</h2>
+            <p className="text-muted-foreground mb-4">Room ID: {selectedRoomId}</p>
+            <button 
+              onClick={handleDisconnect}
+              className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md"
+            >
+              Leave Room
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

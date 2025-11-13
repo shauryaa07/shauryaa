@@ -4,7 +4,6 @@ import { storage } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { registerSchema, loginSchema } from "@shared/schema";
-import { generateLiveKitToken, getLiveKitConfig, validateLiveKitConfig } from "./livekit";
 
 // Request validation schemas
 const createRoomSchema = z.object({
@@ -49,29 +48,12 @@ const createMessageSchema = z.object({
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
-  // Check LiveKit configuration on startup
-  const livekitConfig = validateLiveKitConfig();
-  if (!livekitConfig.valid) {
-    console.warn(`⚠️  LiveKit Warning: ${livekitConfig.message}`);
-    console.warn("⚠️  For production use, set environment variables:");
-    console.warn("   - LIVEKIT_URL (e.g., wss://your-livekit-server.com)");
-    console.warn("   - LIVEKIT_API_KEY");
-    console.warn("   - LIVEKIT_API_SECRET");
-  } else {
-    console.log("✅ LiveKit configured successfully");
-  }
-
   app.get("/api/health", async (req, res) => {
     try {
       await storage.getAllSessions();
-      const config = getLiveKitConfig();
       res.json({ 
         status: "ok", 
-        database: "connected",
-        livekit: {
-          url: config.url,
-          configured: livekitConfig.valid
-        }
+        database: "connected"
       });
     } catch (error) {
       console.error("Health check failed:", error);
@@ -83,69 +65,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // LiveKit Token Generation - SECURED with session authentication
-  app.post("/api/livekit/token", async (req, res) => {
-    try {
-      // DEBUG: Log environment variables (first 10 chars only for security)
-      console.log("🔐 LIVEKIT_URL:", process.env.LIVEKIT_URL);
-      console.log("🔐 LIVEKIT_API_KEY:", process.env.LIVEKIT_API_KEY?.substring(0, 10) + "...");
-      console.log("🔐 LIVEKIT_API_SECRET:", process.env.LIVEKIT_API_SECRET ? "✅ Loaded" : "❌ Missing");
-      
-      // SECURITY: Verify user is authenticated via session
-      if (!req.session.userId || !req.session.username) {
-        return res.status(401).json({ error: "Unauthorized: Please log in first" });
-      }
-
-      // Get roomId from request body
-      const { roomId } = req.body;
-      if (!roomId) {
-        return res.status(400).json({ error: "Room ID is required" });
-      }
-
-      // SECURITY: Use userId and username from session (server-side, trusted)
-      const userId = req.session.userId;
-      const username = req.session.username;
-
-      // SECURITY: Verify the user still exists in storage
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(401).json({ error: "Unauthorized: User not found" });
-      }
-
-      // SECURITY: Check if room exists and user is authorized to join
-      const allRooms = await storage.getPublicRooms();
-      const room = allRooms.find(r => r.id === roomId);
-      
-      if (!room) {
-        return res.status(404).json({ error: "Room not found" });
-      }
-
-      // Check if room is full
-      if (room.currentOccupancy >= room.maxOccupancy) {
-        return res.status(403).json({ error: "Room is full" });
-      }
-
-      // For private rooms, ensure user has already passed password validation at join endpoint
-      // This endpoint assumes authorization has been granted
-
-      // Generate LiveKit access token with session-authenticated user info
-      const token = await generateLiveKitToken(
-        roomId, 
-        userId, // From session, not request
-        JSON.stringify({ username }) // From session, not request
-      );
-      const config = getLiveKitConfig();
-
-      res.json({ 
-        token,
-        url: config.url,
-        roomId
-      });
-    } catch (error) {
-      console.error("Error generating LiveKit token:", error);
-      res.status(500).json({ error: "Failed to generate access token" });
-    }
-  });
 
   // Authentication Routes
   app.post("/api/auth/register", async (req, res) => {
@@ -785,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/stats', (req, res) => {
     res.json({
       status: "ok",
-      livekit: livekitConfig.valid,
+      webrtc: true,
     });
   });
 

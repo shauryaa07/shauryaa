@@ -1,0 +1,553 @@
+Nice — I’ll give you a complete, copy-pasteable solution: a tiny signaling server (Node.js + Socket.io), a client HTML/JS that creates secure 1-to-1 P2P WebRTC rooms (multiple rooms can exist at once), step-by-step deployment instructions, optional TURN (if needed), and instructions for removing libgit from your site before switching to this WebRTC P2P flow.
+
+I’ll also include a short “AI agent” helper idea you can plug in (optional) — e.g., a small server-side bot that can create room IDs, moderate, or post text prompts into rooms. (It’s optional — you can ignore it.)
+
+Everything below is self-contained and intended to get you running completely free (no media server bandwidth cost) for many simultaneous 2-person rooms.
+
+What you’ll get
+
+1. server/ — Node.js signaling server (Socket.io)
+
+
+2. client/ — index.html + client.js (create/join unique 1:1 rooms)
+
+
+3. How to remove libgit from your site safely
+
+
+4. Optional: How to deploy the signaling server (free tiers)
+
+
+5. Optional: TURN server notes (only if required)
+
+
+6. Small AI-agent helper idea and sample code
+
+
+
+
+---
+
+1) Remove libgit from your website (safe steps)
+
+If your site currently uses a library named libgit (or nodegit / libgit2), and you want to remove it before switching to this WebRTC solution:
+
+Steps (npm / Node.js projects)
+
+1. Stop your server/process.
+
+
+2. Remove references from code:
+
+Search for imports/usages:
+
+grep -R "libgit" -n .
+grep -R "nodegit" -n .
+
+Remove or comment out require('libgit') or import ... from 'libgit'.
+
+
+
+3. Uninstall the package:
+
+npm uninstall libgit nodegit libgit2
+
+(use the package name you actually have)
+
+
+4. Remove any build-time references (webpack, rollup) and code that relies on libgit objects.
+
+
+5. Run tests / start dev server and confirm nothing breaks:
+
+npm run dev
+
+
+6. Commit the changes:
+
+git add .
+git commit -m "remove libgit before switching to WebRTC P2P"
+
+
+
+If you use a different package manager
+
+Yarn: yarn remove libgit
+
+pnpm: pnpm remove libgit
+
+
+Why remove first? If libgit was used for unrelated features, leave only the code that’s needed. Removing legacy heavy native modules reduces build complexity and hosting issues.
+
+
+---
+
+2) Signaling server (Node.js + Socket.io)
+
+Create a folder server/ with these files.
+
+server/package.json
+
+{
+  "name": "webrtc-signaling",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "http": "^0.0.1-security",
+    "socket.io": "^4.7.2",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.0"
+  }
+}
+
+server/server.js
+
+// Simple signaling server for many 1:1 rooms
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const { v4: uuidv4 } = require('uuid');
+const cors = require('cors');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: '*' }
+});
+
+// Lightweight health endpoint
+app.get('/', (req, res) => res.send('Signaling server running'));
+
+// Create a new room id (optional convenience)
+app.post('/createRoom', (req, res) => {
+  const id = uuidv4();
+  res.json({ room: id });
+});
+
+io.on('connection', socket => {
+  console.log('socket connected:', socket.id);
+
+  socket.on('join', ({ room }) => {
+    console.log(${socket.id} joining ${room});
+    socket.join(room);
+
+    const clients = Array.from(io.sockets.adapter.rooms.get(room) || []);
+    // Notify others in room about new peer
+    socket.to(room).emit('peer-joined', { from: socket.id });
+
+    // If now > 2 clients, optionally reject
+    if (clients.length > 2) {
+      // Leave and notify
+      socket.leave(room);
+      socket.emit('room-full', { message: 'Room only supports 2 participants' });
+      return;
+    }
+
+    socket.emit('joined', { room, id: socket.id });
+  });
+
+  // Relay offer/answer/ice
+  socket.on('signal', ({ room, to, data }) => {
+    // data should be { type: 'offer'|'answer'|'ice', payload: ... }
+    if (to) {
+      io.to(to).emit('signal', { from: socket.id, data });
+    } else {
+      // broadcast to room (other participant)
+      socket.to(room).emit('signal', { from: socket.id, data });
+    }
+  });
+
+  socket.on('leave', ({ room }) => {
+    socket.leave(room);
+    socket.to(room).emit('peer-left', { from: socket.id });
+  });
+
+  socket.on('disconnect', () => {
+    console.log('socket disconnected:', socket.id);
+    // optionally, broadcast disconnect to rooms
+    // socket.rooms is a Set containing room ids (including socket.id)
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(Signaling server listening on ${PORT}));
+
+Notes
+
+The server only forwards signal messages (offer/answer/ice). Media never goes through this server.
+
+If you need server-generated room IDs, use /createRoom.
+
+
+
+---
+
+3) Client: HTML + JavaScript (P2P 1-to-1 rooms)
+
+Create client/index.html and client/client.js.
+
+client/index.html
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>P2P WebRTC 1-to-1</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    video { width: 45%; margin: 10px; background: black; }
+    #controls { margin-bottom: 12px; }
+    input { padding: 6px; }
+  </style>
+</head>
+<body>
+  <h1>WebRTC P2P 1-to-1 (many rooms)</h1>
+
+  <div id="controls">
+    <input id="roomInput" placeholder="room id (or leave blank to create)" size="40" />
+    <button id="createBtn">Create Room</button>
+    <button id="joinBtn">Join Room</button>
+    <span id="status"></span>
+  </div>
+
+  <div>
+    <video id="localVideo" autoplay muted playsinline></video>
+    <video id="remoteVideo" autoplay playsinline></video>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
+
+client/client.js
+
+// Edit this to your signaling server URL
+const SIGNALING_SERVER = (window.location.hostname === 'localhost') ? 'http://localhost:3000' : 'https://YOUR_SIGNALING_SERVER_DOMAIN';
+const socket = io(SIGNALING_SERVER);
+
+const localVideo = document.getElementById('localVideo');
+const remoteVideo = document.getElementById('remoteVideo');
+const createBtn = document.getElementById('createBtn');
+const joinBtn = document.getElementById('joinBtn');
+const roomInput = document.getElementById('roomInput');
+const statusSpan = document.getElementById('status');
+
+let localStream = null;
+let pc = null;
+let roomId = null;
+let otherSocketId = null;
+
+// ICE servers: STUN for free. Add TURN if you have one.
+const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
+
+async function getLocalMedia() {
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+    localVideo.srcObject = localStream;
+  } catch (err) {
+    alert('Could not access camera/microphone: ' + err.message);
+    throw err;
+  }
+}
+
+createBtn.onclick = async () => {
+  // Create a room on server (optional)
+  const resp = await fetch(${SIGNALING_SERVER}/createRoom, { method: 'POST' }).then(r => r.json());
+  roomInput.value = resp.room;
+  joinRoom();
+};
+
+joinBtn.onclick = () => joinRoom();
+
+async function joinRoom() {
+  roomId = roomInput.value.trim();
+  if (!roomId) return alert('Enter or create a room id first');
+
+  status('Joining room: ' + roomId);
+  await getLocalMedia();
+  socket.emit('join', { room: roomId });
+}
+
+socket.on('joined', async ({ room, id }) => {
+  status('Joined room. Waiting for peer...');
+  // create RTCPeerConnection
+  await createPeerConnection();
+});
+
+socket.on('peer-joined', async ({ from }) => {
+  // The other peer just joined — start negotiation if we are the first
+  otherSocketId = from;
+  // createpeerconnection if not exists
+  if (!pc) await createPeerConnection();
+  // Create offer (we'll be the caller)
+  await createOffer();
+});
+
+socket.on('signal', async ({ from, data }) => {
+  // data: { type: ..., payload: ... }
+  if (!pc) await createPeerConnection();
+  if (data.type === 'offer') {
+    otherSocketId = from;
+    await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit('signal', { room: roomId, to: from, data: { type: 'answer', payload: pc.localDescription } });
+  } else if (data.type === 'answer') {
+    await pc.setRemoteDescription(new RTCSessionDescription(data.payload));
+  } else if (data.type === 'ice') {
+    try {
+      await pc.addIceCandidate(data.payload);
+    } catch (e) {
+      console.warn('Error adding ice candidate', e);
+    }
+  }
+});
+
+socket.on('room-full', ({ message }) => {
+  alert(message);
+  status('Room full');
+});
+
+socket.on('peer-left', ({ from }) => {
+  status('Peer left');
+  // cleanup remote
+  if (remoteVideo.srcObject) {
+    remoteVideo.srcObject.getTracks().forEach(t => t.stop());
+    remoteVideo.srcObject = null;
+  }
+  otherSocketId = null;
+  if (pc) {
+    pc.close();
+    pc = null;
+  }
+});
+
+async function createPeerConnection() {
+  pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+  // add local tracks
+  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+  pc.onicecandidate = (e) => {
+    if (e.candidate) {
+      socket.emit('signal', { room: roomId, to: otherSocketId, data: { type: 'ice', payload: e.candidate }});
+    }
+  };
+
+  pc.ontrack = (e) => {
+    // attach remote stream
+    remoteVideo.srcObject = e.streams[0];
+  };
+
+  pc.onconnectionstatechange = () => {
+    console.log('pc state', pc.connectionState);
+    status('Connection: ' + pc.connectionState);
+    if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+      // auto cleanup
+    }
+  };
+}
+
+async function createOffer() {
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  socket.emit('signal', { room: roomId, to: otherSocketId, data: { type: 'offer', payload: pc.localDescription }});
+}
+
+function status(msg) {
+  statusSpan.innerText = msg;
+}
+
+How it works (client)
+
+Client requests local media, connects to signaling server, and joins the room.
+
+First peer in room waits. When second peer joins, server sends peer-joined and the offer/answer/ICE exchange begins.
+
+All media flows directly between peers (P2P). The server only exchanges signaling messages.
+
+
+
+---
+
+4) Deploying the signaling server (free options)
+
+Render (free web service with persistent processes, supports sockets) — simple to deploy.
+
+Glitch — good for small test apps, but not reliable for production.
+
+Fly.io — free tier supports small apps.
+
+Railway — free tier for prototypes.
+
+Vercel — supports serverless only; socket support limited (use Render / Fly for sockets).
+
+
+Simplest: deploy to Render
+
+1. Push server/ to GitHub.
+
+
+2. Create new Render Web Service, connect repo, set start command npm start.
+
+
+3. Set ALLOW_ORIGIN env or use wildcard CORS in server.
+
+
+
+Make sure you update SIGNALING_SERVER in client script to your rendered URL (e.g., https://your-app.onrender.com).
+
+Important: Use HTTPS (Render, Fly, etc. provide HTTPS). Browsers require secure context for getUserMedia.
+
+
+---
+
+5) TURN — when and how
+
+Most networks allow P2P via STUN. But some corporate/strict NATs require TURN relay.
+
+If you find users cannot connect (no peer connection established), add a TURN server:
+
+Setup coturn on a VPS (costs for VPS bandwidth).
+
+Or use paid TURN providers.
+
+
+In the client ICE_SERVERS array:
+
+
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'turn:your-turn-ip:3478', username: 'user', credential: 'pass' }
+];
+
+TURN will relay media through that VPS (this costs bandwidth on that VPS). For a completely free stack, avoid TURN and accept that some users behind strict networks may fail.
+
+
+
+---
+
+6) Security & production notes
+
+Use HTTPS everywhere (for camera & mic).
+
+Validate room IDs on server if you want privacy — e.g., only allow users with an invite token.
+
+Rate-limit and validate socket events to avoid abuse.
+
+Clean up rooms and socket associations on disconnect.
+
+For better UX: implement reconnect logic and retry ICE candidates on failures.
+
+
+
+---
+
+7) Optional: small AI Agent helper (server-side)
+
+If by “replicate AI agent” you mean an automated helper that can create rooms, moderate text messages, or perform server-side tasks — you can add a tiny REST endpoint that creates a room or sends messages to a room.
+
+Example: extend server/server.js to send a text message to a room (the clients must handle it):
+
+// Add this endpoint to server.js
+app.post('/botMessage', (req, res) => {
+  const { room, text } = req.body;
+  if (!room || !text) return res.status(400).json({ error: 'room and text required' });
+  io.to(room).emit('bot-message', { text, from: 'bot' });
+  res.json({ ok: true });
+});
+
+Client listens:
+
+socket.on('bot-message', ({ text, from }) => {
+  console.log('Bot:', text);
+  // Optionally overlay text on UI
+});
+
+You could connect this endpoint to an AI service (OpenAI, local model, etc.) to generate messages. But note: using OpenAI or other cloud models will cost money for the AI model usage — the signaling + P2P media remains free.
+
+
+---
+
+8) Testing checklist (quick)
+
+1. Run server locally:
+
+
+
+cd server
+npm install
+npm start
+
+2. Serve client (open client/index.html from local file OR run a tiny static server):
+
+
+
+# from /client
+npx http-server -c-1 .  # or use any static server
+
+3. Open two different devices/browsers (or two tabs with different profiles) and use the same room id. Video + audio should connect P2P.
+
+
+4. If both tabs on same machine, use chrome://webrtc-internals to debug.
+
+
+5. If NAT issues appear across different networks, test with a TURN server.
+
+
+
+
+---
+
+9) Extra: Bandwidth control and audio settings
+
+If you want to reduce per-user bandwidth:
+
+Use lower video resolution and framerate:
+
+
+localStream.getVideoTracks()[0].applyConstraints({ width: 640, height: 360, frameRate: 15 });
+
+For audio, Opus will manage bitrate. You can lower outgoing bitrate by adjusting RTCRtpSender.setParameters():
+
+
+const sender = pc.getSenders().find(s => s.track && s.track.kind === 'audio');
+const params = sender.getParameters();
+if (!params.encodings) params.encodings = [{}];
+params.encodings[0].maxBitrate = 50000; // 50 kbps
+sender.setParameters(params);
+
+(Do this after pc.addTrack and before creating offer.)
+
+Note: Changing bitrate directly sometimes requires experimentation — but this does not require server bandwidth (still P2P).
+
+
+---
+
+10) Summary & next steps (one-line)
+
+Remove libgit (uninstall and remove imports).
+
+Launch the signaling server above.
+
+Update client SIGNALING_SERVER to your deployed URL.
+
+Use the client to create/join rooms — each room is 2-person P2P and uses only users’ bandwidth (free).
+
+Deploy signaling to Render/Fly/Glitch for free small-scale hosting.
+
+Use TURN only if necessary (it costs VPS bandwidth).
+
+
+
+---
+
+If you want, I can generate the exact repo structure (zipped), or I can convert the server to use TypeScript, or produce instructions to deploy to Render step-by-step with environment variables. Which of those would you like next?
