@@ -10,9 +10,14 @@ I prefer iterative development with clear, concise explanations for each step. P
 
 ### UI/UX Decisions
 - **Minimalist Design**: Non-intrusive UI with a focus on functionality.
-- **YouTube-Style Minimal PIP**: Picture-in-Picture window shows only video feeds and participant labels, no controls. All controls (mute, settings, disconnect) remain on the main screen.
-- **Auto-PIP Activation**: Automatically enters PIP mode when the first remote participant joins (once per session).
-- **Cross-Tab Persistence**: PiP windows follow the user across browser tabs.
+- **YouTube-Style Minimal PIP**: Picture-in-Picture windows at 320x180px (similar to YouTube mini player) with:
+  - Live video feeds with username labels
+  - Built-in controls for local user (mic toggle, camera toggle, disconnect)
+  - Audio enabled for remote participants
+  - Compact, non-intrusive design optimized for multitasking
+- **Manual PIP Activation**: Users can toggle PIP mode on/off with dedicated button in main controls
+- **Solo PIP Mode**: PIP works even when alone, allowing users to move their own video feed to a popup
+- **Cross-Tab Persistence**: PIP windows follow the user across browser tabs and persist independently
 - **Styling**: TailwindCSS with `shadcn/ui` components, featuring a custom design system including primary blue accents, high-contrast text, and subtle card elevations.
 - **Typography**: Inter font family for readability.
 
