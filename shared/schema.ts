@@ -72,3 +72,38 @@ export const roomSchema = z.object({
 });
 
 export type Room = z.infer<typeof roomSchema>;
+
+// Profile schema
+export const profileSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  username: z.string(),
+  bio: z.string().optional(),
+  photoUrl: z.string().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+});
+
+export type Profile = z.infer<typeof profileSchema>;
+
+// Friend schema
+export const friendSchema = z.object({
+  id: z.string(),
+  requesterId: z.string(),
+  receiverId: z.string(),
+  status: z.enum(["pending", "accepted", "declined"]),
+  createdAt: z.date().optional(),
+});
+
+export type Friend = z.infer<typeof friendSchema>;
+
+// Message schema
+export const messageSchema = z.object({
+  id: z.string(),
+  senderId: z.string(),
+  receiverId: z.string(),
+  content: z.string(),
+  createdAt: z.date().optional(),
+});
+
+export type Message = z.infer<typeof messageSchema>;

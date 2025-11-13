@@ -25,6 +25,27 @@ const tokenRequestSchema = z.object({
   username: z.string().min(1, "Username is required"),
 });
 
+// Profile request schemas
+const updateProfileSchema = z.object({
+  bio: z.string().max(500).optional(),
+  photoUrl: z.string().url().optional().or(z.literal("")),
+});
+
+// Friend request schemas
+const createFriendRequestSchema = z.object({
+  receiverId: z.string().min(1, "Receiver ID is required"),
+});
+
+const updateFriendStatusSchema = z.object({
+  status: z.enum(["accepted", "declined"]),
+});
+
+// Message schemas
+const createMessageSchema = z.object({
+  receiverId: z.string().min(1, "Receiver ID is required"),
+  content: z.string().min(1, "Message content is required").max(1000, "Message too long"),
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
@@ -308,6 +329,291 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to create or get user",
         details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
       });
+    }
+  });
+
+  // Profile API Routes
+  app.get("/api/profiles/:userId", async (req, res) => {
+    try {
+      // AUTHENTICATION: Verify user is logged in
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Unauthorized: Please log in" });
+      }
+
+      const { userId } = req.params;
+      
+      // AUTHORIZATION: Users can only view their own profile
+      if (req.session.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden: You can only view your own profile" });
+      }
+      
+      // Verify the user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const profile = await storage.getProfile(userId);
+      
+      if (!profile) {
+        return res.status(404).json({ error: "Profile not found" });
+      }
+      
+      res.json(profile);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  });
+
+  app.post("/api/profiles/:userId", async (req, res) => {
+    try {
+      // AUTHENTICATION: Verify user is logged in
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Unauthorized: Please log in" });
+      }
+
+      const { userId } = req.params;
+      
+      // AUTHORIZATION: Users can only update their own profile
+      if (req.session.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden: You can only update your own profile" });
+      }
+
+      // VALIDATION: Validate request body
+      const validationResult = updateProfileSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationResult.error.flatten().fieldErrors 
+        });
+      }
+
+      const { bio, photoUrl } = validationResult.data;
+      
+      // Verify the user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const existingProfile = await storage.getProfile(userId);
+      
+      if (existingProfile) {
+        await storage.updateProfile(userId, { bio, photoUrl });
+        const updatedProfile = await storage.getProfile(userId);
+        res.json(updatedProfile);
+      } else {
+        const newProfile = await storage.createProfile({
+          userId,
+          username: user.username,
+          bio,
+          photoUrl,
+        });
+        res.json(newProfile);
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Friend API Routes
+  app.post("/api/friends/request", async (req, res) => {
+    try {
+      // AUTHENTICATION: Verify user is logged in
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Unauthorized: Please log in" });
+      }
+
+      // VALIDATION: Validate request body
+      const validationResult = createFriendRequestSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationResult.error.flatten().fieldErrors 
+        });
+      }
+
+      const { receiverId } = validationResult.data;
+      const requesterId = req.session.userId; // Use session userId, not from body
+      
+      // Verify receiver exists
+      const receiver = await storage.getUser(receiverId);
+      if (!receiver) {
+        return res.status(404).json({ error: "Receiver user not found" });
+      }
+      
+      // Prevent sending friend request to yourself
+      if (requesterId === receiverId) {
+        return res.status(400).json({ error: "Cannot send friend request to yourself" });
+      }
+      
+      const friend = await storage.createFriend({
+        requesterId,
+        receiverId,
+        status: "pending",
+      });
+      
+      res.json(friend);
+    } catch (error) {
+      console.error("Error creating friend request:", error);
+      res.status(500).json({ error: "Failed to create friend request" });
+    }
+  });
+
+  app.get("/api/friends/:userId/requests", async (req, res) => {
+    try {
+      // AUTHENTICATION: Verify user is logged in
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Unauthorized: Please log in" });
+      }
+
+      const { userId } = req.params;
+      
+      // AUTHORIZATION: Users can only view their own friend requests
+      if (req.session.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden: You can only view your own friend requests" });
+      }
+      
+      const requests = await storage.getFriendRequests(userId);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching friend requests:", error);
+      res.status(500).json({ error: "Failed to fetch friend requests" });
+    }
+  });
+
+  app.get("/api/friends/:userId", async (req, res) => {
+    try {
+      // AUTHENTICATION: Verify user is logged in
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Unauthorized: Please log in" });
+      }
+
+      const { userId } = req.params;
+      
+      // AUTHORIZATION: Users can only view their own friends list
+      if (req.session.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden: You can only view your own friends" });
+      }
+      
+      const friends = await storage.getFriends(userId);
+      res.json(friends);
+    } catch (error) {
+      console.error("Error fetching friends:", error);
+      res.status(500).json({ error: "Failed to fetch friends" });
+    }
+  });
+
+  app.patch("/api/friends/:friendId", async (req, res) => {
+    try {
+      // AUTHENTICATION: Verify user is logged in
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Unauthorized: Please log in" });
+      }
+
+      const { friendId } = req.params;
+      
+      // VALIDATION: Validate request body
+      const validationResult = updateFriendStatusSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationResult.error.flatten().fieldErrors 
+        });
+      }
+
+      const { status } = validationResult.data;
+      
+      // Fetch the friend request to verify authorization
+      const friendRequest = await storage.getFriend(friendId);
+      if (!friendRequest) {
+        return res.status(404).json({ error: "Friend request not found" });
+      }
+      
+      // AUTHORIZATION: Only the receiver can accept/decline a friend request
+      if (friendRequest.receiverId !== req.session.userId) {
+        return res.status(403).json({ error: "Forbidden: You can only respond to friend requests sent to you" });
+      }
+      
+      await storage.updateFriendStatus(friendId, status);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating friend status:", error);
+      res.status(500).json({ error: "Failed to update friend status" });
+    }
+  });
+
+  // Message API Routes
+  app.post("/api/messages", async (req, res) => {
+    try {
+      // AUTHENTICATION: Verify user is logged in
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Unauthorized: Please log in" });
+      }
+
+      // VALIDATION: Validate request body
+      const validationResult = createMessageSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationResult.error.flatten().fieldErrors 
+        });
+      }
+
+      const { receiverId, content } = validationResult.data;
+      const senderId = req.session.userId; // Use session userId, not from body
+      
+      // Verify receiver exists
+      const receiver = await storage.getUser(receiverId);
+      if (!receiver) {
+        return res.status(404).json({ error: "Receiver user not found" });
+      }
+      
+      // Prevent sending message to yourself
+      if (senderId === receiverId) {
+        return res.status(400).json({ error: "Cannot send message to yourself" });
+      }
+      
+      const message = await storage.createMessage({
+        senderId,
+        receiverId,
+        content,
+      });
+      
+      res.json(message);
+    } catch (error) {
+      console.error("Error creating message:", error);
+      res.status(500).json({ error: "Failed to send message" });
+    }
+  });
+
+  app.get("/api/messages/:userId/:friendId", async (req, res) => {
+    try {
+      // AUTHENTICATION: Verify user is logged in
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Unauthorized: Please log in" });
+      }
+
+      const { userId, friendId } = req.params;
+      
+      // AUTHORIZATION: Users can only view their own messages
+      if (req.session.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden: You can only view your own messages" });
+      }
+      
+      // Verify friend exists
+      const friend = await storage.getUser(friendId);
+      if (!friend) {
+        return res.status(404).json({ error: "Friend user not found" });
+      }
+      
+      const messages = await storage.getMessages(userId, friendId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
     }
   });
 
