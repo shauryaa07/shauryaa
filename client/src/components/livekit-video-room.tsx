@@ -7,11 +7,14 @@ import {
   VideoTrack,
   AudioTrack,
 } from "@livekit/components-react";
-import { Track, RoomEvent } from "livekit-client";
+import { Track, RoomEvent, setLogLevel } from "livekit-client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Video as VideoIcon, VideoOff, Phone, PictureInPicture, Volume2, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+// Enable LiveKit debug logging for audio troubleshooting
+setLogLevel("debug");
 import ParticipantTile from "./participant-tile";
 
 interface LiveKitVideoRoomProps {
@@ -69,8 +72,27 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
       });
       
       if (track.kind === 'audio') {
-        console.log("✅ Audio track subscribed from:", participant.identity);
-        console.log("✅ Audio track will auto-attach and play");
+        console.log("✅ AUDIO SUBSCRIBED from:", participant.identity);
+        console.log("📡 Track SID:", publication.trackSid);
+        console.log("🔊 Track enabled:", track.isEnabled);
+        
+        // CRITICAL: Verify the audio will actually play
+        const mediaStreamTrack = track.mediaStreamTrack;
+        if (mediaStreamTrack) {
+          console.log("📡 Subscribed audio readyState:", mediaStreamTrack.readyState);
+          console.log("🎚️ Subscribed audio enabled:", mediaStreamTrack.enabled);
+          
+          if (mediaStreamTrack.readyState === "live" && mediaStreamTrack.enabled) {
+            console.log("✅✅✅ AUDIO SHOULD BE WORKING - Track is live and enabled!");
+          } else {
+            console.error("❌ AUDIO ISSUE: Track subscribed but not live/enabled!", {
+              readyState: mediaStreamTrack.readyState,
+              enabled: mediaStreamTrack.enabled
+            });
+          }
+        } else {
+          console.error("❌ AUDIO ISSUE: No mediaStreamTrack found on subscribed audio!");
+        }
       }
     };
 
@@ -91,7 +113,24 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
       });
       
       if (publication.kind === 'audio') {
-        console.log("✅ Local audio track published successfully");
+        console.log("✅✅✅ LOCAL AUDIO PUBLISHED successfully!");
+        console.log("📡 Track SID:", publication.trackSid);
+        console.log("🔊 Track enabled:", publication.track?.isEnabled);
+        console.log("🔇 Track muted:", publication.isMuted);
+        
+        // Verify the media stream track
+        const mediaStreamTrack = publication.track?.mediaStreamTrack;
+        if (mediaStreamTrack) {
+          console.log("📡 Published audio readyState:", mediaStreamTrack.readyState);
+          console.log("🎚️ Published audio enabled:", mediaStreamTrack.enabled);
+          
+          if (mediaStreamTrack.readyState !== "live") {
+            console.error("❌ CRITICAL: Audio track published but MediaStreamTrack is NOT LIVE!");
+            console.error("This means browser mic access failed or was revoked!");
+          } else {
+            console.log("✅ Microphone is capturing audio and transmitting!");
+          }
+        }
       }
     };
 
@@ -115,32 +154,56 @@ export default function LiveKitVideoRoom({ onDisconnect }: LiveKitVideoRoomProps
   const [hasAutoEnteredPip, setHasAutoEnteredPip] = useState(false);
 
   useEffect(() => {
-    console.log("Room connected:", room.name);
-    console.log("Total participants:", participants.length);
-    console.log("Remote participants:", remoteParticipants.length);
+    console.log("🎙️ Room connected:", room.name);
+    console.log("👥 Total participants:", participants.length);
+    console.log("🌐 Remote participants:", remoteParticipants.length);
 
-    // Log local participant audio status
+    // STEP 1: Detailed local participant audio diagnostics
     if (localParticipant) {
       console.log("✅ Local participant:", localParticipant.identity);
-      console.log("✅ Mic enabled:", localParticipant.isMicrophoneEnabled);
+      console.log("🎤 Mic enabled:", localParticipant.isMicrophoneEnabled);
       
       // Check if audio track is being published
       const micTrack = localParticipant.getTrackPublication(Track.Source.Microphone);
       if (micTrack) {
-        console.log("✅ Publishing audio track:", micTrack.trackSid);
-        console.log("✅ Audio track muted:", micTrack.isMuted);
+        console.log("✅ Audio track published:", micTrack.trackSid);
+        console.log("🔇 Audio track muted:", micTrack.isMuted);
+        console.log("📊 Audio track enabled:", micTrack.track?.isEnabled);
+        
+        // CRITICAL: Check MediaStreamTrack state
+        const mediaStreamTrack = (micTrack.track as any)?.mediaStreamTrack;
+        if (mediaStreamTrack) {
+          console.log("📡 MediaStreamTrack readyState:", mediaStreamTrack.readyState);
+          console.log("🎚️ MediaStreamTrack enabled:", mediaStreamTrack.enabled);
+          console.log("🔊 MediaStreamTrack muted:", mediaStreamTrack.muted);
+          
+          if (mediaStreamTrack.readyState !== "live") {
+            console.error("❌ AUDIO ISSUE: MediaStreamTrack is not live! State:", mediaStreamTrack.readyState);
+          }
+        } else {
+          console.error("❌ AUDIO ISSUE: No MediaStreamTrack found!");
+        }
       } else {
-        console.warn("⚠️  No audio track found - audio may not be circulating");
+        console.error("❌ AUDIO ISSUE: No audio track found - audio may not be circulating");
       }
     }
 
-    // Log remote participants audio status
+    // STEP 2: Detailed remote participants audio diagnostics
     remoteParticipants.forEach((participant) => {
       console.log("👤 Remote participant:", participant.identity);
       const remoteAudioTrack = participant.getTrackPublication(Track.Source.Microphone);
       if (remoteAudioTrack) {
         console.log("✅ Subscribed to remote audio track:", remoteAudioTrack.trackSid);
-        console.log("✅ Remote audio muted:", remoteAudioTrack.isMuted);
+        console.log("🔇 Remote audio muted:", remoteAudioTrack.isMuted);
+        console.log("📊 Remote track subscribed:", remoteAudioTrack.isSubscribed);
+        console.log("📡 Remote track enabled:", remoteAudioTrack.track?.isEnabled);
+        
+        // Check if audio element is attached
+        const mediaStreamTrack = (remoteAudioTrack.track as any)?.mediaStreamTrack;
+        if (mediaStreamTrack) {
+          console.log("📡 Remote MediaStreamTrack readyState:", mediaStreamTrack.readyState);
+          console.log("🎚️ Remote MediaStreamTrack enabled:", mediaStreamTrack.enabled);
+        }
       } else {
         console.warn("⚠️  No remote audio track subscribed from:", participant.identity);
       }
