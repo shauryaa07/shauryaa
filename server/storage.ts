@@ -1,4 +1,5 @@
 import { Session, Room, Profile, Friend, Message } from "@shared/schema";
+import { firestoreStorage } from "./firestore-storage";
 
 export interface User {
   id: string;
@@ -276,13 +277,15 @@ if (isFirebaseConfigured) {
 // For now, always use in-memory storage unless explicitly enabled via USE_FIRESTORE
 const useFirestore = process.env.USE_FIRESTORE === "true" && isFirebaseConfigured;
 
+let storage: IStorage;
+
 if (useFirestore) {
   console.log("📊 Using Firebase Firestore for persistent data storage");
+  storage = firestoreStorage;
 } else {
   console.log("📊 Using in-memory storage (data will be lost on restart)");
   console.log("📊 To enable persistent storage, configure Firebase and set USE_FIRESTORE=true");
+  storage = new MemStorage();
 }
 
-// Note: To enable Firestore, import firestoreStorage from "./firestore-storage"
-// and conditionally export it here based on USE_FIRESTORE environment variable
-export const storage = new MemStorage();
+export { storage };
