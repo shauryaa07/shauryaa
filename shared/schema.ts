@@ -59,6 +59,7 @@ export type Settings = z.infer<typeof settingsSchema>;
 
 // Room schema - for managing study rooms (public and private)
 // LIMIT: Maximum 2 users per room (1 host + 1 participant)
+// Rooms are TEMPORARY - automatically deleted when empty (occupancy = 0)
 export const roomSchema = z.object({
   id: z.string(),
   name: z.string().min(1).max(50),
@@ -71,37 +72,3 @@ export const roomSchema = z.object({
 });
 
 export type Room = z.infer<typeof roomSchema>;
-
-// Profile schema - for user profiles
-export const profileSchema = z.object({
-  userId: z.string(),
-  bio: z.string().max(500).optional(),
-  photoUrl: z.string().optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
-
-export type Profile = z.infer<typeof profileSchema>;
-
-// Friend schema - for friend relationships
-export const friendSchema = z.object({
-  id: z.string(),
-  requesterId: z.string(),
-  receiverId: z.string(),
-  status: z.enum(["pending", "accepted", "declined"]),
-  createdAt: z.date(),
-});
-
-export type Friend = z.infer<typeof friendSchema>;
-
-// Message schema - for DM messaging
-export const messageSchema = z.object({
-  id: z.string(),
-  senderId: z.string(),
-  receiverId: z.string(),
-  content: z.string().min(1).max(1000),
-  read: z.boolean().default(false),
-  createdAt: z.date(),
-});
-
-export type Message = z.infer<typeof messageSchema>;
