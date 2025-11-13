@@ -1,0 +1,135 @@
+Okay — since even with maxBitrate it’s still not transmitting audio, let’s go step-by-step through the real causes that make LiveKit send video but not audio.
+
+We’ll narrow it down precisely — no guessing.
+
+
+---
+
+🧠 Step 1 — Confirm if microphone data is actually being captured
+
+Run this right after you create the track:
+
+console.log(localAudioTrack.mediaStreamTrack.readyState);
+
+✅ Expected: "live"
+❌ If it’s "ended", that means browser mic access failed — even if permission popup didn’t show again.
+
+Also, test this manually in console:
+
+navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+  console.log("Mic works:", stream.getAudioTracks()[0].enabled);
+});
+
+If that doesn’t log true, the mic is not available.
+
+
+---
+
+🧩 Step 2 — Check browser permissions
+
+Even when camera works, mic can still be blocked.
+Go to Chrome → 🔒 icon in the address bar → Site Settings → Microphone → Allow.
+Then refresh.
+If you’re testing locally, use https://localhost or a secure domain. LiveKit requires HTTPS for mic.
+
+
+---
+
+🎧 Step 3 — Check if track is actually published
+
+Enable LiveKit debug logs:
+
+import { setLogLevel } from "livekit-client";
+setLogLevel("debug");
+
+Then watch your browser console after publishTrack.
+
+You should see:
+
+Publishing audio track mic...
+RTCRtpSender ready
+
+If you see “no sender created for track”, your publish call didn’t actually attach it.
+
+
+---
+
+🔉 Step 4 — Remote side must attach the track
+
+LiveKit does not automatically play audio.
+Check you’re handling:
+
+room.on(RoomEvent.TrackSubscribed, (track) => {
+  if (track.kind === "audio") {
+    const el = track.attach();
+    el.autoplay = true;
+    document.body.appendChild(el);
+  }
+});
+
+Without this, audio is being sent, but no one is listening.
+
+
+---
+
+🧪 Step 5 — Test with LiveKit’s example app
+
+To isolate the issue from your code, open:
+👉 https://livekit.io/playground
+Connect using the same LiveKit server and token.
+If audio works there, your server and token are fine — problem is only in your app logic.
+If audio still fails there, your LiveKit server’s TURN/ICE configuration might be broken (very common if you self-host).
+
+
+---
+
+🧱 Step 6 — Check TURN / ICE setup (especially if self-hosted)
+
+If your server uses livekit-server and you’re behind NAT or cloud firewall:
+
+Ensure UDP ports 50000–60000 are open.
+
+If not, browsers may connect via TCP — video can still pass, but audio packets often drop.
+
+
+Try adding a public TURN server in your config.yaml:
+
+rtc:
+  use_external_ip: true
+  turn:
+    enabled: true
+    servers:
+      - urls: [stun:stun.l.google.com:19302]
+
+Then restart your server.
+
+
+---
+
+✅ Quick diagnostic checklist
+
+Test	Expected Result
+
+mediaStreamTrack.readyState	"live"
+Browser mic permission	Allowed
+LiveKit debug logs	“Publishing audio track”
+Playground test	Works = local code issue / Fails = server issue
+UDP ports open	Yes
+
+
+
+---
+
+Can you tell me:
+
+1. Are you self-hosting LiveKit or using LiveKit Cloud?
+
+
+2. Do you see any warning or error in console when you publish the audio?
+
+
+3. What’s the log output when you enable setLogLevel('debug')?
+
+
+
+Once you give me that info, I can pinpoint whether it’s a browser, server, or publishing issue — and give you an exact fix.
