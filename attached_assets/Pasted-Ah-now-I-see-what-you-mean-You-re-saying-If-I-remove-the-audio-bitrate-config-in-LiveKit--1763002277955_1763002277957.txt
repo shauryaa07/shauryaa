@@ -1,0 +1,104 @@
+Ah — now I see what you mean 👀
+
+You’re saying:
+
+> If I remove the audio bitrate config in LiveKit, it automatically adjusts bitrate (higher bandwidth = more cost).
+So you set it manually to 50 kbps or 96 kbps to control usage — but then voice stops transmitting, right?
+
+
+
+That’s a smart optimization idea 💡 but here’s what’s happening technically 👇
+
+
+---
+
+⚠ Why Audio Stops Working When You Set Bitrate
+
+LiveKit uses the Opus codec, which automatically manages variable bitrate (VBR).
+When you force a fixed bitrate manually, LiveKit’s RTCRtpSender constraints can get mismatched with Opus expectations — leading to:
+
+track creation success ✅
+
+but no audio packets transmitted ❌
+
+
+Especially if you use:
+
+createLocalAudioTrack({ bitrate: 50000 })
+
+LiveKit may ignore or break that config silently.
+
+
+---
+
+✅ Correct Way to Limit Audio Bandwidth (without breaking it)
+
+Instead of setting bitrate directly, use maxBitrate in publishTrack:
+
+const audioTrack = await createLocalAudioTrack();
+
+await room.localParticipant.publishTrack(audioTrack, {
+  maxBitrate: 50000, // 50 kbps limit
+});
+
+👉 This way:
+
+Opus still adapts naturally (no silence issue)
+
+You get a hard cap on average bitrate
+
+Voice will transmit normally
+
+
+
+---
+
+🧩 Optional: Disable DTX (to save cost further)
+
+Opus uses “Discontinuous Transmission” — it sends no packets during silence. If you enable this (it’s on by default), you’ll save more bandwidth:
+
+const audioTrack = await createLocalAudioTrack({
+  dtx: true, // saves bandwidth when no one’s speaking
+});
+
+
+---
+
+🔊 Full Working Example
+
+import { connect, createLocalAudioTrack, RoomEvent } from "livekit-client";
+
+const room = await connect(LIVEKIT_URL, token);
+
+const audioTrack = await createLocalAudioTrack({ dtx: true });
+
+await room.localParticipant.publishTrack(audioTrack, {
+  maxBitrate: 50000, // 50 kbps
+});
+
+// remote side
+room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+  if (track.kind === "audio") {
+    const el = track.attach();
+    el.autoplay = true;
+    document.body.appendChild(el);
+  }
+});
+
+
+---
+
+💡 Summary
+
+Goal	Wrong Way	Correct Way
+
+Control audio cost	bitrate: 50000 inside createLocalAudioTrack()	maxBitrate: 50000 inside publishTrack()
+Save bandwidth	Lower sample rate manually	Use dtx: true
+Maintain clarity	Fixed bitrate	Let Opus adjust (within your maxBitrate cap)
+
+
+
+---
+
+If you share your current audio setup code, I can rewrite it to be bandwidth-optimized and fully functional (no silent mic).
+Would you like me to fix your code snippet accordingly?
