@@ -10,9 +10,9 @@ interface LiveKitRoomProviderProps {
   children: ReactNode;
 }
 
-// Custom audio preset for voice - fixed 50kbps
+// Custom audio preset for voice - 96kbps for clear audio
 const customAudioPreset: AudioPreset = {
-  maxBitrate: 50_000,
+  maxBitrate: 96_000,
 };
 
 export function LiveKitRoomProvider({
@@ -35,8 +35,8 @@ export function LiveKitRoomProvider({
         dynacast: false,
         publishDefaults: {
           simulcast: false,
-          dtx: true,
-          // Custom audio preset for voice - 50kbps fixed
+          dtx: false,
+          // Custom audio preset for voice - 96kbps for clear audio
           audioPreset: customAudioPreset,
           // Fixed video encoding - 180p, 20fps, 150-250kbps
           videoEncoding: {
