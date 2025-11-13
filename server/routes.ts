@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { registerSchema, loginSchema } from "@shared/schema";
+import { setupSignaling } from "./signaling";
 
 // Request validation schemas
 const createRoomSchema = z.object({
@@ -47,6 +48,9 @@ const createMessageSchema = z.object({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+  
+  // Initialize WebRTC signaling server with Socket.io
+  setupSignaling(httpServer);
 
   app.get("/api/health", async (req, res) => {
     try {

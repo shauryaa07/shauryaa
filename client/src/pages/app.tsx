@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { User, Settings } from "@shared/schema";
 import { AuthForm } from "@/components/auth-form";
 import UnifiedLobby from "@/components/unified-lobby";
+import { WebRTCVideoRoom } from "@/components/webrtc-video-room";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -234,19 +235,13 @@ export default function App() {
         </div>
       )}
 
-      {appState === "connected" && selectedRoomId && (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-4">WebRTC Room</h2>
-            <p className="text-muted-foreground mb-4">Room ID: {selectedRoomId}</p>
-            <button 
-              onClick={handleDisconnect}
-              className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md"
-            >
-              Leave Room
-            </button>
-          </div>
-        </div>
+      {appState === "connected" && selectedRoomId && user && (
+        <WebRTCVideoRoom
+          roomId={selectedRoomId}
+          userId={user.id}
+          username={user.username}
+          onDisconnect={handleDisconnect}
+        />
       )}
     </div>
   );
