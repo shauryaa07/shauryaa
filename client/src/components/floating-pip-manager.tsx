@@ -26,83 +26,70 @@ export default function FloatingPiPManager({
   onToggleVideo,
   onDisconnect,
 }: FloatingPiPManagerProps) {
-  const popupWindowsRef = useRef<Map<string, Window>>(new Map());
+  const popupWindowRef = useRef<Window | null>(null);
+  const videoElementsRef = useRef<Map<string, HTMLVideoElement>>(new Map());
 
+  // Effect to open/close PIP window based on isActive state only
   useEffect(() => {
     if (!isActive) {
-      popupWindowsRef.current.forEach((popup) => {
-        if (popup && !popup.closed) {
-          popup.close();
-        }
-      });
-      popupWindowsRef.current.clear();
+      if (popupWindowRef.current && !popupWindowRef.current.closed) {
+        popupWindowRef.current.close();
+      }
+      popupWindowRef.current = null;
+      videoElementsRef.current.clear();
       return;
     }
 
-    const openPopupWindows = () => {
-      participants.forEach((participant, index) => {
-        if (popupWindowsRef.current.has(participant.id)) {
-          const existingWindow = popupWindowsRef.current.get(participant.id);
-          if (existingWindow && !existingWindow.closed) {
-            updatePopupContent(existingWindow, participant);
-            return;
-          }
-        }
+    // Only create the window if it doesn't exist or is closed
+    if (popupWindowRef.current && !popupWindowRef.current.closed) {
+      return; // Window already exists, don't recreate
+    }
 
-        const offsetX = 100 + (index * 50);
-        const offsetY = 100 + (index * 50);
-        const width = 320;
-        const height = 180;
+    const width = 800;
+    const height = 500;
+    const left = (screen.width - width) / 2;
+    const top = (screen.height - height) / 2;
 
-        const popup = window.open(
-          '',
-          `pip_${participant.id}`,
-          `width=${width},height=${height},left=${offsetX},top=${offsetY},resizable=yes,scrollbars=no,status=no,location=no,toolbar=no,menubar=no`
-        );
+    const popup = window.open(
+      '',
+      'hey_buddy_pip',
+      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=no,status=no,location=no,toolbar=no,menubar=no`
+    );
 
-        if (popup) {
-          popupWindowsRef.current.set(participant.id, popup);
-          setupPopupWindow(popup, participant);
+    if (popup) {
+      popupWindowRef.current = popup;
+      setupSinglePiPWindow(popup);
 
-          popup.addEventListener('beforeunload', () => {
-            popupWindowsRef.current.delete(participant.id);
-            if (popupWindowsRef.current.size === 0) {
-              onDeactivate();
-            }
-          });
-        }
+      popup.addEventListener('beforeunload', () => {
+        popupWindowRef.current = null;
+        videoElementsRef.current.clear();
+        onDeactivate();
       });
-
-      const participantIds = new Set(participants.map(p => p.id));
-      popupWindowsRef.current.forEach((popup, id) => {
-        if (!participantIds.has(id)) {
-          if (popup && !popup.closed) {
-            popup.close();
-          }
-          popupWindowsRef.current.delete(id);
-        }
-      });
-    };
-
-    openPopupWindows();
+    }
 
     return () => {
-      popupWindowsRef.current.forEach((popup) => {
-        if (popup && !popup.closed) {
-          popup.close();
-        }
-      });
-      popupWindowsRef.current.clear();
+      if (popupWindowRef.current && !popupWindowRef.current.closed) {
+        popupWindowRef.current.close();
+      }
+      popupWindowRef.current = null;
+      videoElementsRef.current.clear();
     };
-  }, [isActive, participants, onDeactivate]);
+  }, [isActive, onDeactivate]);
 
-  const setupPopupWindow = (popup: Window, participant: ParticipantData) => {
+  // Separate effect to update participants without recreating the window
+  useEffect(() => {
+    if (isActive && popupWindowRef.current && !popupWindowRef.current.closed) {
+      updateAllParticipants();
+    }
+  }, [participants, isActive]);
+
+  const setupSinglePiPWindow = (popup: Window) => {
     const doc = popup.document;
     doc.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>${participant.username}</title>
+          <title>Hey Buddy - Study Together</title>
           <style>
             * {
               margin: 0;
@@ -111,14 +98,28 @@ export default function FloatingPiPManager({
             }
             body {
               font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              background: #0a0a0a;
+              background: #020202;
+              overflow: auto;
+              min-height: 100vh;
+              padding: 16px;
+            }
+            .participants-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+              gap: 16px;
+              width: 100%;
+            }
+            .participant-tile {
+              background: #000;
+              border-radius: 8px;
               overflow: hidden;
-              height: 100vh;
-              display: flex;
-              flex-direction: column;
+              position: relative;
+              aspect-ratio: 16/9;
+              min-height: 150px;
             }
             .video-container {
-              flex: 1;
+              width: 100%;
+              height: 100%;
               background: #000;
               position: relative;
               display: flex;
@@ -136,7 +137,6 @@ export default function FloatingPiPManager({
             }
             .placeholder-icon {
               font-size: 32px;
-              margin-bottom: 8px;
               width: 48px;
               height: 48px;
               margin: 0 auto 8px;
@@ -157,7 +157,7 @@ export default function FloatingPiPManager({
               transform: translateX(-50%);
               display: flex;
               gap: 6px;
-              background: rgba(0, 0, 0, 0.7);
+              background: rgba(0, 0, 0, 0.8);
               padding: 6px;
               border-radius: 8px;
               backdrop-filter: blur(8px);
@@ -178,12 +178,18 @@ export default function FloatingPiPManager({
               transform: scale(1.1);
             }
             .control-btn.mic {
-              background: ${participant.isMuted ? '#ef4444' : '#22c55e'};
+              background: #22c55e;
               color: white;
             }
+            .control-btn.mic.muted {
+              background: #ef4444;
+            }
             .control-btn.video {
-              background: ${participant.isVideoOff ? '#ef4444' : '#3b82f6'};
+              background: #3b82f6;
               color: white;
+            }
+            .control-btn.video.off {
+              background: #ef4444;
             }
             .control-btn.disconnect {
               background: #dc2626;
@@ -193,7 +199,7 @@ export default function FloatingPiPManager({
               position: absolute;
               top: 8px;
               left: 8px;
-              background: rgba(0, 0, 0, 0.7);
+              background: rgba(0, 0, 0, 0.8);
               color: white;
               padding: 4px 8px;
               border-radius: 4px;
@@ -201,138 +207,125 @@ export default function FloatingPiPManager({
               font-weight: 500;
               backdrop-filter: blur(8px);
             }
+            .muted-indicator {
+              position: absolute;
+              top: 8px;
+              right: 8px;
+              background: rgba(239, 68, 68, 0.9);
+              color: white;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 500;
+            }
           </style>
         </head>
         <body>
-          <div class="video-container" id="videoContainer">
-            ${participant.isVideoOff ? `
-              <div class="placeholder">
-                <div class="placeholder-icon">${participant.username.charAt(0).toUpperCase()}</div>
-                <div class="placeholder-text">Video Off</div>
-              </div>
-            ` : '<video id="video" autoplay playsinline></video>'}
-            <div class="username-label">${participant.username}</div>
-            ${participant.isLocal ? `
-              <div class="controls">
-                <button class="control-btn mic" id="micBtn" title="Toggle Microphone">
-                  ${participant.isMuted ? '🔇' : '🎤'}
-                </button>
-                <button class="control-btn video" id="videoBtn" title="Toggle Camera">
-                  ${participant.isVideoOff ? '📹' : '🎥'}
-                </button>
-                <button class="control-btn disconnect" id="disconnectBtn" title="Disconnect">
-                  ✕
-                </button>
-              </div>
-            ` : ''}
-          </div>
+          <div class="participants-grid" id="participantsGrid"></div>
         </body>
       </html>
     `);
     doc.close();
-
-    if (!participant.isVideoOff && participant.stream) {
-      const video = doc.getElementById('video') as HTMLVideoElement;
-      if (video) {
-        video.srcObject = participant.stream;
-        video.muted = participant.isLocal;
-        video.play().catch(err => console.warn('Autoplay blocked:', err));
-      }
-    }
-
-    if (participant.isLocal) {
-      const micBtn = doc.getElementById('micBtn');
-      const videoBtn = doc.getElementById('videoBtn');
-      const disconnectBtn = doc.getElementById('disconnectBtn');
-
-      if (micBtn && onToggleAudio) {
-        micBtn.addEventListener('click', () => {
-          onToggleAudio();
-        });
-      }
-
-      if (videoBtn && onToggleVideo) {
-        videoBtn.addEventListener('click', () => {
-          onToggleVideo();
-        });
-      }
-
-      if (disconnectBtn && onDisconnect) {
-        disconnectBtn.addEventListener('click', () => {
-          onDisconnect();
-        });
-      }
-    }
+    
+    updateAllParticipants();
   };
 
-  const updatePopupContent = (popup: Window, participant: ParticipantData) => {
-    if (popup.closed) return;
+  const updateAllParticipants = () => {
+    const popup = popupWindowRef.current;
+    if (!popup || popup.closed) return;
 
     const doc = popup.document;
-    
-    // Update username label
-    const usernameLabel = doc.querySelector('.username-label');
-    if (usernameLabel) {
+    const grid = doc.getElementById('participantsGrid');
+    if (!grid) return;
+
+    // Clear existing tiles
+    grid.innerHTML = '';
+    videoElementsRef.current.clear();
+
+    // Create a tile for each participant
+    participants.forEach((participant) => {
+      const tile = doc.createElement('div');
+      tile.className = 'participant-tile';
+      tile.id = `participant-${participant.id}`;
+
+      const videoContainer = doc.createElement('div');
+      videoContainer.className = 'video-container';
+
+      // Username label
+      const usernameLabel = doc.createElement('div');
+      usernameLabel.className = 'username-label';
       usernameLabel.textContent = participant.username;
-    }
+      videoContainer.appendChild(usernameLabel);
 
-    // Update video/placeholder without destroying controls
-    const existingVideo = doc.getElementById('video') as HTMLVideoElement;
-    const existingPlaceholder = doc.querySelector('.placeholder');
-    const videoContainer = doc.getElementById('videoContainer');
-    
-    if (!videoContainer) return;
-
-    if (participant.isVideoOff) {
-      // Remove video if exists, add placeholder if not exists
-      if (existingVideo) {
-        existingVideo.remove();
+      // Muted indicator for remote participants
+      if (!participant.isLocal && participant.isMuted) {
+        const mutedIndicator = doc.createElement('div');
+        mutedIndicator.className = 'muted-indicator';
+        mutedIndicator.textContent = '🔇 Muted';
+        videoContainer.appendChild(mutedIndicator);
       }
-      if (!existingPlaceholder) {
+
+      // Video or placeholder
+      if (participant.isVideoOff) {
         const placeholder = doc.createElement('div');
         placeholder.className = 'placeholder';
         placeholder.innerHTML = `
           <div class="placeholder-icon">${participant.username.charAt(0).toUpperCase()}</div>
           <div class="placeholder-text">Video Off</div>
         `;
-        videoContainer.insertBefore(placeholder, videoContainer.firstChild);
-      }
-    } else {
-      // Remove placeholder if exists, add/update video
-      if (existingPlaceholder) {
-        existingPlaceholder.remove();
-      }
-      if (existingVideo && existingVideo.srcObject !== participant.stream) {
-        existingVideo.srcObject = participant.stream;
-        existingVideo.muted = participant.isLocal;
-        existingVideo.play().catch(err => console.warn('Autoplay blocked:', err));
-      } else if (!existingVideo && participant.stream) {
+        videoContainer.appendChild(placeholder);
+      } else if (participant.stream) {
         const video = doc.createElement('video');
-        video.id = 'video';
         video.autoplay = true;
         video.playsInline = true;
         video.srcObject = participant.stream;
-        video.muted = participant.isLocal;
-        videoContainer.insertBefore(video, videoContainer.firstChild);
+        video.muted = participant.isLocal; // Mute local video to prevent echo
         video.play().catch(err => console.warn('Autoplay blocked:', err));
+        videoElementsRef.current.set(participant.id, video);
+        videoContainer.appendChild(video);
       }
-    }
 
-    // Update control button states if local participant
-    if (participant.isLocal) {
-      const micBtn = doc.getElementById('micBtn');
-      const videoBtn = doc.getElementById('videoBtn');
-      
-      if (micBtn) {
-        micBtn.style.background = participant.isMuted ? '#ef4444' : '#22c55e';
+      // Controls (only for local participant)
+      if (participant.isLocal) {
+        const controls = doc.createElement('div');
+        controls.className = 'controls';
+
+        // Mic button
+        const micBtn = doc.createElement('button');
+        micBtn.className = `control-btn mic ${participant.isMuted ? 'muted' : ''}`;
         micBtn.textContent = participant.isMuted ? '🔇' : '🎤';
-      }
-      
-      if (videoBtn) {
-        videoBtn.style.background = participant.isVideoOff ? '#ef4444' : '#3b82f6';
+        micBtn.title = 'Toggle Microphone';
+        if (onToggleAudio) {
+          micBtn.addEventListener('click', () => onToggleAudio());
+        }
+        controls.appendChild(micBtn);
+
+        // Video button
+        const videoBtn = doc.createElement('button');
+        videoBtn.className = `control-btn video ${participant.isVideoOff ? 'off' : ''}`;
         videoBtn.textContent = participant.isVideoOff ? '📹' : '🎥';
+        videoBtn.title = 'Toggle Camera';
+        if (onToggleVideo) {
+          videoBtn.addEventListener('click', () => onToggleVideo());
+        }
+        controls.appendChild(videoBtn);
+
+        // Disconnect button
+        const disconnectBtn = doc.createElement('button');
+        disconnectBtn.className = 'control-btn disconnect';
+        disconnectBtn.textContent = '✕';
+        disconnectBtn.title = 'Disconnect';
+        if (onDisconnect) {
+          disconnectBtn.addEventListener('click', () => onDisconnect());
+        }
+        controls.appendChild(disconnectBtn);
+
+        videoContainer.appendChild(controls);
       }
-    }
+
+      tile.appendChild(videoContainer);
+      grid.appendChild(tile);
+    });
   };
 
   return null;

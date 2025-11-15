@@ -40,22 +40,23 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const otherSocketIdRef = useRef<string | null>(null);
   const reconnectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isPageHiddenRef = useRef<boolean>(false);
   
   const onDisconnectedCallback = useCallback(() => {
     onDisconnected();
   }, [onDisconnected]);
 
-  // Get local media stream with enhanced echo cancellation and noise suppression
+  // Get local media stream with enhanced audio quality settings
   const getLocalMedia = useCallback(async () => {
     try {
-      // Use ideal constraints for better cross-browser compatibility
+      // Enforce 48kHz mono audio with enhanced processing for clear voice
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          sampleRate: { ideal: 48000 },
-          channelCount: { ideal: 1 }
+          sampleRate: 48000, // Enforce 48kHz (not ideal, but exact)
+          channelCount: 1 // Mono for voice calls
         },
         video: {
           width: { ideal: 1280 },
@@ -76,9 +77,44 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
   const createPeerConnection = useCallback((stream: MediaStream) => {
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     
-    // Add local tracks to peer connection
+    // Add local tracks to peer connection and configure audio codec preferences
     stream.getTracks().forEach(track => {
-      pc.addTrack(track, stream);
+      const sender = pc.addTrack(track, stream);
+      
+      // Configure audio codec preferences and bitrate for better quality
+      if (track.kind === 'audio') {
+        const transceiver = pc.getTransceivers().find(t => t.sender === sender);
+        if (transceiver) {
+          // Try to prefer Opus codec with high bitrate
+          try {
+            const codecs = RTCRtpSender.getCapabilities('audio')?.codecs;
+            if (codecs) {
+              const opusCodecs = codecs.filter(codec => 
+                codec.mimeType.toLowerCase() === 'audio/opus'
+              );
+              if (opusCodecs.length > 0) {
+                transceiver.setCodecPreferences(opusCodecs);
+                console.log('✅ Opus codec preference set for audio');
+              }
+            }
+          } catch (err) {
+            console.warn('⚠️ Could not set codec preferences (fallback mode):', err);
+          }
+          
+          // Set audio parameters for better quality
+          const parameters = sender.getParameters();
+          if (!parameters.encodings) {
+            parameters.encodings = [{}];
+          }
+          parameters.encodings.forEach(encoding => {
+            encoding.maxBitrate = 96000; // 96 kbps for clear voice
+          });
+          parameters.degradationPreference = 'maintain-framerate';
+          sender.setParameters(parameters).catch(err => {
+            console.warn('⚠️ Could not set audio parameters:', err);
+          });
+        }
+      }
     });
 
     // Handle ICE candidates
@@ -117,12 +153,17 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
         setIsConnecting(false);
       } else if (pc.iceConnectionState === 'disconnected') {
         setIsConnected(false);
-        reconnectionTimeoutRef.current = setTimeout(() => {
-          if (pc.iceConnectionState === 'disconnected') {
-            console.log('⚠️ Connection timeout - disconnecting');
-            onDisconnectedCallback();
-          }
-        }, 5000);
+        // Don't trigger disconnect if page is hidden (PIP mode or tab switch)
+        if (!isPageHiddenRef.current) {
+          reconnectionTimeoutRef.current = setTimeout(() => {
+            if (pc.iceConnectionState === 'disconnected' && !isPageHiddenRef.current) {
+              console.log('⚠️ Connection timeout - disconnecting');
+              onDisconnectedCallback();
+            }
+          }, 20000); // Increased to 20 seconds for better stability
+        } else {
+          console.log('⏸️ Page hidden - suspending disconnect timer');
+        }
       } else if (pc.iceConnectionState === 'failed') {
         console.log('❌ ICE connection failed');
         setIsConnected(false);
@@ -271,8 +312,24 @@ export function useWebRTC({ roomId, userId, username, onDisconnected }: UseWebRT
 
     init();
 
+    // Handle page visibility changes to prevent disconnect during PIP mode
+    const handleVisibilityChange = () => {
+      isPageHiddenRef.current = document.hidden;
+      console.log(document.hidden ? '🙈 Page hidden' : '👀 Page visible');
+      
+      // Clear any pending disconnect timeout when page becomes visible again
+      if (!document.hidden && reconnectionTimeoutRef.current) {
+        clearTimeout(reconnectionTimeoutRef.current);
+        reconnectionTimeoutRef.current = null;
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // Cleanup
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      
       console.log('🧹 Cleaning up WebRTC connection');
       
       // Clear reconnection timeout
